@@ -1,0 +1,16 @@
+dataset,split,unique_queries
+aime,hybrid,60
+bbh,test,1080
+emorynlp,test,697
+finqa,test,1147
+gpqa,test,198
+humaneval,test,164
+kandk,test,700
+korbench,test,1250
+livecodebench,test,1055
+math500,test,500
+mathbench,test,150
+mbpp,test,974
+medqa,test,1273
+meld,test,1232
+mmlupro,test_1000,1001

@@ -1,0 +1,10 @@
+model,recorded_cost_usd
+DeepSeek-R1-0528-Qwen3-8B,0.6159906000000012
+Qwen3-8B,0.6011829700000004
+Intern-S1-mini,0.20988909400000005
+NVIDIA-Nemotron-Nano-9B-v2,0.06394568000000002
+gemma-2-9b-it,0.002420156000000002
+MiniCPM4.1-8B,0.0
+Qwen2.5-Coder-7B-Instruct,0.0
+cogito-v1-preview-llama-8B,0.0
+GLM-Z1-9B-0414,0.0

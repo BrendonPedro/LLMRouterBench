@@ -1,0 +1,11 @@
+embedding_model:
+  name: Alibaba-NLP/gte-Qwen2-7B-instruct
+  api_model_name: Alibaba-NLP/gte-Qwen2-7B-instruct
+  generator_type: embedding
+  base_url: https://app.ai-grid.io/v1
+  api_key: AIGRID_API_KEY
+  timeout: 600
+  max_context_length: 25000
+
+cache:
+  enabled: false

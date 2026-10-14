@@ -1,0 +1,3 @@
+experiment,candidate_models,evaluation,main_score_pct,best_fixed_score_pct,gain_vs_best_fixed_pp,oracle_or_ceiling_pct,notes
+TF-IDF + Logistic Regression,2,10-seed mean,68.22060957910016,67.27721335268504,0.943396226415092,75.83164005805514,Two-model learning baseline: DeepSeek-R1-0528-Qwen3-8B vs Qwen3-8B.
+AvengersPro,20,Seed 42,70.08125362739408,66.728,4.70788825957861,,20-model semantic embedding + K-means routing. Not directly comparable to the two-model TF-IDF result yet.

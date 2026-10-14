@@ -280,3 +280,15 @@ results/inference
 
 # SGI-Bench runner script (contains local config, use run_sgibench.sh.example as template)
 run_sgibench.sh
+# Local LLMRouterBench research artifacts
+.venv/
+results/bench/
+results/bench-release.tar.gz
+baselines/AvengersPro/cache/
+baselines/AvengersPro/data/small_models_seed_*/
+local_experiments/results/*.log
+local_experiments/results/*.pid
+
+# Re-generated large experiment artifacts
+local_experiments/results/*.joblib
+local_experiments/results/*_predictions.csv

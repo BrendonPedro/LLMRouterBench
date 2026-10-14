@@ -1,0 +1,10 @@
+metric,value,unit,meaning
+AvengersPro Dataset-Avg,71.4358882595786,percent,"Average router accuracy across datasets, with each dataset weighted equally."
+AvengersPro Sample-Avg,70.08125362739408,percent,"Average router accuracy across all individual test queries, so larger datasets contribute more."
+Correct routed predictions,2415.0,count,Total successful routed predictions on the test set.
+Total test queries,3446,count,Total number of query-level test examples.
+Best overall fixed model,Qwen3-8B,model,Single fixed model with the highest average benchmark performance.
+Best overall fixed model score,66.728,percent,Average score of the strongest single fixed model across datasets.
+Router gain vs best overall fixed model,4.70788825957861,percentage points,Dataset-Avg improvement of AvengersPro over the strongest single fixed model.
+Total recorded routing cost,1.4934285,USD,Recorded inference cost of models selected by the router. Interpret cautiously because some candidate models have missing or zero recorded costs.
+Average recorded cost per query,0.00043338029599535694,USD/query,Mean recorded selected-model cost per routed query.

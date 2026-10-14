@@ -1,0 +1,12 @@
+field,value
+git_commit,c77cb0506949d8f959e97967d2fefca0e8ff1b05
+python_version,3.12.3
+pandas_version,2.2.3
+config,config/baseline_config.yaml
+random_seed,42
+raw_json_files,700
+loaded_records,229620
+unique_dataset_split_model_combinations,300
+unique_queries,11481
+datasets,15
+models,20

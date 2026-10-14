@@ -1,0 +1,7 @@
+metric,value
+total_cost_usd,1.4934285
+avg_cost_per_query_usd,0.00043338029599535694
+cost_per_correct_prediction_usd,0.00030875105383022794
+cost_efficiency,164830.3824974058
+ood_total_cost_usd,0.0
+non_ood_total_cost_usd,1.4934285
