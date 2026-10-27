@@ -298,3 +298,10 @@ local_experiments/results/avengerspro_pair_seed*_routing_details.json
 local_experiments/results/avengerspro_pair_seed*_details_rerun.json
 local_experiments/results/query_level_router_comparison.csv
 local_experiments/results/both_missed_focus_examples.csv
+
+# Local experiment caches
+local_experiments/cache/
+
+# Regenerable per-seed experiment artifacts
+local_experiments/results/*_seed*_by_dataset.csv
+local_experiments/results/*_seed*_training.csv
