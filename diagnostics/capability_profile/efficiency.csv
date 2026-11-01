@@ -1,0 +1,29 @@
+metric,value,unit,notes
+timing_scope,"single process, CPU, fold-0 held-out queries, raw text in, one query per call",,
+n_timed_queries,2294,queries,
+capability_extraction_regex_ms_per_query,0.8345000976562637,ms/query,14 regex/count features given the token count
+capability_extraction_tokenizer_ms_per_query,0.5543331089804076,ms/query,"MiniLM fast tokenizer, untruncated, for minilm_token_count; free in C (MiniLM pipeline already tokenizes)"
+capability_extraction_total_ms_per_query,1.3888332066366713,ms/query,standalone extractor (A)
+A_router_inference_sklearn_single_ms_per_query,1.7371289986848495,ms/query,"sklearn Pipeline.predict_proba, 1 row/call"
+A_router_inference_sklearn_batched_ms_per_query,0.0025244585782209935,ms/query,one call over all timed queries
+A_router_inference_numpy_single_ms_per_query,0.0038453029628409477,ms/query,same weights as numpy dot product
+A_end_to_end_ms_per_query_numpy,1.3926785095995122,ms/query,extractor + numpy LogReg
+C_combiner_inference_sklearn_single_ms_per_query,1.8058265200588743,ms/query,"sklearn Pipeline.predict_proba, 1 row/call"
+C_combiner_inference_numpy_single_ms_per_query,0.0031552070682972296,ms/query,same weights as numpy dot product
+C_additional_overhead_over_MiniLM_ms_per_query_numpy,0.8376553047245608,ms/query,regex features + combiner; token count reused from the MiniLM tokenizer pass
+C_additional_overhead_over_MiniLM_ms_per_query_numpy_with_separate_tokenizer,1.3919884137049685,ms/query,upper bound if the untruncated token count is recomputed
+MiniLM_end_to_end_reference_ms_per_query,38.0,ms/query,EXISTING measurement (diagnostics/stratified_cv/minilm_end_to_end_timing.csv); not rerun
+C_estimated_end_to_end_ms_per_query,38.83765530472456,ms/query,"reference MiniLM e2e + measured C overhead (estimate, not a single timed pipeline)"
+A_learned_params,16,params,15 coef + intercept
+A_scaler_stats,12,params,mean/std of 6 continuous features (not learned by gradient)
+C_combiner_learned_params,17,params,16 coef + intercept
+C_scaler_stats,14,params,mean/std of 6 continuous features + student score
+MiniLM_student_head_params,24705,params,MLP-64 head
+MiniLM_encoder_params,22565376,params,frozen all-MiniLM-L6-v2
+C_total_deployed_params,22590112,params,encoder + student head + combiner + scaler stats
+B_total_deployed_params,22590081,params,encoder + student head
+A_pipeline_pickle_bytes,2925,bytes,fold-0 sklearn pipeline
+C_pipeline_pickle_bytes,2986,bytes,fold-0 sklearn combiner pipeline (excl. MiniLM)
+A_train_sec_mean_per_fold,0.40878217599820343,sec,fit + training-only threshold CV
+B_train_sec_mean_per_fold,3.5694783331942745,sec,GTE teacher + MLP-64 student on outer-train (cached embeddings)
+C_train_sec_mean_per_fold,16.157594445196445,sec,B + 5 inner teacher/student refits for OOF scores + combiner + threshold CV
