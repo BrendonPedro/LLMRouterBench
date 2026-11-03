@@ -11,7 +11,8 @@ Model pair (exact names): `DeepSeek-R1-0528-Qwen3-8B` (class 0) vs `Qwen3-8B` (c
 **Reproducibility checkpoint (2026-11-02, no inference):**
 - **KorBench evaluator reproduction is complete:** 100% agreement with the stored scores.
 - **MBPP prompt reconstruction is complete:** 1,948/1,948 prompts match, and 820/820 non-tie programs are AST-identical.
-- **MBPP score reproduction remains blocked** until the stored generated code can be run in a safe sandbox (§7a, "Blockers").
+- **MBPP evaluator reproduction is complete** (2026-11-03). The stored programs ran inside a Bubblewrap 0.9.0 sandbox with no network and no host file access. The unchanged evaluator reproduced **820/820** stored non-tie scores exactly, with 0 mismatches and 0 timeouts (§7a).
+- **All six benchmark evaluators now reproduce the stored results required for this experiment. The evaluator-reproducibility blocker is cleared.**
 - **The generation cache must be disabled** for every fresh run.
 - **No main winner-label stability inference may begin** until the remaining blockers are cleared and the user approves the run.
 - **The frozen main experiment design has not changed:**
@@ -146,17 +147,40 @@ All six evaluators are deterministic and rule-based. None calls an LLM judge.
   - **506/506 (100%)** on the 253 pool non-tie rows, both models;
   - 2,496/2,496 on all 1,248 pool rows.
 
-**MBPP: reproduced up to, but not including, code execution.**
+**MBPP: reproduced exactly, including code execution** (execution added 2026-11-03).
 - Rebuilt prompt == stored `prompt`: 1,948/1,948.
 - The program the evaluator would execute (`extract_raw_answer`: sanitize + imports + `test_list`) was compared with the stored `prediction` field, which is that program:
   - byte-identical in 793/820 non-tie outputs;
   - **AST-identical in 820/820 (100%)**.
 - The 27 byte differences are purely `ast.unparse` formatting, e.g. `(a, b) = …` vs `a, b = …`. This is consistent with a different Python version at collection time; the current version is 3.12.3. AST-identical programs execute identically, so this is not a reproducibility problem.
-- **Score agreement is NOT verified.** It needs `check_correctness`, i.e. running model-generated code. No appropriate sandbox exists on this machine:
-  - Docker Desktop's WSL integration is off;
-  - there is no podman, bwrap, firejail, nsjail or gVisor;
+- *2026-11-02:* score agreement could not yet be checked. It needs `check_correctness`, i.e. running model-generated code. No suitable sandbox existed:
+  - Docker Desktop's WSL integration was off;
+  - there was no podman, bwrap, firejail, nsjail or gVisor;
   - `unshare -rn` would remove the network but not filesystem access.
-- The evaluator's `reliability_guard` is not a security boundary. **Generated code was therefore not executed.** This is a remaining blocker.
+
+  The evaluator's `reliability_guard` is not a security boundary, so no code was executed.
+- **2026-11-03: score reproduction complete.**
+  - **Sandbox:** Bubblewrap 0.9.0 (`apt` package `bubblewrap`), with these settings:
+    - new user, PID, network, IPC, UTS and cgroup namespaces, and nested user namespaces disabled;
+    - uid/gid 65534, all capabilities dropped, no-new-privileges, die-with-parent, new session, cleared environment;
+    - a fresh root remounted read-only, exposing only these, all read-only: `/usr`, the repo `.venv` (Python 3.12.3), `evaluation/`, `generators/` and `common/` (all three are needed to import the evaluator), the verified `test.json` and the stored-output inputs;
+    - writable storage limited to a private 1 GB tmpfs `/tmp` and bwrap's private `/dev`;
+    - outer limits from a user systemd scope: MemoryMax 6 G, no swap, TasksMax 512.
+  - **Isolation verified** by a probe run with the identical command before any generated code was executed:
+    - only `lo` exists, and TCP and DNS both fail, so there is **no network access**;
+    - unrelated home, repository, Windows `/mnt/c`, `/root`, scratchpad and other host paths (`/etc/passwd`, `/var`, `/run`) are **not visible**;
+    - writes are denied outside `/tmp` and `/dev`, and `test.json` can be neither appended to nor replaced;
+    - all capability sets are empty, and nested user and mount namespaces are denied;
+    - inside the sandbox, `test.json` sha256 equals the committed oid.
+  - **Evaluator unchanged.**
+    - `MBPPEvaluator.evaluate` ran with its own 10 s timeout and the `spawn` multiprocessing start method. `spawn` is set by importing the evaluator package (`evaluation/LiveCodeBench/compute_code_generation_metrics.py`), as in the original collector.
+    - The only additions were the `DATA_DIR` redirect and a pass-through wrapper that records `check_correctness`'s own result string.
+  - **Result:** the unchanged evaluator reproduced **820/820 (100%)** stored non-tie MBPP scores exactly.
+    - DeepSeek-R1-0528-Qwen3-8B: **410/410** score agreement (109 pass).
+    - Qwen3-8B: **410/410** score agreement (301 pass).
+    - **0 score mismatches, 0 timeouts.** The slowest item took 8.2 s against the 11 s per-program process limit, which includes spawn start-up.
+    - Extracted programs: 793/820 byte-identical and 820/820 identical after parsing. The remaining differences were formatting only.
+    - The 410 failed executions all match stored score 0: 386 undefined function, 20 bare assertion failures, 4 other runtime errors.
 
 ## 8. Are the models accessible for fresh inference here?
 
@@ -294,9 +318,7 @@ This is a **reconstructed evaluation setup**. It matches the recorded prompts, t
 - **BBH, MELD, MedQA, FinQA:** `item` = {`target` (BBH) or `answer`: the stored `ground_truth`}. This reproduces 100% of the stored non-tie scores, as verified in the audit.
 - **KorBench, MBPP:** `item` = `load_data("test")[index − 1]` from the 17 sha256-verified LFS files (§7a). Only `DATA_DIR` is redirected if the files are not restored in place.
   - **KorBench: gate passed** (2026-11-02). There is 100% score and prediction agreement on all 506 non-tie stored outputs (superset of the sample).
-  - **MBPP: gate not yet passed.** Inside the sandbox, re-score all 820 stored non-tie outputs (superset of the sample) and **require 100% score agreement** before scoring any fresh output.
-    - If agreement is below 100%, stop and report, including whether any disagreement is a 10 s timeout. Do not change the timeout.
-    - The pre-execution part already reproduces: 820/820 AST-identical programs.
+  - **MBPP: gate passed** (2026-11-03). There is 100% score agreement on all 820 stored non-tie outputs (superset of the sample), run inside the Bubblewrap sandbox (§7a). Score fresh MBPP outputs with the same sandbox configuration and the same unchanged evaluator. Do not change the timeout.
 - **MBPP executes model-generated code.** Run evaluation only in an isolated sandbox. Minimum requirements:
   - a container or VM with **no network** (`--network none` or equivalent);
   - a non-root user;
@@ -304,7 +326,7 @@ This is a **reconstructed evaluation setup**. It matches the recorded prompts, t
   - a tmpfs working directory and CPU/memory limits;
   - Python with `numpy` (the evaluator prepends `import numpy`).
 
-  None exists on this machine (§7a).
+  The Bubblewrap 0.9.0 configuration in §7a meets these requirements and was verified on 2026-11-03.
 - Prompts are reused verbatim from the stored records, so the evaluator's `format_prompt` is not used to rebuild them.
 
 ---
@@ -422,26 +444,34 @@ No result may be called a mathematical ceiling.
 
 **This machine:** **not feasible.** It has no GPU, and 9.7 GB RAM is below bf16 weight size. A quantized CPU run would change the model and would take on the order of weeks for ~5 M tokens.
 
-**MBPP evaluation:** needs a sandboxed Python runtime for executing generated code, at negligible compute.
+**MBPP evaluation:** runs in the verified Bubblewrap sandbox (§7a) on this machine. Re-scoring the 820 stored outputs took about 1 h, about 4 s per item, mostly spawn start-up.
 
 ---
 
 # Blockers To Solve Before Inference
 
-Status as of 2026-11-02:
+Status as of 2026-11-03:
 
-1. **OPEN: inference access.** This needs one of:
-   - a GPU host with vLLM and the two official checkpoints;
-   - API credentials for an endpoint serving both exact models with a 32 k context and thinking enabled.
-2. **RESOLVED (data only): KorBench/MBPP benchmark data.** The 17 required LFS objects were fetched and sha256-verified outside the working tree (§7a). The KorBench re-score gate passed at 100%. *Housekeeping for the run:* the verified copy is session-local, so re-fetch and re-verify it, or install git-lfs.
-3. **OPEN: MBPP sandbox and re-score gate.**
-   - There is no no-network sandbox on this machine, so stored MBPP score agreement is unverified and no MBPP output (stored or fresh) has been executed.
-   - Needed: a sandbox meeting the evaluator-reuse requirements, then 100% score agreement on the 820 stored non-tie outputs.
-4. **ACCEPTED LIMITATION, not a blocker: the original serving stack is not recorded.**
-   - The endpoint is redacted, the model revision, precision and engine are unknown, and `run_vllm.sh` does not match the data.
-   - The run is a reconstructed evaluation, validated by the pre-flight (operational checks + McNemar gross-mismatch test), with the new stack fully recorded. It must not be called an exact reproduction.
-5. **REQUIRED AT LAUNCH: cache off.** Otherwise the repetitions are not independent (see the generation-setting policy). It is checked in pre-flight check 4 and by the main-run non-identity check.
-6. **REQUIRED: user approval** of this revised checkpoint, especially the pre-flight change, before any inference.
+**Remaining blocker before inference: model-serving access.** All of the following are required:
+1. Access to both exact model checkpoints, `DeepSeek-R1-0528-Qwen3-8B` and `Qwen3-8B`, through either:
+   - a suitable GPU/vLLM setup with the official checkpoints, or
+   - a compatible API serving both exact models.
+2. Support for a 32,768-token total context.
+3. Thinking mode on.
+4. Generation cache disabled. Otherwise the repetitions are not independent (see the generation-setting policy). This is checked in pre-flight check 4 and by the main-run non-identity check.
+5. The reconstructed-setup pre-flight must pass (operational checks + McNemar warning check) before the main stability run.
+
+Cleared:
+- **RESOLVED: evaluator reproducibility (all six benchmarks).**
+  - BBH, MELD, MedQA and FinQA: 100% (audit).
+  - KorBench: 506/506 (2026-11-02).
+  - MBPP: 820/820 in the Bubblewrap sandbox (2026-11-03).
+- **RESOLVED: KorBench/MBPP benchmark data.** The 17 required LFS objects were fetched and sha256-verified outside the working tree (§7a). *Housekeeping for the run:* the verified copy is session-local, so re-fetch and re-verify it, or install git-lfs.
+- **RESOLVED: MBPP sandbox.** Bubblewrap 0.9.0 with the verified configuration in §7a.
+
+Accepted limitation, not a blocker: **the original serving stack is not recorded.**
+- The endpoint is redacted, the model revision, precision and engine are unknown, and `run_vllm.sh` does not match the data.
+- The run is a reconstructed evaluation, validated by the pre-flight, with the new stack fully recorded. It must not be called an exact reproduction.
 
 ---
 
