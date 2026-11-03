@@ -1,0 +1,125 @@
+{
+  "description": "Winner-label stability frozen samples (mission: Frozen Sample Strategy). Chosen from the routing pool and stored original outputs only; no fresh model output was used.",
+  "script": "diagnostics/scripts/wls_freeze_samples.py",
+  "main": {
+    "seed": 20261101,
+    "per_class": 10,
+    "benchmark_order": [
+      "bbh",
+      "korbench",
+      "mbpp",
+      "meld",
+      "medqa",
+      "finqa"
+    ],
+    "class_order": [
+      0,
+      1
+    ],
+    "available_per_benchmark_class": {
+      "bbh|0": 97,
+      "bbh|1": 38,
+      "korbench|0": 140,
+      "korbench|1": 113,
+      "mbpp|0": 109,
+      "mbpp|1": 301,
+      "meld|0": 106,
+      "meld|1": 145,
+      "medqa|0": 110,
+      "medqa|1": 79,
+      "finqa|0": 40,
+      "finqa|1": 87
+    },
+    "rows": 120,
+    "file": "diagnostics/winner_label_stability/frozen_sample.csv"
+  },
+  "preflight": {
+    "seed": 20261102,
+    "per_benchmark": 20,
+    "frame": "all pool rows incl. ties, minus the main sample",
+    "available_per_benchmark": {
+      "bbh": 1060,
+      "korbench": 1228,
+      "mbpp": 954,
+      "meld": 1211,
+      "medqa": 1253,
+      "finqa": 1104
+    },
+    "rows": 120,
+    "file": "diagnostics/winner_label_stability/preflight/preflight_sample.csv"
+  },
+  "eligibility_rule": "FinQA only: eligible iff the `answer` field read by the unchanged FinQAEvaluator is non-empty after stripping whitespace. Data-validity rule declared before any generation; not performance-based.",
+  "finqa_excluded_empty_answer": [
+    5,
+    110,
+    365,
+    387,
+    578,
+    590,
+    621,
+    642,
+    678,
+    802,
+    870,
+    891,
+    954,
+    1014
+  ],
+  "frame_rows_not_matching_stored": [
+    {
+      "dataset": "korbench",
+      "index": 222
+    }
+  ],
+  "stored_files": {
+    "bbh|DeepSeek-R1-0528-Qwen3-8B": {
+      "path": "results/bench/bbh/test/DeepSeek-R1-0528-Qwen3-8B/bbh-test-DeepSeek-R1-0528-Qwen3-8B-20251004_152248.json",
+      "sha256": "172f15a978fffd7dad7a49957688adac2f5111ab93196158b03ed403c861d3f6"
+    },
+    "bbh|Qwen3-8B": {
+      "path": "results/bench/bbh/test/Qwen3-8B/bbh-test-Qwen3-8B-20250919_071923.json",
+      "sha256": "7c798b1c2e8e87126c5583fb6a995c93bb687bf471dd3c50df01bc76d4f759ed"
+    },
+    "korbench|DeepSeek-R1-0528-Qwen3-8B": {
+      "path": "results/bench/korbench/test/DeepSeek-R1-0528-Qwen3-8B/korbench-test-DeepSeek-R1-0528-Qwen3-8B-20251004_184641.json",
+      "sha256": "a7ba687f1c5d407787e189362e985c7518800643df42d6fc162474079c421015"
+    },
+    "korbench|Qwen3-8B": {
+      "path": "results/bench/korbench/test/Qwen3-8B/korbench-test-Qwen3-8B-20250919_102827.json",
+      "sha256": "9b33c8544187731a32d11ea871cdf26966dfeda8de38a27cd605356d72c25bf6"
+    },
+    "mbpp|DeepSeek-R1-0528-Qwen3-8B": {
+      "path": "results/bench/mbpp/test/DeepSeek-R1-0528-Qwen3-8B/mbpp-test-DeepSeek-R1-0528-Qwen3-8B-20251004_235947.json",
+      "sha256": "3d8e6559ee5ec4feebdbaf23c6cab1ea9434c3b557e37111e3ac296c8ca46f6b"
+    },
+    "mbpp|Qwen3-8B": {
+      "path": "results/bench/mbpp/test/Qwen3-8B/mbpp-test-Qwen3-8B-20250919_132029.json",
+      "sha256": "f47f9a07c8dac457ff4ab4d6f00628ac642a73c7ca657c06ac275e2e83d44da4"
+    },
+    "meld|DeepSeek-R1-0528-Qwen3-8B": {
+      "path": "results/bench/meld/test/DeepSeek-R1-0528-Qwen3-8B/meld-test-DeepSeek-R1-0528-Qwen3-8B-20251019_064225.json",
+      "sha256": "461d5dd6dc0baae430e09c2c1cb3f016e6397fe9bde7e35b5310f8709d38f5dd"
+    },
+    "meld|Qwen3-8B": {
+      "path": "results/bench/meld/test/Qwen3-8B/meld-test-Qwen3-8B-20251019_064159.json",
+      "sha256": "10908aa0947d59343cf8f9bdbe24578a1a2739e5b5cf9615b3fc7a02db7bc246"
+    },
+    "medqa|DeepSeek-R1-0528-Qwen3-8B": {
+      "path": "results/bench/medqa/test/DeepSeek-R1-0528-Qwen3-8B/medqa-test-DeepSeek-R1-0528-Qwen3-8B-20251019_064141.json",
+      "sha256": "6ad14d6a267fcf05213186e1013ed521bb7b5bf011a18b3ba777e140b21b80ad"
+    },
+    "medqa|Qwen3-8B": {
+      "path": "results/bench/medqa/test/Qwen3-8B/medqa-test-Qwen3-8B-20251019_064130.json",
+      "sha256": "7ef0e8ebdde416cc257740facb7874aa40a6a6d2ed5a3850ee8c3177748ec795"
+    },
+    "finqa|DeepSeek-R1-0528-Qwen3-8B": {
+      "path": "results/bench/finqa/test/DeepSeek-R1-0528-Qwen3-8B/finqa-test-DeepSeek-R1-0528-Qwen3-8B-20251004_163738.json",
+      "sha256": "6d36cfe4c7793b788896e1c0b28ddb65dfdfbbaf2f8697ffd69e4c1887444199"
+    },
+    "finqa|Qwen3-8B": {
+      "path": "results/bench/finqa/test/Qwen3-8B/finqa-test-Qwen3-8B-20250919_081013.json",
+      "sha256": "789fff081c04ca247c4e29988f27557a86f42af17573d69acb9203cb819e8e99"
+    }
+  },
+  "identifiers": "(dataset, index) = 1-based position in the evaluator's load_data('test') order and the key of results/bench records; query_sha1 = sha1(prompt)[:16] as in diagnostics/stratified_cv/fold_assignments.csv; prompt_sha256 = sha256 of the exact stored prompt."
+}

@@ -22,6 +22,18 @@ Model pair (exact names): `DeepSeek-R1-0528-Qwen3-8B` (class 0) vs `Qwen3-8B` (c
 
   This checkpoint revised only the pre-flight validation, the reproducibility wording and the estimate labels.
 
+**Pre-flight pipeline checkpoint (2026-11-03, no inference, no GPU):**
+- **Serving decision frozen:** vLLM 0.33.0 (implementation pin for the reconstruction, not a claim about the original engine) with `--generation-config vllm` (see "Serving decision" below).
+- **Samples frozen** with the declared seeds, from the pool and stored outputs only, before any generation:
+  - main: `diagnostics/winner_label_stability/frozen_sample.csv` (120 = 6 × (10 + 10));
+  - pre-flight: `diagnostics/winner_label_stability/preflight/preflight_sample.csv` (120, disjoint from the main sample);
+  - seeds, frame sizes and stored-file sha256s: `sampling_manifest.json`.
+- **Pipeline scripts** (`diagnostics/scripts/wls_*`): sample freezer, LFS fetch, MBPP Bubblewrap sandbox, vLLM launcher, pre-flight client, pre-flight scorer/checks and a dry-run validator.
+  - The dry-run validator calls no model. It also scores the stored outputs of the 240 pre-flight pairs through the full scoring path, with MBPP in the sandbox, and reproduces 240/240 stored scores.
+- **FinQA data-validity rule (frame step 5):** 14 FinQA rows with an empty evaluator `answer` are excluded from both samples.
+  - The main sample is unchanged.
+  - The pre-flight sample was regenerated with the same seed before any generation. Its FinQA rows changed, including the removal of FinQA 365.
+
 ---
 
 # Research Question
@@ -139,6 +151,8 @@ All six evaluators are deterministic and rule-based. None calls an LLM judge.
   - Each object was **verified against the committed pointer's sha256 oid and size** (17/17 OK).
   - The copy is stored **outside the working tree**: without `git-lfs`, overwriting the pointer stubs would show 17 modified tracked files. The working tree and index are unchanged.
   - For the actual run, re-fetch these 17 objects the same way, or with `git lfs pull --include=...` once git-lfs is installed, and re-verify the oids.
+  - *2026-11-03:* `data/FinQA/test.json` is fetched and verified the same way as an 18th object. No evaluator reads it here; it is used only for the FinQA eligibility rule (frame step 5).
+  - *2026-11-03:* this procedure is now `diagnostics/scripts/wls_fetch_lfs.py`. It writes to `~/.cache/LLMRouterBench/wls_lfs_data` (override with `WLS_LFS_DIR`) and verifies sha256 and size against the committed pointers. The sandbox is now `diagnostics/scripts/wls_mbpp_sandbox.sh`, with the same Bubblewrap flags and repo-relative paths.
 - **Mapping:** the stored `index` is the 1-based position in the evaluator's `load_data("test")` order (`data_collector/runner.py`). The mapping was confirmed by rebuilding every prompt with the unchanged evaluator code. The only change was pointing `DATA_DIR` at the verified copy.
 
 **KorBench: reproduced exactly.**
@@ -204,6 +218,18 @@ See "Estimated Generation Count and Resources" below.
 2. Keep rows whose `dataset` ∈ {`bbh`, `korbench`, `mbpp`, `meld`, `medqa`, `finqa`}.
 3. Keep **original non-ties only**: `target` ∈ {0, 1} (0 = DeepSeek-only correct, 1 = Qwen-only correct).
 4. Keep only rows whose pool scores equal the stored `results/bench` scores for both models. Currently every non-tie row passes; the rule is declared in advance.
+5. **FinQA data-validity rule (added 2026-11-03, before any new generation; applies to both the main and the pre-flight frames).** A FinQA row is eligible only if the `answer` field read by the unchanged `FinQAEvaluator` is non-empty after stripping whitespace. No other benchmark is filtered.
+   - **Why:** 14 FinQA test rows (indices 5, 110, 365, 387, 578, 590, 621, 642, 678, 802, 870, 891, 954, 1014) have an empty `answer`. It is empty in the upstream FinQA release too (czyssrs/FinQA `dataset/test.json`, same ids and order as `data/FinQA/test.json`).
+   - With an empty reference, the unchanged evaluator scores an output with no extractable answer as **correct** and any real answer as **wrong**. Correctness on these rows is therefore invalid.
+   - The alternative fields (upstream `exe_ans`, local `final_result`) cannot be substituted without changing the benchmark definition. They also disagree on 7 of the 14 rows.
+   - **This is a data-validity rule, not a performance-based exclusion.** It depends only on the reference field, never on any model output.
+   - **Effect:**
+     - All 14 rows are stored "both wrong" ties, so they were never in the non-tie frame. **The main sample is unchanged** (byte-identical, sha256 `09b0cda6…`).
+     - The pre-flight frame loses 14 FinQA rows (1,118 → 1,104), so the FinQA pre-flight draw was regenerated with the same seed (see below).
+   - **Previous experiments are not relabelled or rerun.** These rows enter the routing pool as both-wrong ties, which those experiments already excluded. The issue is to be reported later as a **FinQA data limitation**.
+   - Implemented in `diagnostics/scripts/wls_freeze_samples.py`, with indices from `wls_common.finqa_empty_answer_indices()`.
+     - The FinQA data are loaded with the evaluator's own `load_data`, and all 1,147 rebuilt prompts must equal the stored prompts.
+     - The freezer, client, scorer and dry-run fail loudly if an ineligible FinQA row appears in either sample.
 
 Available non-ties (DeepSeek wins / Qwen wins):
 
@@ -232,7 +258,10 @@ Every benchmark has ≥ 10 of each class, so **the target balance of 10 + 10 is 
 The pre-flight was added during design preparation. It is **not** part of the pre-declared stability design (main sample, 5 repetitions, 4/5 criterion, Cases A–D), and it does not change any of it. See "Pre-flight validation" below for why it is kept.
 
 - 20 queries per benchmark (120 total) drawn **from all rows including ties**, excluding the main sample, with `numpy.random.default_rng(20261102)`, same benchmark order, by simple random sampling.
+- The FinQA data-validity rule (frame step 5) applies to this frame as well.
 - Saved to `diagnostics/winner_label_stability/preflight/preflight_sample.csv` before any generation.
+  - *2026-11-03:* regenerated once, before any generation, after adding frame step 5. Same seed, no manual row choices.
+  - Only FinQA draws changed, because FinQA is drawn last and the other frames are untouched. The superseded draw contained FinQA 365.
 - Purpose: validate the reconstructed setup, not to measure stability.
 
 ---
@@ -262,6 +291,20 @@ This is a **reconstructed evaluation setup**. It matches the recorded prompts, t
 - **CACHE MUST BE DISABLED.** The collector's cache key is (`model`, `temperature`, `top_p`, `messages`, `reasoning_effort`). With caching on, repetitions 2–5 would return the cached first response, and stability would look like 100% purely as an artefact. Set `cache.enabled: false` (or `force_override_cache: true` with distinct keys) and verify that the 5 raw outputs per query/model are not byte-identical copies coming from a cache.
 - Run each repetition as a separate request. The 5 × 2 requests for a query may be interleaved in any order.
 - Store every raw output, prompt/completion tokens, finish reason, timestamp and score.
+
+## Serving decision (frozen 2026-11-03, before any inference)
+
+**Use vLLM with `--generation-config vllm`.** The original requests recorded `temperature = 0.2` and `top_p = 1.0` but did not record `top_k`. Qwen3-8B's `generation_config.json` (revision `b968826…`) contains `top_k = 20` (plus `temperature 0.6`/`top_p 0.95`, which the request overrides), and vLLM's default `--generation-config auto` would silently apply that `top_k`. The DeepSeek checkpoint (revision `6e8885a…`) ships no `generation_config.json`. We therefore use only the recorded request sampling parameters rather than silently adding a Qwen-only model default. **This is a reconstruction choice, not a claim about the unknown original server.**
+
+- Checked in the vLLM v0.33.0 source (`vllm/config/model.py`): with `vllm`, only the sampling defaults are dropped (`get_diff_sampling_param` returns `{}`). The model's special-token settings (e.g. Qwen3's EOS ids `[151645, 151643]`) are still loaded, and `max_new_tokens` is no longer taken from the model config, so the server default stays `max_model_len − prompt_tokens`.
+- **Pinned engine:** vLLM `0.33.0`. This is an implementation pin for the reconstructed setup only. The original serving engine and its version are unknown (Audit §3–5), and nothing here claims the original used vLLM or this version. Launch (`diagnostics/scripts/wls_serve_vllm.sh deepseek|qwen`), one model at a time:
+  `vllm serve <hf_repo> --revision <sha> --tokenizer-revision <sha> --served-model-name <exact name> --dtype bfloat16 --max-model-len 32768 --generation-config vllm --no-enable-prefix-caching --host 127.0.0.1 --port 8000`.
+  - There is no `--reasoning-parser`, no `--seed` (the engine default applies) and no sampling or override flags. The launcher writes `server_<name>.json` with the revision, vLLM/torch/CUDA versions, GPU and the full command.
+- **Seed choice (recorded as required above):** no per-request seed, as in the original.
+- **Client** (`diagnostics/scripts/wls_preflight_generate.py`):
+  - The request body is exactly `{model, messages: [one user message = stored prompt], temperature: 0.2, top_p: 1.0}`. There is no system prompt, no `max_tokens` and no seed.
+  - It uses plain HTTP and does not import the repository generator or response cache. Before sending, it verifies the served model id, `max_model_len`, the vLLM version and `enable_prefix_caching="False"` (from `/metrics`).
+  - Failed requests are logged as `status: error` with `raw_output: null` and are never scored.
 
 ## Pre-flight validation (required before the main run; revised 2026-11-02, before any inference)
 
@@ -388,6 +431,7 @@ Also report the signal vs chance comparison split by original winner class (Deep
 **Caveats to state with the results:**
 - **Selection effect (regression to the mean).** Queries were selected *because* one draw was a non-tie. Some tie emergence is therefore expected even if each model's per-query accuracy is fixed but not 0 or 1. Both groups are selected the same way, so the group comparison stays fair.
 - **Small n per benchmark (20).** Benchmark-level percentages carry wide intervals, roughly ±20 pp.
+- **FinQA data limitation.** 14 of 1,147 FinQA test rows have an empty evaluator reference (`answer`), also upstream. Their correctness cannot be evaluated validly, so they were excluded from sampling by a pre-declared data-validity rule (frame step 5). They remain both-wrong ties in the stored results and the routing pool, which were not relabelled.
 
 ---
 
@@ -466,7 +510,7 @@ Cleared:
   - BBH, MELD, MedQA and FinQA: 100% (audit).
   - KorBench: 506/506 (2026-11-02).
   - MBPP: 820/820 in the Bubblewrap sandbox (2026-11-03).
-- **RESOLVED: KorBench/MBPP benchmark data.** The 17 required LFS objects were fetched and sha256-verified outside the working tree (§7a). *Housekeeping for the run:* the verified copy is session-local, so re-fetch and re-verify it, or install git-lfs.
+- **RESOLVED: KorBench/MBPP benchmark data.** The 17 required LFS objects were fetched and sha256-verified outside the working tree (§7a). *Housekeeping for the run:* re-fetch and re-verify with `diagnostics/scripts/wls_fetch_lfs.py` (2026-11-03) on any new machine, or install git-lfs.
 - **RESOLVED: MBPP sandbox.** Bubblewrap 0.9.0 with the verified configuration in §7a.
 
 Accepted limitation, not a blocker: **the original serving stack is not recorded.**
@@ -482,6 +526,8 @@ Under `diagnostics/winner_label_stability/` (new directory; previous diagnostics
 - `preflight/`: kept separate and never pooled with main-run data
   - `preflight_sample.csv` (written before any generation)
   - `preflight_generations.jsonl`
+  - `preflight_runs.jsonl` (per-run server checks, prefix-cache counters) and `server_<model>.json` (launch manifests)
+  - `preflight_scores.csv` (per output: stored vs fresh score)
   - `preflight_check.csv` (operational checks, McNemar per model, descriptive accuracy differences)
 - `generations.jsonl` (main-run raw outputs plus metadata only)
 - `query_stability.csv`
