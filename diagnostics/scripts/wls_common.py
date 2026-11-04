@@ -75,15 +75,50 @@ GT_FIELD = {"bbh": "target", "meld": "answer", "medqa": "answer", "finqa": "answ
 HF_REPO = {DS: "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B", QWEN: "Qwen/Qwen3-8B"}
 HF_REVISION = {DS: "6e8885a6ff5c1dc5201574c8fd700323f23c25fa",
                QWEN: "b968826d9c46dd6066d109eabc6255188de91218"}
-VLLM_VERSION = "0.33.0"
+# The version the LLMRouterBench paper (App. B.1) reports for its ~7B pool; still a
+# reconstruction choice, not proof of what served these two stored files.
+VLLM_VERSION = "0.8.4"
 MAX_MODEL_LEN = 32768
 DTYPE = "bfloat16"
-GENERATION_CONFIG = "vllm"   # do not apply the model's generation_config.json sampling defaults
+# vLLM 0.8.4's default: the model's generation_config.json fills sampling fields the request omits.
+GENERATION_CONFIG = "auto"
 
 # Recorded original request sampling (collector config); nothing else is sent.
 TEMPERATURE = 0.2
 TOP_P = 1.0
 REQUEST_KEYS = ("model", "messages", "temperature", "top_p")
+
+# What vLLM 0.8.4 ModelConfig.get_diff_sampling_param() yields under --generation-config auto
+# at the pinned revisions (source-audited 2026-11-03, not observed on a server yet):
+#   Qwen3-8B generation_config.json (sha256 2325da0f15bb848e...): temperature 0.6, top_k 20, top_p 0.95
+#   DeepSeek: no generation_config.json -> GenerationConfig.from_model_config -> no sampling fields
+# The 0.8.4 server logs these at startup ("Using default chat sampling params from model: {...}");
+# wls_preflight_generate.py checks that log line on the GPU host before sending anything.
+MODEL_SAMPLING_DEFAULTS = {DS: {}, QWEN: {"temperature": 0.6, "top_k": 20, "top_p": 0.95}}
+# vLLM 0.8.4 ChatCompletionRequest._DEFAULT_SAMPLING_PARAMS (used when neither side sets a field).
+VLLM_NEUTRAL_SAMPLING = {"repetition_penalty": 1.0, "temperature": 1.0, "top_p": 1.0, "top_k": -1, "min_p": 0.0}
+
+
+def effective_sampling(request, model_defaults):
+    """Mirror of vLLM 0.8.4 ChatCompletionRequest.to_sampling_params precedence for the sampling
+    fields: request value if given, else the model's generation_config default, else vLLM's
+    neutral default. (max_tokens: none from request or model, so max_model_len - prompt_tokens.)"""
+    return {k: request[k] if request.get(k) is not None else model_defaults.get(k, v)
+            for k, v in VLLM_NEUTRAL_SAMPLING.items()}
+
+
+# Expected effective sampling per model under the reconstruction (temperature/top_p from the
+# request override Qwen's 0.6/0.95; Qwen's top_k=20 applies; DeepSeek has no top_k).
+EXPECTED_EFFECTIVE_SAMPLING = {
+    DS: {"repetition_penalty": 1.0, "temperature": TEMPERATURE, "top_p": TOP_P, "top_k": -1, "min_p": 0.0},
+    QWEN: {"repetition_penalty": 1.0, "temperature": TEMPERATURE, "top_p": TOP_P, "top_k": 20, "min_p": 0.0},
+}
+
+# vLLM 0.8.4 V1 Prometheus names (vllm/v1/metrics/loggers.py). The counters are created even
+# with prefix caching off; V0 exposes only vllm:gpu_prefix_cache_hit_rate, so their absence
+# means the server is not the expected V1 engine.
+PREFIX_CACHE_HITS_METRIC = "vllm:gpu_prefix_cache_hits_total"
+PREFIX_CACHE_QUERIES_METRIC = "vllm:gpu_prefix_cache_queries_total"
 
 
 def build_request(model, prompt):

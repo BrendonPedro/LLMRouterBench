@@ -6,7 +6,7 @@ PREPARED, NOT RUN. No inference has been performed and no results exist.
 Branch: `winner-label-stability-diagnostic`, based on `c66b9e7`.
 Model pair (exact names): `DeepSeek-R1-0528-Qwen3-8B` (class 0) vs `Qwen3-8B` (class 1).
 
-**Reconstructed evaluation, not exact reproduction.** The original serving endpoint, model revision, precision and serving engine are not recorded (see Audit §3–5). Fresh inference will therefore run in a **reconstructed evaluation setup**: the stored prompts verbatim, the known decoding settings (temperature 0.2, top_p 1.0, thinking on, no system prompt, 32,768-token total context) and the unchanged repository evaluators. It is **not** an exact reproduction of the original serving environment. All results must be described that way.
+**Reconstructed evaluation, not exact reproduction.** The original serving endpoint, model revision, precision and serving engine are not recorded for these stored files (see Audit §3–5). The LLMRouterBench paper reports vLLM 0.8.4 on NVIDIA A800-80G GPUs for its ~7B open-source pool as a whole (Audit §5a); that is the best available evidence, not proof of what served these two models' stored outputs. Fresh inference will therefore run in a **reconstructed evaluation setup**: the stored prompts verbatim, the known decoding settings (temperature 0.2, top_p 1.0, thinking on, no system prompt, 32,768-token total context) and the unchanged repository evaluators. It is **not** an exact reproduction of the original serving environment. All results must be described that way.
 
 **Reproducibility checkpoint (2026-11-02, no inference):**
 - **KorBench evaluator reproduction is complete:** 100% agreement with the stored scores.
@@ -23,7 +23,7 @@ Model pair (exact names): `DeepSeek-R1-0528-Qwen3-8B` (class 0) vs `Qwen3-8B` (c
   This checkpoint revised only the pre-flight validation, the reproducibility wording and the estimate labels.
 
 **Pre-flight pipeline checkpoint (2026-11-03, no inference, no GPU):**
-- **Serving decision frozen:** vLLM 0.33.0 (implementation pin for the reconstruction, not a claim about the original engine) with `--generation-config vllm` (see "Serving decision" below).
+- **Serving decision frozen:** vLLM 0.33.0 (implementation pin for the reconstruction, not a claim about the original engine) with `--generation-config vllm`. *Superseded on 2026-11-04 by the serving correction below.*
 - **Samples frozen** with the declared seeds, from the pool and stored outputs only, before any generation:
   - main: `diagnostics/winner_label_stability/frozen_sample.csv` (120 = 6 × (10 + 10));
   - pre-flight: `diagnostics/winner_label_stability/preflight/preflight_sample.csv` (120, disjoint from the main sample);
@@ -33,6 +33,14 @@ Model pair (exact names): `DeepSeek-R1-0528-Qwen3-8B` (class 0) vs `Qwen3-8B` (c
 - **FinQA data-validity rule (frame step 5):** 14 FinQA rows with an empty evaluator `answer` are excluded from both samples.
   - The main sample is unchanged.
   - The pre-flight sample was regenerated with the same seed before any generation. Its FinQA rows changed, including the removal of FinQA 365.
+
+**Serving correction checkpoint (2026-11-04, no inference, no GPU, before any fresh generation):**
+- After the original-serving audit (Audit §5a), the user approved two serving corrections:
+  - **vLLM 0.33.0 → 0.8.4.** The paper reports this version for its ~7B pool. It remains a reconstruction choice; it is not proven that these two models' stored files were generated with it.
+  - **`--generation-config vllm` → `auto`.** This is the 0.8.4 default. The paper left decoding parameters other than temperature/top_p "set to their default values". Under `auto`, Qwen3-8B's `top_k = 20` applies; its 0.6/0.95 temperature/top_p defaults are overridden by the request. DeepSeek ships no `generation_config.json`, so nothing is added for it.
+- Prefix caching stays **disabled** as a documented deliberate reconstruction difference (see "Serving decision").
+- Hardware wording revised: A800-80GB preferred, A100-80GB as a documented fallback (see "Execution Estimate").
+- **Unchanged:** frozen samples (byte-identical), sampling manifest, evaluators, MBPP sandbox, request body, length policy, dtype, revisions, concurrency, cache bypass, and all Cases/criteria.
 
 ---
 
@@ -106,9 +114,31 @@ Do not modify any previous diagnostic result.
 | seed | **no per-request seed**. `run_vllm.sh` sets a server seed of 42, but that script's other settings do not match the data, and a server seed does not make concurrent sampled requests reproducible | known / inferred |
 | chat template / system prompt | model-default template, single user turn, no system prompt, thinking enabled | code + stored outputs |
 | reasoning_effort / extra_body | not set for either model | collector config |
-| model revision / precision / serving engine version | **unknown** | not recorded |
+| model revision / precision / serving engine version | **not recorded for these files**. The paper reports vLLM 0.8.4 on A800-80G for the ~7B pool as a whole (§5a) | paper (pool-level); stored files record only the model name |
+| top_k / other decoding parameters | not sent by the client, so server defaults applied. The paper says remaining parameters were "set to their default values"; under vLLM 0.8.4 the default `--generation-config auto` gives Qwen3-8B `top_k = 20` | paper + vLLM 0.8.4 source; not observable in stored outputs |
 
 **The original setup was NOT deterministic.** It used temperature 0.2 sampling, and the original label is a single draw from each model's output distribution.
+
+## 5a. Published setup and engine defaults (original-serving audit, 2026-11-03; read-only)
+
+- **Paper** (arXiv 2601.07206v1, the only version), App. B.1, p.13:
+  - "All ∼7B open-source models are deployed on NVIDIA A800-80G GPUs using vLLM 0.8.4 for efficient batched inference."
+  - "All model generations use temperature 0.2 and top_p 1.0, with remaining decoding parameters set to their default values."
+  - Table 2 (p.5): "A800 1000 GPU hours".
+  - Not stated: dtype, context length/max tokens, seed, chat template/thinking, model revisions.
+- **Scope of that statement:** pool-level, not per model. vLLM 0.8.4 natively supports `Qwen3ForCausalLM` (#15289), so it *can* serve both models here. But the same pool includes architectures absent from the 0.8.4 registry (`NemotronHForCausalLM`, `InternS1ForConditionalGeneration`, `MiMoForCausalLM`), so the statement cannot be literally true for every pool model. The engine for these two stored files is therefore not proven.
+- **vLLM 0.8.4 source** (`vllm/engine/arg_utils.py`, `vllm/config.py`, `vllm/entrypoints/openai/protocol.py`):
+  - `--generation-config` defaults to `auto`;
+  - `get_diff_sampling_param()` returns the model's `temperature`/`top_k`/`top_p`/`min_p`/`repetition_penalty`/`max_new_tokens` where set;
+  - `ChatCompletionRequest.to_sampling_params` uses a request value when given, otherwise that model default, otherwise vLLM's neutral default (`top_k = -1`).
+  - The collector sends only temperature and top_p, so under 0.8.4 defaults Qwen3-8B ran with `top_k = 20`. DeepSeek has no `generation_config.json`, so its `top_k` stays disabled.
+  - EOS ids are loaded from the model in both `auto` and `vllm` modes.
+- **Model files at the pinned revisions:**
+  - Qwen3-8B `generation_config.json`: temperature 0.6, top_k 20, top_p 0.95, eos [151645, 151643]; unchanged since upload.
+  - DeepSeek: none (404).
+  - Qwen's 2025-05-19 template change does not affect single-user-string prompts.
+  - DeepSeek's "Small fix" (`6e8885a`) added YaRN `attn_factor`; the earlier revision was live for about 2 h on 2025-05-29, so `6e8885a` is near-certain for an October 2025 collection, but not provable.
+- **Collection window** (file timestamps): 2025-09-15 → 2025-10-12 across the pool; Qwen3-8B 2025-09-19, DeepSeek 2025-10-04. The 2025-10-19 MELD/MedQA files are cache replays (`time_taken` ≈ 1 s).
 
 ## 6. How answers are evaluated (`evaluation/<Benchmark>/`)
 
@@ -276,13 +306,17 @@ The pre-flight was added during design preparation. It is **not** part of the pr
 
 # Generation-Setting Policy
 
-This is a **reconstructed evaluation setup**. It matches the recorded prompts, the known decoding settings and the unchanged evaluators. The original serving environment (endpoint, model revision, precision, engine) is unknown, so it **cannot be exactly reproduced**. The settings below that the audit did not recover (weights source, dtype, engine) are reconstruction choices, not known original values. **Do not introduce or raise temperature to manufacture variability.**
+This is a **reconstructed evaluation setup**. It matches the recorded prompts, the known decoding settings and the unchanged evaluators. The original serving environment (endpoint, model revision, precision, engine) is unknown, so it **cannot be exactly reproduced**. The settings below that the audit did not recover for these files (weights source, dtype, engine version) are reconstruction choices, not known original values. Where the paper gives pool-level evidence (vLLM 0.8.4, A800-80G, "remaining decoding parameters set to their default values"), the reconstruction follows it. **Do not introduce or raise temperature to manufacture variability.**
 
 - **Prompt:** the stored `prompt` string, verbatim, as a single user message. No system prompt.
 - **Chat template:** the model's default template with thinking enabled (as observed). Do not pass `enable_thinking=False`.
 - **Sampling:**
-  - temperature = 0.2, top_p = 1.0 for both models;
-  - no other sampling parameters (no top_k, min_p or repetition penalty beyond engine defaults);
+  - temperature = 0.2, top_p = 1.0 for both models, sent explicitly in every request;
+  - no other sampling parameters in the request (no top_k, min_p, repetition penalty, max_tokens or seed);
+  - fields the request omits take the server defaults under vLLM 0.8.4 `--generation-config auto`. Effective sampling:
+    - Qwen3-8B: temperature 0.2, top_p 1.0, **top_k 20** (model generation_config);
+    - DeepSeek: temperature 0.2, top_p 1.0, top_k disabled (no generation_config);
+    - both: min_p 0, repetition penalty 1.0;
   - no `reasoning_effort`, no `extra_body`.
 - **Length:** total context limit 32,768 tokens. Do not set a smaller `max_tokens`. If the client must set one, use `max_tokens = 32768 − prompt_tokens`. An output that hits the cap is scored by the evaluator exactly as in the original run (usually wrong), and its finish reason is recorded.
 - **Weights (reconstruction choice; the original revision and precision are unknown):** official checkpoints `deepseek-ai/DeepSeek-R1-0528-Qwen3-8B` and `Qwen/Qwen3-8B`, bf16, no quantization, served under the exact names above.
@@ -292,19 +326,39 @@ This is a **reconstructed evaluation setup**. It matches the recorded prompts, t
 - Run each repetition as a separate request. The 5 × 2 requests for a query may be interleaved in any order.
 - Store every raw output, prompt/completion tokens, finish reason, timestamp and score.
 
-## Serving decision (frozen 2026-11-03, before any inference)
+## Serving decision (frozen 2026-11-03; corrected 2026-11-04, before any inference)
 
-**Use vLLM with `--generation-config vllm`.** The original requests recorded `temperature = 0.2` and `top_p = 1.0` but did not record `top_k`. Qwen3-8B's `generation_config.json` (revision `b968826…`) contains `top_k = 20` (plus `temperature 0.6`/`top_p 0.95`, which the request overrides), and vLLM's default `--generation-config auto` would silently apply that `top_k`. The DeepSeek checkpoint (revision `6e8885a…`) ships no `generation_config.json`. We therefore use only the recorded request sampling parameters rather than silently adding a Qwen-only model default. **This is a reconstruction choice, not a claim about the unknown original server.**
+*History:* on 2026-11-03 the decision was vLLM 0.33.0 with `--generation-config vllm`, to avoid applying a `top_k` the requests never recorded. The original-serving audit (§5a) then found that the paper reports vLLM 0.8.4 for the ~7B pool, with non-temperature/top_p decoding parameters "set to their default values". Under 0.8.4 that default is `--generation-config auto`, which applies Qwen3-8B's `top_k = 20`. The user approved the correction below on 2026-11-04, before any fresh generation.
 
-- Checked in the vLLM v0.33.0 source (`vllm/config/model.py`): with `vllm`, only the sampling defaults are dropped (`get_diff_sampling_param` returns `{}`). The model's special-token settings (e.g. Qwen3's EOS ids `[151645, 151643]`) are still loaded, and `max_new_tokens` is no longer taken from the model config, so the server default stays `max_model_len − prompt_tokens`.
-- **Pinned engine:** vLLM `0.33.0`. This is an implementation pin for the reconstructed setup only. The original serving engine and its version are unknown (Audit §3–5), and nothing here claims the original used vLLM or this version. Launch (`diagnostics/scripts/wls_serve_vllm.sh deepseek|qwen`), one model at a time:
-  `vllm serve <hf_repo> --revision <sha> --tokenizer-revision <sha> --served-model-name <exact name> --dtype bfloat16 --max-model-len 32768 --generation-config vllm --no-enable-prefix-caching --host 127.0.0.1 --port 8000`.
-  - There is no `--reasoning-parser`, no `--seed` (the engine default applies) and no sampling or override flags. The launcher writes `server_<name>.json` with the revision, vLLM/torch/CUDA versions, GPU and the full command.
+**Use vLLM 0.8.4 with `--generation-config auto`.**
+- **Pinned engine:** vLLM `0.8.4`, the version the paper reports for its ~7B pool. This is still a **reconstruction choice**. It is not proven that these two models' stored files were produced with vLLM 0.8.4 (§5a).
+- **Generation config `auto`:** fields the request omits come from the model's `generation_config.json`.
+  - Qwen3-8B (revision `b968826…`): `top_k = 20` applies. Its `temperature 0.6`/`top_p 0.95` are overridden by the request's 0.2/1.0.
+  - DeepSeek (revision `6e8885a…`) ships no `generation_config.json`, so no sampling default is added and `top_k` stays disabled.
+  - EOS ids (e.g. Qwen3's `[151645, 151643]`) are loaded either way.
+  - Qwen's config has no `max_new_tokens`, so the server's `max_tokens` remains `max_model_len − prompt_tokens`.
+- **Prefix caching: disabled (`--no-enable-prefix-caching`). This is a deliberate reconstruction difference, NOT an original-run setting.**
+  - The paper does not specify prefix caching, and vLLM 0.8.4's V1 engine enables it by default.
+  - Prefix caching reuses computation; it does not change the intended sampling distribution.
+  - It is kept off so that repeated generations cannot be confused with any form of cached-response reuse.
+- **Launch** (`diagnostics/scripts/wls_serve_vllm.sh deepseek|qwen`), one model at a time:
+  `vllm serve <hf_repo> --revision <sha> --tokenizer-revision <sha> --served-model-name <exact name> --dtype bfloat16 --max-model-len 32768 --generation-config auto --no-enable-prefix-caching --host 127.0.0.1 --port 8000`.
+  - There is no `--reasoning-parser`, no `--seed` (the engine default applies) and no sampling or override flags.
+  - The launcher writes `server_<name>.json` (revision, vLLM/torch/CUDA versions, GPU, generation config, full command) and captures the server's own log in a fresh `server_<name>.log`.
 - **Seed choice (recorded as required above):** no per-request seed, as in the original.
 - **Client** (`diagnostics/scripts/wls_preflight_generate.py`):
-  - The request body is exactly `{model, messages: [one user message = stored prompt], temperature: 0.2, top_p: 1.0}`. There is no system prompt, no `max_tokens` and no seed.
-  - It uses plain HTTP and does not import the repository generator or response cache. Before sending, it verifies the served model id, `max_model_len`, the vLLM version and `enable_prefix_caching="False"` (from `/metrics`).
+  - The request body is exactly `{model, messages: [one user message = stored prompt], temperature: 0.2, top_p: 1.0}`. There is no system prompt, `top_k`, `max_tokens` or seed.
+  - It uses plain HTTP and does not import the repository generator or response cache.
+  - Before sending, it verifies:
+    - the manifest: revision, bf16, `generation_config: auto`, no quantization, and the command flags;
+    - the served model id and `max_model_len` (`/v1/models`);
+    - the vLLM version (`/version`);
+    - `enable_prefix_caching="False"` and the presence of the V1 counters `vllm:gpu_prefix_cache_{hits,queries}_total` (`/metrics`, 0.8.4 names);
+    - the server log: exactly one `Initializing a V1 LLM engine (v0.8.4)`. For Qwen3-8B there must be exactly `Using default chat sampling params from model: {'temperature': 0.6, 'top_k': 20, 'top_p': 0.95}`; for DeepSeek there must be no such line.
   - Failed requests are logged as `status: error` with `raw_output: null` and are never scored.
+- **Static vs runtime validation:**
+  - The dry-run validator checks the pin, flags, request bodies and the expected effective sampling statically. It also exercises the log and metrics parsers on synthetic 0.8.4-format text.
+  - What the real 0.8.4 server does can only be confirmed on the GPU host, by the client checks above and pre-flight checks 1 and 4. The dry-run lists those as DEFERRED and never counts them as passes.
 
 ## Pre-flight validation (required before the main run; revised 2026-11-02, before any inference)
 
@@ -329,10 +383,10 @@ This is a **reconstructed evaluation setup**. It matches the recorded prompts, t
 - A fixed accuracy-difference threshold therefore cannot be justified before inference.
 
 **Operational checks (hard stop on any failure; no statistics):**
-1. Served model identifiers match the two exact names. Revision, dtype and engine (or provider) are recorded.
+1. Served model identifiers match the two exact names. Revision, dtype and engine (or provider) are recorded. The generation config is `auto`, and the server's own log shows the V1 vLLM 0.8.4 engine with the expected model sampling defaults (Qwen3-8B `top_k = 20`; none for DeepSeek).
 2. Thinking is active: every output contains `<think>`, as in 100% of the original outputs.
 3. The length policy is respected: no output ends with `finish_reason = length` below the 32,768-token total.
-4. The generation cache is disabled in the run config, and the run reports no cache reads.
+4. The generation cache is disabled in the run config, and the run reports no cache reads. The repository response cache is not used. Prefix caching is off, and the V1 prefix-cache hit counter is present and does not increase.
 5. The unchanged evaluator scores 100% of pre-flight outputs without error. MBPP runs only inside the sandbox.
 
 **Gross-mismatch test (stop and report if triggered):**
@@ -477,7 +531,12 @@ No result may be called a mathematical ceiling.
 - Expect a long tail: individual generations reach 32 k tokens, about 2–4% of Qwen3-8B outputs on KorBench, MBPP and FinQA.
 
 **Self-hosted GPU (preferred for control over settings):**
-- One GPU with ≥ 40 GB (A100-40/80GB, L40S, H100) running vLLM with bf16 and `max-model-len 32768`. The 8B weights take ~16.4 GB; the rest is KV cache for long contexts.
+- **Hardware:**
+  - **A800-80GB** is the hardware reported by the LLMRouterBench paper for its ~7B open-source model pool. It is the **preferred reconstruction hardware** if reasonably available.
+  - **A100-80GB** may be used as a **documented fallback** if an A800-80GB host is unavailable.
+  - Neither GPU is proven to be the exact hardware used for these two stored model runs.
+  - Record the GPU actually used (the launcher manifest records `nvidia-smi` output).
+- One such GPU runs vLLM 0.8.4 with bf16 and `max-model-len 32768`. The 8B weights take ~16.4 GB; the rest is KV cache for long contexts.
 - *Assuming* the original endpoint's ~1.2–1.6 k tokens/s aggregate (concurrency 32) carries over, the main run would be about 45–60 min of decode for both models combined. The long tail sets a floor of roughly 5–10 min per 32 k-token sequence. Both figures are assumptions, not measurements on any target GPU.
 - Planning budget: **~2–4 GPU-hours** in total, including two model loads, the pre-flight and retries. This is an unvalidated estimate.
 - Plus about 30 GB of disk for the two checkpoints.
@@ -498,7 +557,7 @@ Status as of 2026-11-03:
 
 **Remaining blocker before inference: model-serving access.** All of the following are required:
 1. Access to both exact model checkpoints, `DeepSeek-R1-0528-Qwen3-8B` and `Qwen3-8B`, through either:
-   - a suitable GPU/vLLM setup with the official checkpoints, or
+   - a suitable GPU/vLLM 0.8.4 setup with the official checkpoints (A800-80GB preferred, A100-80GB fallback), or
    - a compatible API serving both exact models.
 2. Support for a 32,768-token total context.
 3. Thinking mode on.
@@ -514,7 +573,7 @@ Cleared:
 - **RESOLVED: MBPP sandbox.** Bubblewrap 0.9.0 with the verified configuration in §7a.
 
 Accepted limitation, not a blocker: **the original serving stack is not recorded.**
-- The endpoint is redacted, the model revision, precision and engine are unknown, and `run_vllm.sh` does not match the data.
+- The endpoint is redacted. The model revision, precision and engine for these files are not recorded (the paper's vLLM 0.8.4 / A800-80G statement is pool-level, §5a), and `run_vllm.sh` does not match the data.
 - The run is a reconstructed evaluation, validated by the pre-flight, with the new stack fully recorded. It must not be called an exact reproduction.
 
 ---
@@ -526,7 +585,7 @@ Under `diagnostics/winner_label_stability/` (new directory; previous diagnostics
 - `preflight/`: kept separate and never pooled with main-run data
   - `preflight_sample.csv` (written before any generation)
   - `preflight_generations.jsonl`
-  - `preflight_runs.jsonl` (per-run server checks, prefix-cache counters) and `server_<model>.json` (launch manifests)
+  - `preflight_runs.jsonl` (per-run server checks, server-log facts, prefix-cache counters), `server_<model>.json` (launch manifests) and `server_<model>.log` (server logs)
   - `preflight_scores.csv` (per output: stored vs fresh score)
   - `preflight_check.csv` (operational checks, McNemar per model, descriptive accuracy differences)
 - `generations.jsonl` (main-run raw outputs plus metadata only)

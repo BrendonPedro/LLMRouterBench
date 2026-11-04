@@ -1,9 +1,15 @@
 """Dry-run validation of the winner-label stability pre-flight pipeline. Calls NO model.
 
 Checks: samples regenerate exactly and are disjoint; row counts; prompts reconstruct
-exactly; model names exact; generation request matches the mission; no cache use; every
-sample row resolves to its evaluator; MBPP sandbox available and isolated; no path depends
-on a Claude scratchpad.
+exactly; model names exact; generation request matches the mission; serving settings
+(vLLM 0.8.4, --generation-config auto, expected Qwen top_k=20); no cache use; every sample
+row resolves to its evaluator; MBPP sandbox available and isolated; no path depends on a
+Claude scratchpad.
+
+Checks marked [static] validate configuration and source-derived expectations only. vLLM is not
+installed here and no server runs, so what the real 0.8.4 server does is verified on the GPU
+host by wls_preflight_generate.py / wls_preflight_score.py; those are listed as DEFERRED at
+the end and never counted as passes.
 
 Usage: python diagnostics/scripts/wls_preflight_dryrun.py [--with-selftest]
   --with-selftest  also run wls_preflight_score.py --self-test-stored (scores the STORED
@@ -24,8 +30,21 @@ from pathlib import Path
 import yaml
 
 import wls_common as C
+import wls_preflight_generate as G
 
 RESULTS = []
+
+# Verified only against a running vLLM 0.8.4 server on the GPU host (never passed here).
+DEFERRED = [
+    "server /version == 0.8.4 and server log shows exactly one 'Initializing a V1 LLM engine (v0.8.4)'",
+    "Qwen3-8B server log: 'Using default chat sampling params from model: "
+    "{temperature 0.6, top_k 20, top_p 0.95}'; DeepSeek: no such line",
+    "/v1/models serves exactly the one expected name with max_model_len 32768",
+    "/metrics: cache_config_info enable_prefix_caching=\"False\"; V1 counters "
+    "vllm:gpu_prefix_cache_{hits,queries}_total present; zero hits during the run",
+    "server manifest: revision, bf16, generation_config auto, no quantization, GPU recorded",
+    "per output: <think> present, no reasoning field, no finish_reason=length below 32768",
+]
 
 
 def check(name, ok, detail=""):
@@ -152,13 +171,20 @@ def main():
               tuple(body) == C.REQUEST_KEYS and body["model"] == m
               and body["messages"] == [{"role": "user", "content": "PROMPT"}],
               json.dumps({k: v for k, v in body.items() if k != "messages"}) + " + 1 user message, no system")
-    r = py("wls_preflight_generate.py", "--model", C.QWEN, "--dry-run")
-    lines = [json.loads(x) for x in r.stdout.splitlines()]
-    check("client --dry-run builds 120 requests and sends nothing",
-          r.returncode == 0 and len(lines) == 120
-          and all(set(x["request"]) == set(C.REQUEST_KEYS) for x in lines)
-          and all(len(x["request"]["messages"]) == 1 and x["request"]["messages"][0]["role"] == "user" for x in lines),
-          r.stderr.strip())
+    banned = ("top_k", "max_tokens", "max_completion_tokens", "seed", "min_p", "extra_body",
+              "reasoning_effort", "chat_template_kwargs")
+    for m in C.MODELS:
+        r = py("wls_preflight_generate.py", "--model", m, "--dry-run")
+        lines = [json.loads(x) for x in r.stdout.splitlines()]
+        reqs = [x["request"] for x in lines]
+        check(f"client --dry-run builds 120 requests for {m} and sends nothing",
+              r.returncode == 0 and len(lines) == 120
+              and all(set(q) == set(C.REQUEST_KEYS) and q["model"] == m for q in reqs)
+              and all(len(q["messages"]) == 1 and q["messages"][0]["role"] == "user" for q in reqs),
+              r.stderr.strip())
+        check(f"requests for {m}: temperature=0.2 and top_p=1.0 explicit; no top_k/max_tokens/seed",
+              all(q["temperature"] == 0.2 and q["top_p"] == 1.0 for q in reqs)
+              and not any(k in q for q in reqs for k in banned), f"banned keys checked: {banned}")
 
     # ---- server launch settings -----------------------------------------------------------
     for key, m in (("deepseek", C.DS), ("qwen", C.QWEN)):
@@ -169,14 +195,68 @@ def main():
         ok = (argv[:3] == ["vllm", "serve", C.HF_REPO[m]] and val("--revision") == C.HF_REVISION[m]
               and val("--tokenizer-revision") == C.HF_REVISION[m] and val("--served-model-name") == m
               and val("--dtype") == "bfloat16" and val("--max-model-len") == str(C.MAX_MODEL_LEN)
-              and val("--generation-config") == "vllm" and "--no-enable-prefix-caching" in argv
+              and val("--generation-config") == C.GENERATION_CONFIG and "--no-enable-prefix-caching" in argv
               and not any(a.startswith(("--reasoning-parser", "--enable-prefix-caching", "--seed",
                                         "--override-generation-config", "--quantization", "--enable-reasoning"))
                           for a in argv))
         check(f"vLLM launch settings exact for {m}", ok and r.returncode == 0, " ".join(argv))
-    pin = re.search(r'^VLLM_VERSION="([^"]+)"', C.SERVE_VLLM_SH.read_text(), re.M)
+    launcher = C.SERVE_VLLM_SH.read_text()
+    pin = re.search(r'^VLLM_VERSION="([^"]+)"', launcher, re.M)
     check("vLLM version pinned identically in launcher and client", pin and pin.group(1) == C.VLLM_VERSION,
           C.VLLM_VERSION)
+    check("[static] vLLM version pin is 0.8.4 (paper-reported version; reconstruction choice)",
+          C.VLLM_VERSION == "0.8.4" and pin and pin.group(1) == "0.8.4")
+    check("[static] generation config is auto in constants, launch command and launcher manifest",
+          C.GENERATION_CONFIG == "auto" and len(re.findall(r"^\s+--generation-config auto$", launcher, re.M)) == 1
+          and '"generation_config": "auto"' in launcher and "--generation-config vllm" not in launcher)
+    check("[static] max model length 32768; bf16; no reasoning parser; prefix caching off (launcher manifest)",
+          C.MAX_MODEL_LEN == 32768 and C.DTYPE == "bfloat16"
+          and '"max_model_len": 32768' in launcher and '"reasoning_parser": None' in launcher
+          and '"prefix_caching": False' in launcher)
+    check("[static] launcher captures a fresh server log for the runtime log checks",
+          'LOG="$RUN_DIR/server_${SERVED}.log"' in launcher and 'exec "${CMD[@]}" > >(tee "$LOG") 2>&1' in launcher
+          and '"server_log": log' in launcher)
+
+    # ---- effective sampling expected under vLLM 0.8.4 --generation-config auto -------------
+    eff = {m: C.effective_sampling(C.build_request(m, "PROMPT"), C.MODEL_SAMPLING_DEFAULTS[m]) for m in C.MODELS}
+    check("[static] Qwen3-8B: model default top_k=20 applies when the request omits top_k; "
+          "request temperature/top_p override 0.6/0.95",
+          C.MODEL_SAMPLING_DEFAULTS[C.QWEN] == {"temperature": 0.6, "top_k": 20, "top_p": 0.95}
+          and eff[C.QWEN] == C.EXPECTED_EFFECTIVE_SAMPLING[C.QWEN] and eff[C.QWEN]["top_k"] == 20
+          and eff[C.QWEN]["temperature"] == 0.2 and eff[C.QWEN]["top_p"] == 1.0, json.dumps(eff[C.QWEN]))
+    check("[static] DeepSeek: no generation_config sampling defaults, so top_k stays disabled (-1)",
+          C.MODEL_SAMPLING_DEFAULTS[C.DS] == {} and eff[C.DS] == C.EXPECTED_EFFECTIVE_SAMPLING[C.DS]
+          and eff[C.DS]["top_k"] == -1, json.dumps(eff[C.DS]))
+
+    # ---- runtime check logic, exercised on synthetic 0.8.4-format text (not a server) ------
+    v1 = "INFO 11-04 10:00:00 [core.py:61] Initializing a V1 LLM engine (v0.8.4) with config: model='x'\n"
+    qline = ("INFO 11-04 10:00:09 [serving_chat.py:118] Using default chat sampling params from model: "
+             "{'temperature': 0.6, 'top_k': 20, 'top_p': 0.95}\n")
+    cases = []
+    with tempfile.TemporaryDirectory(prefix="wls_logprobe_") as d:
+        def log_errs(text, m):
+            f = Path(d) / "server.log"
+            f.write_text(text)
+            return G.check_server_log(f, m)[1]
+        cases += [("qwen expected", not log_errs(v1 + qline, C.QWEN)),
+                  ("deepseek expected", not log_errs(v1, C.DS)),
+                  ("qwen without defaults line", bool(log_errs(v1, C.QWEN))),
+                  ("qwen top_k missing", bool(log_errs(v1 + qline.replace("'top_k': 20, ", ""), C.QWEN))),
+                  ("deepseek with defaults line", bool(log_errs(v1 + qline, C.DS))),
+                  ("V0 engine", bool(log_errs(v1.replace("V1", "V0") + qline, C.QWEN))),
+                  ("wrong version", bool(log_errs(v1.replace("0.8.4", "0.33.0") + qline, C.QWEN))),
+                  ("missing log", bool(G.check_server_log(Path(d) / "absent.log", C.QWEN)[1]))]
+    check("[static] server-log check accepts the expected 0.8.4 lines and rejects 7 wrong cases",
+          all(ok for _, ok in cases), "; ".join(f"{n}={'ok' if ok else 'WRONG'}" for n, ok in cases))
+    ok_metrics = ('vllm:cache_config_info{block_size="16",enable_prefix_caching="False"} 1.0\n'
+                  'vllm:gpu_prefix_cache_queries_total{model_name="Qwen3-8B"} 0.0\n'
+                  'vllm:gpu_prefix_cache_hits_total{model_name="Qwen3-8B"} 0.0\n')
+    info, cnt = G.parse_metrics(ok_metrics)
+    info33, cnt33 = G.parse_metrics(ok_metrics.replace("gpu_prefix_cache", "prefix_cache"))
+    check("[static] /metrics parser reads the vLLM 0.8.4 V1 names and flags the 0.33.0 names as absent",
+          info == {"block_size": "16", "enable_prefix_caching": "False"}
+          and cnt == {C.PREFIX_CACHE_HITS_METRIC: 0.0, C.PREFIX_CACHE_QUERIES_METRIC: 0.0}
+          and all(v is None for v in cnt33.values()), f"names={list(cnt)}")
 
     # ---- cache ----------------------------------------------------------------------------
     src = (scripts / "wls_preflight_generate.py").read_text()
@@ -219,6 +299,13 @@ def main():
           C.REPO not in C.lfs_dir().parents and not str(C.lfs_dir()).startswith("/tmp/claude-"), str(C.lfs_dir()))
     tracked = subprocess.run(["git", "status", "--porcelain", "data/"], cwd=C.REPO, capture_output=True, text=True).stdout
     check("LFS pointer stubs under data/ are unmodified", tracked.strip() == "")
+    frozen = ["evaluation/", "diagnostics/scripts/wls_mbpp_sandbox.sh", "diagnostics/scripts/wls_sandbox/",
+              str(C.MAIN_SAMPLE_CSV.relative_to(C.REPO)), str(C.PREFLIGHT_SAMPLE_CSV.relative_to(C.REPO)),
+              str(C.SAMPLING_MANIFEST.relative_to(C.REPO))]
+    st = subprocess.run(["git", "status", "--porcelain", "--untracked-files=all", "--", *frozen],
+                        cwd=C.REPO, capture_output=True, text=True).stdout
+    check("evaluator code, MBPP sandbox and frozen sample files unchanged vs HEAD", st.strip() == "",
+          st.strip().replace("\n", "; ") or ", ".join(frozen))
 
     # ---- no outputs exist yet -------------------------------------------------------------
     gen = [p.name for p in C.PREFLIGHT_DIR.glob("*") if p.name != "preflight_sample.csv"]
@@ -232,7 +319,12 @@ def main():
               r.returncode == 0, tail[0] if tail else r.stderr[-800:])
 
     n_fail = sum(not ok for _, ok, _ in RESULTS)
-    print(f"\n{len(RESULTS) - n_fail}/{len(RESULTS)} checks passed; no model was called.")
+    n_static = sum(name.startswith("[static]") for name, _, _ in RESULTS)
+    print("\nDEFERRED to the GPU host (need a running vLLM 0.8.4 server; NOT checked here):")
+    for d in DEFERRED:
+        print(f"  DEFERRED  {d}")
+    print(f"\n{len(RESULTS) - n_fail}/{len(RESULTS)} checks passed ({n_static} of them [static]); "
+          f"{len(DEFERRED)} runtime checks deferred; no model was called.")
     sys.exit(1 if n_fail else 0)
 
 

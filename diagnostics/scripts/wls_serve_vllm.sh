@@ -4,24 +4,31 @@
 # Reconstruction choices (WINNER_LABEL_STABILITY_MISSION.md, Generation-Setting Policy):
 #   - official checkpoints at the exact revisions from the 2026-11-03 serving audit
 #   - bf16, no quantization, --max-model-len 32768 (the observed total-context cap)
-#   - --generation-config vllm: the model's generation_config.json sampling defaults are NOT
-#     applied (Qwen3-8B's would add top_k=20, which the original requests never recorded;
-#     the DeepSeek checkpoint has no generation_config.json). EOS tokens are still loaded.
-#   - prefix caching disabled; no reasoning parser (stored outputs carry inline <think>)
+#   - vLLM 0.8.4, the version the LLMRouterBench paper reports for its ~7B pool (App. B.1)
+#   - --generation-config auto (the 0.8.4 default; the paper left non-temperature/top_p decoding
+#     parameters at their defaults): fields the request omits come from the model's
+#     generation_config.json. Qwen3-8B: top_k=20 applies (its temperature 0.6 / top_p 0.95 are
+#     overridden by the request). DeepSeek has no generation_config.json, so nothing is added.
+#   - prefix caching disabled: a deliberate reconstruction difference, NOT an original setting
+#     (0.8.4's V1 engine enables it by default). It reuses computation only, but keeping it off
+#     rules out any confusion with cached-response reuse across repetitions.
+#   - no reasoning parser (stored outputs carry inline <think>)
 #   - served under the exact original model name
 #   - no sampling flags and no --seed (engine default) are added; sampling comes only from the
-#     request (temperature 0.2, top_p 1.0)
+#     request (temperature 0.2, top_p 1.0) plus the model defaults above
+#   - the server log is written to server_<name>.log; the pre-flight client checks its startup
+#     lines (V1 engine, version, default sampling params) before sending anything
 # This is not a claim about the unknown original server.
 #
 # Usage:
 #   wls_serve_vllm.sh deepseek|qwen [--print-cmd]
 # Env:
 #   WLS_PORT (8000)  WLS_HOST (127.0.0.1)
-#   WLS_RUN_DIR      where server_<name>.json is written (default: the pre-flight dir)
+#   WLS_RUN_DIR      where server_<name>.json/.log are written (default: the pre-flight dir)
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-VLLM_VERSION="0.33.0"
+VLLM_VERSION="0.8.4"
 HOST="${WLS_HOST:-127.0.0.1}"
 PORT="${WLS_PORT:-8000}"
 RUN_DIR="${WLS_RUN_DIR:-$REPO/diagnostics/winner_label_stability/preflight}"
@@ -44,7 +51,7 @@ CMD=(vllm serve "$HF_REPO"
   --served-model-name "$SERVED"
   --dtype bfloat16
   --max-model-len 32768
-  --generation-config vllm
+  --generation-config auto
   --no-enable-prefix-caching
   --host "$HOST"
   --port "$PORT")
@@ -69,9 +76,10 @@ fi
 
 mkdir -p "$RUN_DIR"
 MANIFEST="$RUN_DIR/server_${SERVED}.json"
-python - "$MANIFEST" "$HF_REPO" "$REVISION" "$SERVED" "$REPO" "${CMD[@]}" <<'PY'
+LOG="$RUN_DIR/server_${SERVED}.log"
+python - "$MANIFEST" "$LOG" "$HF_REPO" "$REVISION" "$SERVED" "$REPO" "${CMD[@]}" <<'PY'
 import datetime, json, platform, subprocess, sys
-out, repo, rev, served, repo_dir, *cmd = sys.argv[1:]
+out, log, repo, rev, served, repo_dir, *cmd = sys.argv[1:]
 def sh(*a):
     try: return subprocess.run(a, capture_output=True, text=True, timeout=30).stdout.strip()
     except Exception as e: return f"unavailable: {type(e).__name__}"
@@ -80,14 +88,15 @@ m = {"launched_at_utc": datetime.datetime.now(datetime.timezone.utc).isoformat()
      "served_model_name": served, "hf_repo": repo, "revision": rev,
      "engine": "vllm", "vllm_version": vllm.__version__, "torch_version": torch.__version__,
      "cuda_version": torch.version.cuda, "dtype": "bfloat16", "max_model_len": 32768,
-     "generation_config": "vllm", "prefix_caching": False, "reasoning_parser": None,
+     "generation_config": "auto", "prefix_caching": False, "reasoning_parser": None,
      "server_seed": "engine default (not set)", "quantization": None,
      "gpus": sh("nvidia-smi", "--query-gpu=name,memory.total,driver_version", "--format=csv,noheader"),
      "host": platform.node(), "python": platform.python_version(),
      "repo_commit": sh("git", "-C", repo_dir, "rev-parse", "HEAD"),
-     "command": cmd}
+     "server_log": log, "command": cmd}
 open(out, "w").write(json.dumps(m, indent=2) + "\n")
 print(f"wrote {out}", file=sys.stderr)
 PY
 
-exec "${CMD[@]}"
+# Fresh log per launch (overwritten), so the client never reads a previous server's lines.
+exec "${CMD[@]}" > >(tee "$LOG") 2>&1

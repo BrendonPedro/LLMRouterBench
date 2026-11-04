@@ -5,7 +5,8 @@ LABEL STABILITY, AND PASSING IT DOES NOT SHOW EQUIVALENCE WITH THE ORIGINAL SETU
 
 Mission (Pre-flight validation):
   Operational checks, hard stop on any failure:
-    1 served model identifiers exact; revision, dtype, engine recorded
+    1 served model identifiers exact; revision, dtype, engine recorded; generation config auto
+      and the server log shows the V1 0.8.4 engine with the expected model sampling defaults
     2 thinking active: every output contains <think>
     3 no finish_reason=length below the 32,768-token total
     4 generation cache disabled, no cache reads reported
@@ -214,11 +215,24 @@ def run_checks(sample, recs, ok, errs, dup, scores, sandbox_ok, runs, self_test)
             man = [r.get("server_manifest") or {} for r in mruns]
             man_ok = bool(man) and all(x.get("revision") == C.HF_REVISION[m] and x.get("dtype") == "bfloat16"
                                        and x.get("engine") == "vllm" and x.get("vllm_version") == C.VLLM_VERSION
+                                       and x.get("generation_config") == C.GENERATION_CONFIG
                                        for x in man)
-            add(checks, "1_model_identity", m, "PASS" if not bad and man_ok else "FAIL",
+            # Runtime evidence recorded by the client from the server's own startup log.
+            logs = [(r.get("server") or {}).get("log") or {} for r in mruns]
+            want = C.MODEL_SAMPLING_DEFAULTS[m]
+            log_ok = bool(logs) and all(
+                lg.get("engines") == [["V1", C.VLLM_VERSION]]
+                and lg.get("default_sampling_lines") == ([["model", want]] if want else [])
+                and lg.get("effective_sampling_expected") == C.EXPECTED_EFFECTIVE_SAMPLING[m]
+                for lg in logs)
+            add(checks, "1_model_identity", m, "PASS" if not bad and man_ok and log_ok else "FAIL",
                 f"{len(mine) - len(bad)}/{len(mine)} exact name",
                 f"revision={[x.get('revision') for x in man]} dtype={[x.get('dtype') for x in man]} "
-                f"engine=vllm {[x.get('vllm_version') for x in man]} gpus={[x.get('gpus') for x in man]}")
+                f"engine=vllm {[x.get('vllm_version') for x in man]} "
+                f"generation_config={[x.get('generation_config') for x in man]} "
+                f"log engines={[lg.get('engines') for lg in logs]} "
+                f"log sampling defaults={[lg.get('default_sampling_lines') for lg in logs]} "
+                f"gpus={[x.get('gpus') for x in man]}")
 
         # 2 thinking active
         no_think = [k for k, r in mine.items() if "<think>" not in (r["raw_output"] or "")]
@@ -251,8 +265,10 @@ def run_checks(sample, recs, ok, errs, dup, scores, sandbox_ok, runs, self_test)
                     problems.append("prefix caching")
                 before = (r.get("server") or {}).get("prefix_cache_counters_before") or {}
                 after = r.get("prefix_cache_counters_after") or {}
-                h0, h1 = before.get("vllm:prefix_cache_hits_total"), after.get("vllm:prefix_cache_hits_total")
-                if h0 is not None and h1 is not None and h1 - h0 > 0:
+                h0, h1 = before.get(C.PREFIX_CACHE_HITS_METRIC), after.get(C.PREFIX_CACHE_HITS_METRIC)
+                if h0 is None or h1 is None:
+                    problems.append(f"{C.PREFIX_CACHE_HITS_METRIC} not recorded before/after")
+                elif h1 - h0 > 0:
                     problems.append(f"prefix cache hits {h1 - h0}")
             cached = [k for k, r in mine.items()
                       if ((r.get("usage") or {}).get("prompt_tokens_details") or {}).get("cached_tokens")]

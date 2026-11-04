@@ -5,6 +5,8 @@ Sends each pre-flight query, once, to the ONE model currently served by wls_serv
 Request (wls_common.build_request): the exact stored prompt as one user message, no system
 prompt, temperature 0.2, top_p 1.0 -- nothing else (no max_tokens: vLLM then allows
 32768 - prompt_tokens, the mission's length policy; no seed; no top_k; no extra_body).
+Fields the request omits take the server's --generation-config auto defaults (Qwen3-8B:
+top_k=20); before sending, the server's own startup log is checked for exactly those defaults.
 Plain HTTP is used so that no SDK adds fields, and the repository generator and its response
 cache (generators/, common/cache) are not imported at all.
 
@@ -18,6 +20,7 @@ Usage:
 """
 
 import argparse
+import ast
 import datetime
 import json
 import re
@@ -66,13 +69,13 @@ def load_queries(sample_csv):
 
 
 def parse_metrics(text):
-    """vllm:cache_config_info labels and prefix-cache counters from /metrics."""
+    """vllm:cache_config_info labels and the V1 prefix-cache counters (vLLM 0.8.4 names) from /metrics."""
     info = None
     m = re.search(r'^vllm:cache_config_info\{([^}]*)\}', text, re.M)
     if m:
         info = dict(re.findall(r'(\w+)="([^"]*)"', m.group(1)))
     counters = {}
-    for name in ("vllm:prefix_cache_hits_total", "vllm:prefix_cache_queries_total"):
+    for name in (C.PREFIX_CACHE_HITS_METRIC, C.PREFIX_CACHE_QUERIES_METRIC):
         vals = re.findall(rf'^{re.escape(name)}(?:\{{[^}}]*\}})?\s+([0-9.eE+-]+)$', text, re.M)
         counters[name] = sum(float(v) for v in vals) if vals else None
     return info, counters
@@ -99,6 +102,39 @@ def server_checks(base, model):
     rec["cache_config_info"], rec["prefix_cache_counters_before"] = info, counters
     if info is None or info.get("enable_prefix_caching") != "False":
         errors.append(f"prefix caching not verifiably disabled: {info and info.get('enable_prefix_caching')}")
+    missing = [k for k, v in counters.items() if v is None]
+    if missing:
+        errors.append(f"V1 prefix-cache counters absent from /metrics (V0 engine or wrong version?): {missing}")
+    return rec, errors
+
+
+def parse_server_log(text):
+    """Startup facts the vLLM 0.8.4 server itself logs: engine generation/version, and the
+    default chat sampling params it took from the model's generation_config (None if no such line;
+    0.8.4 logs it only when the model supplies at least one sampling default)."""
+    text = re.sub(r"\x1b\[[0-9;]*m", "", text)
+    engines = re.findall(r"Initializing a (V[01]) LLM engine \(v([^)\s]+)\)", text)
+    defaults = re.findall(r"Using default chat sampling params from (\S+): (\{[^\n]*\})", text)
+    return {"engines": [list(e) for e in engines],
+            "default_sampling_lines": [[src, ast.literal_eval(d)] for src, d in defaults]}
+
+
+def check_server_log(path, model):
+    """Runtime confirmation of the generation-config behaviour (only possible on the GPU host)."""
+    if path is None or not Path(path).exists():
+        return None, [f"server log {path} missing (written by wls_serve_vllm.sh)"]
+    rec = parse_server_log(Path(path).read_text(encoding="utf-8", errors="replace"))
+    rec["path"] = str(path)
+    errors = []
+    if rec["engines"] != [["V1", C.VLLM_VERSION]]:
+        errors.append(f"server log engine lines {rec['engines']}, expected exactly [['V1', {C.VLLM_VERSION!r}]]")
+    want = C.MODEL_SAMPLING_DEFAULTS[model]
+    got = rec["default_sampling_lines"]
+    if want and got != [["model", want]]:
+        errors.append(f"server log default sampling params {got}, expected [['model', {want}]]")
+    if not want and got:
+        errors.append(f"server log reports default sampling params {got}; none expected for {model}")
+    rec["effective_sampling_expected"] = C.effective_sampling(C.build_request(model, ""), want)
     return rec, errors
 
 
@@ -109,8 +145,13 @@ def check_manifest(path, model):
     want = {"served_model_name": model, "hf_repo": C.HF_REPO[model], "revision": C.HF_REVISION[model],
             "engine": "vllm", "vllm_version": C.VLLM_VERSION, "dtype": "bfloat16",
             "max_model_len": C.MAX_MODEL_LEN, "generation_config": C.GENERATION_CONFIG,
-            "prefix_caching": False, "reasoning_parser": None}
+            "prefix_caching": False, "reasoning_parser": None, "quantization": None}
     errors = [f"manifest {k}={m.get(k)!r}, expected {v!r}" for k, v in want.items() if m.get(k) != v]
+    cmd = m.get("command") or []
+    if "--generation-config" not in cmd or cmd[cmd.index("--generation-config") + 1] != C.GENERATION_CONFIG:
+        errors.append(f"manifest command lacks --generation-config {C.GENERATION_CONFIG}")
+    if "--no-enable-prefix-caching" not in cmd:
+        errors.append("manifest command lacks --no-enable-prefix-caching")
     return m, errors
 
 
@@ -196,6 +237,9 @@ def main():
     base = args.base_url.rstrip("/")
     server, server_errors = server_checks(base, args.model)
     errors += server_errors
+    server["log"], log_errors = check_server_log(
+        (manifest or {}).get("server_log") or manifest_path.with_suffix(".log"), args.model)
+    errors += log_errors
     if errors:
         sys.exit("server checks failed; nothing sent:\n  " + "\n  ".join(errors))
 
