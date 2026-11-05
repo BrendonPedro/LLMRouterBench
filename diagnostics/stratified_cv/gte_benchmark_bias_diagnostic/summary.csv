@@ -1,0 +1,3 @@
+method,within_macro_f1,winner_auc
+Global GTE,0.31260837631570454,0.5470598256762711
+Benchmark-bias diagnostic,0.3675020074482898,0.5470598256762711
