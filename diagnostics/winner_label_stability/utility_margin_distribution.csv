@@ -1,0 +1,13 @@
+group,abs_margin,n_queries
+chance,0.0,11
+chance,0.2,12
+chance,0.4,15
+chance,0.6,11
+chance,0.8,8
+chance,1.0,3
+signal,0.0,6
+signal,0.2,13
+signal,0.4,8
+signal,0.6,12
+signal,0.8,16
+signal,1.0,5

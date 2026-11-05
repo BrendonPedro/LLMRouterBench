@@ -1,0 +1,3 @@
+group,n_queries,mean_abs_margin,median_abs_margin,zero_margin_queries,zero_margin_rate,weak_margin_le_0.2_rate,strong_margin_ge_0.4_rate,ds_preference_queries,qwen_preference_queries,original_agreement_nonzero_n,original_agreement_nonzero_rate,winner_stable_rate
+chance,60.0,0.4066666666666666,0.4,11.0,0.18333333333333332,0.38333333333333336,0.6166666666666667,20.0,29.0,49.0,0.8571428571428571,0.18333333333333332
+signal,60.0,0.5133333333333333,0.6,6.0,0.1,0.31666666666666665,0.6833333333333333,27.0,27.0,54.0,0.8333333333333334,0.35

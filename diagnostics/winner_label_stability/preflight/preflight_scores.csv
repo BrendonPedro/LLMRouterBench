@@ -1,0 +1,1068 @@
+dataset,index,model,stored_score,fresh_score,prediction,eval_error,scored_in,sandbox_result
+bbh,4,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,False,,host,
+bbh,4,Qwen3-8B,1.0,1.0,False,,host,
+bbh,35,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,True,,host,
+bbh,35,Qwen3-8B,1.0,1.0,True,,host,
+bbh,184,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,> } >,,host,
+bbh,184,Qwen3-8B,1.0,1.0,> } >,,host,
+bbh,202,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,invalid,,host,
+bbh,202,Qwen3-8B,1.0,1.0,invalid,,host,
+bbh,233,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,invalid,,host,
+bbh,233,Qwen3-8B,1.0,1.0,invalid,,host,
+bbh,235,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,valid,,host,
+bbh,235,Qwen3-8B,1.0,1.0,valid,,host,
+bbh,428,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,(B),,host,
+bbh,428,Qwen3-8B,1.0,1.0,(B),,host,
+bbh,459,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,(C),,host,
+bbh,459,Qwen3-8B,1.0,1.0,(C),,host,
+bbh,473,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,(C),,host,
+bbh,473,Qwen3-8B,1.0,1.0,(C),,host,
+bbh,523,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,No,,host,
+bbh,523,Qwen3-8B,1.0,1.0,No,,host,
+bbh,566,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,3,,host,
+bbh,566,Qwen3-8B,1.0,1.0,3,,host,
+bbh,581,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,6,,host,
+bbh,581,Qwen3-8B,1.0,1.0,6,,host,
+bbh,724,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,(F),,host,
+bbh,724,Qwen3-8B,0.0,0.0,(D),,host,
+bbh,770,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,(B),,host,
+bbh,770,Qwen3-8B,1.0,1.0,(B),,host,
+bbh,788,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,(A),,host,
+bbh,788,Qwen3-8B,1.0,1.0,(A),,host,
+bbh,875,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,(A),,host,
+bbh,875,Qwen3-8B,1.0,1.0,(A),,host,
+bbh,889,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,(B),,host,
+bbh,889,Qwen3-8B,1.0,1.0,(B),,host,
+bbh,891,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,(B),,host,
+bbh,891,Qwen3-8B,1.0,1.0,(B),,host,
+bbh,954,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,(G),,host,
+bbh,954,Qwen3-8B,1.0,1.0,(G),,host,
+bbh,1017,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,No,,host,
+bbh,1017,Qwen3-8B,1.0,1.0,No,,host,
+finqa,18,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,704.25,,host,
+finqa,18,Qwen3-8B,1.0,1.0,704.25,,host,
+finqa,83,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,6.485,,host,
+finqa,83,Qwen3-8B,1.0,1.0,6.49,,host,
+finqa,134,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,40.3,,host,
+finqa,134,Qwen3-8B,1.0,1.0,40.3,,host,
+finqa,202,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,4.91,,host,
+finqa,202,Qwen3-8B,1.0,1.0,4.91,,host,
+finqa,239,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,5590,,host,
+finqa,239,Qwen3-8B,1.0,1.0,5590,,host,
+finqa,246,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,-3155,,host,
+finqa,246,Qwen3-8B,1.0,1.0,-3155,,host,
+finqa,266,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,0.65,,host,
+finqa,266,Qwen3-8B,0.0,0.0,65\%,,host,
+finqa,325,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,8.61,,host,
+finqa,325,Qwen3-8B,1.0,1.0,8.61\%,,host,
+finqa,362,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,2.6,,host,
+finqa,362,Qwen3-8B,0.0,0.0,2.6,,host,
+finqa,464,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,80.47,,host,
+finqa,464,Qwen3-8B,1.0,1.0,80.5,,host,
+finqa,517,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,\dfrac{26}{31},,host,
+finqa,517,Qwen3-8B,0.0,1.0,0.84,,host,
+finqa,546,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,24000,,host,
+finqa,546,Qwen3-8B,1.0,1.0,24000,,host,
+finqa,552,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,18.38,,host,
+finqa,552,Qwen3-8B,1.0,0.0,49.7,,host,
+finqa,683,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,80.08,,host,
+finqa,683,Qwen3-8B,1.0,1.0,80.08,,host,
+finqa,713,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,50.73,,host,
+finqa,713,Qwen3-8B,1.0,1.0,50.73,,host,
+finqa,798,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,117624.84,,host,
+finqa,798,Qwen3-8B,0.0,1.0,117624.84,,host,
+finqa,850,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,-7.94,,host,
+finqa,850,Qwen3-8B,1.0,1.0,-7.94\%,,host,
+finqa,851,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,11.71,,host,
+finqa,851,Qwen3-8B,1.0,1.0,11.7,,host,
+finqa,865,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,856240,,host,
+finqa,865,Qwen3-8B,1.0,1.0,-6.06,,host,
+finqa,1131,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,-530,,host,
+finqa,1131,Qwen3-8B,0.0,0.0,-530,,host,
+korbench,43,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,[[A]],,host,
+korbench,43,Qwen3-8B,0.0,0.0,[[B]],,host,
+korbench,137,DeepSeek-R1-0528-Qwen3-8B,0.0,1.0,[[595898898]],,host,
+korbench,137,Qwen3-8B,0.0,1.0,[[595898898]],,host,
+korbench,312,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,[[32]],,host,
+korbench,312,Qwen3-8B,1.0,1.0,[[32]],,host,
+korbench,522,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,[[denendned]],,host,
+korbench,522,Qwen3-8B,0.0,0.0,[[denendned]],,host,
+korbench,609,DeepSeek-R1-0528-Qwen3-8B,1.0,0.0,"[[3671,59102,811124]]",,host,
+korbench,609,Qwen3-8B,0.0,0.0,"[[3671,59102,811124]]",,host,
+korbench,610,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,[[Icannotsolvethispuzzlewiththegiveninformation.]],,host,
+korbench,610,Qwen3-8B,0.0,0.0,"[[3671,59102,811124]]",,host,
+korbench,630,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,"[[XXXXXXXXX,X55X63X79X81X,XX57X65X71XX,X49XXXXX11X,XX45XXX9XX,X41XXXXX15X,XX39X21X19XX,X1X3X23X25X,XXXXXXXXX]]",,host,
+korbench,630,Qwen3-8B,0.0,0.0,"[[394041424344454647,665564636279788167,655657686170717269,544958596061621125,5352455051528910,464142434445461516,483938372122192023,47123423242526,484950515253545556]]",,host,
+korbench,728,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,"[[(2,2)(3,2),(2,4)(3,4),(2,6)(3,6),(1,4)(1,5),(4,3)(4,4),(5,1)(5,2),(4,6)(5,6)]]",,host,
+korbench,728,Qwen3-8B,0.0,0.0,[[...]],,host,
+korbench,749,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,"[[43215,21435,54321,12345,35124]]",,host,
+korbench,749,Qwen3-8B,0.0,0.0,"[[...,...,...,witheachrowhaving5elements.Letmelookatthepreviousexamplesandseeifthere'sapattern.Inthefirstexample,theanswerwas3142,2431,4213,1324]]",,host,
+korbench,800,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,[[B]],,host,
+korbench,800,Qwen3-8B,1.0,1.0,[[B]],,host,
+korbench,817,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,[[D]],,host,
+korbench,817,Qwen3-8B,1.0,1.0,[[D]],,host,
+korbench,830,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,[[D]],,host,
+korbench,830,Qwen3-8B,1.0,1.0,[[D]],,host,
+korbench,977,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,[[A]],,host,
+korbench,977,Qwen3-8B,1.0,1.0,[[A]],,host,
+korbench,1027,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,[[]],,host,
+korbench,1027,Qwen3-8B,0.0,0.0,[[]],,host,
+korbench,1061,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,[[x⋅y>x+1]],,host,
+korbench,1061,Qwen3-8B,1.0,0.0,[[]],,host,
+korbench,1067,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,[[]],,host,
+korbench,1067,Qwen3-8B,0.0,0.0,[[]],,host,
+korbench,1091,DeepSeek-R1-0528-Qwen3-8B,0.0,1.0,[[I];[AAA]],,host,
+korbench,1091,Qwen3-8B,0.0,1.0,[[I];[AAA]],,host,
+korbench,1101,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,[[]],,host,
+korbench,1101,Qwen3-8B,0.0,0.0,[[]],,host,
+korbench,1129,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,[[C]],,host,
+korbench,1129,Qwen3-8B,1.0,1.0,[[C]],,host,
+korbench,1171,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,[[A]],,host,
+korbench,1171,Qwen3-8B,1.0,1.0,[[A]],,host,
+mbpp,22,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+def sort_sublists(list_of_lists):
+    return [sorted(sublist) for sublist in list_of_lists]
+assert sort_sublists([['green', 'orange'], ['black', 'white'], ['white', 'black', 'orange']])==[['green', 'orange'], ['black', 'white'], ['black', 'orange', 'white']]
+assert sort_sublists([['green', 'orange'], ['black'], ['green', 'orange'], ['white']])==[['green', 'orange'], ['black'], ['green', 'orange'], ['white']]
+assert sort_sublists([['a','b'],['d','c'],['g','h'] , ['f','e']])==[['a', 'b'], ['c', 'd'], ['g', 'h'], ['e', 'f']]",,bwrap_sandbox,passed
+mbpp,22,Qwen3-8B,1.0,1.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+def sort_sublists(input_list):
+    result = []
+    for sublist in input_list:
+        sorted_sublist = sorted(sublist)
+        result.append(sorted_sublist)
+    return result
+assert sort_sublists([['green', 'orange'], ['black', 'white'], ['white', 'black', 'orange']])==[['green', 'orange'], ['black', 'white'], ['black', 'orange', 'white']]
+assert sort_sublists([['green', 'orange'], ['black'], ['green', 'orange'], ['white']])==[['green', 'orange'], ['black'], ['green', 'orange'], ['white']]
+assert sort_sublists([['a','b'],['d','c'],['g','h'] , ['f','e']])==[['a', 'b'], ['c', 'd'], ['g', 'h'], ['e', 'f']]",,bwrap_sandbox,passed
+mbpp,48,DeepSeek-R1-0528-Qwen3-8B,1.0,0.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+
+assert nth_items([1, 2, 3, 4, 5, 6, 7, 8, 9],2)==[1, 3, 5, 7, 9] 
+assert nth_items([10,15,19,17,16,18],3)==[10,17] 
+assert nth_items([14,16,19,15,17],4)==[14,17]",,bwrap_sandbox,failed: name 'nth_items' is not defined
+mbpp,48,Qwen3-8B,0.0,1.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+def nth_items(lst, n):
+    return [lst[i] for i in range(len(lst)) if i % n == 0]
+assert nth_items([1, 2, 3, 4, 5, 6, 7, 8, 9],2)==[1, 3, 5, 7, 9] 
+assert nth_items([10,15,19,17,16,18],3)==[10,17] 
+assert nth_items([14,16,19,15,17],4)==[14,17]",,bwrap_sandbox,passed
+mbpp,66,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+
+assert count_reverse_pairs([""julia"", ""best"", ""tseb"", ""for"", ""ailuj""])== '2'
+assert count_reverse_pairs([""geeks"", ""best"", ""for"", ""skeeg""]) == '1'
+assert count_reverse_pairs([""makes"", ""best"", ""sekam"", ""for"", ""rof""]) == '2' ",,bwrap_sandbox,failed: name 'count_reverse_pairs' is not defined
+mbpp,66,Qwen3-8B,0.0,1.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+def count_reverse_pairs(lst):
+    count = 0
+    n = len(lst)
+    for i in range(n):
+        for j in range(i + 1, n):
+            if lst[i] == lst[j][::-1]:
+                count += 1
+    return str(count)
+assert count_reverse_pairs([""julia"", ""best"", ""tseb"", ""for"", ""ailuj""])== '2'
+assert count_reverse_pairs([""geeks"", ""best"", ""for"", ""skeeg""]) == '1'
+assert count_reverse_pairs([""makes"", ""best"", ""sekam"", ""for"", ""rof""]) == '2' ",,bwrap_sandbox,passed
+mbpp,154,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+
+assert unique_Element([1,1,1],3) == 'YES'
+assert unique_Element([1,2,1,2],4) == 'NO'
+assert unique_Element([1,2,3,4,5],5) == 'NO'",,bwrap_sandbox,failed: name 'unique_Element' is not defined
+mbpp,154,Qwen3-8B,1.0,1.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+def unique_Element(arr, size):
+    elements = arr[:size]
+    if len(set(elements)) == 1:
+        return 'YES'
+    else:
+        return 'NO'
+assert unique_Element([1,1,1],3) == 'YES'
+assert unique_Element([1,2,1,2],4) == 'NO'
+assert unique_Element([1,2,3,4,5],5) == 'NO'",,bwrap_sandbox,passed
+mbpp,179,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+
+assert find_Rotations(""aaaa"") == 1
+assert find_Rotations(""ab"") == 2
+assert find_Rotations(""abc"") == 3",,bwrap_sandbox,failed: name 'find_Rotations' is not defined
+mbpp,179,Qwen3-8B,1.0,1.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+def find_Rotations(s):
+    n = len(s)
+    for k in range(1, n + 1):
+        if s[k:] + s[:k] == s:
+            return k
+    return n
+assert find_Rotations(""aaaa"") == 1
+assert find_Rotations(""ab"") == 2
+assert find_Rotations(""abc"") == 3",,bwrap_sandbox,passed
+mbpp,303,DeepSeek-R1-0528-Qwen3-8B,1.0,0.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+
+assert add_lists([5, 6, 7], (9, 10)) == (9, 10, 5, 6, 7)
+assert add_lists([6, 7, 8], (10, 11)) == (10, 11, 6, 7, 8)
+assert add_lists([7, 8, 9], (11, 12)) == (11, 12, 7, 8, 9)",,bwrap_sandbox,failed: name 'add_lists' is not defined
+mbpp,303,Qwen3-8B,1.0,1.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+def add_lists(lst, tpl):
+    return tpl + tuple(lst)
+assert add_lists([5, 6, 7], (9, 10)) == (9, 10, 5, 6, 7)
+assert add_lists([6, 7, 8], (10, 11)) == (10, 11, 6, 7, 8)
+assert add_lists([7, 8, 9], (11, 12)) == (11, 12, 7, 8, 9)",,bwrap_sandbox,passed
+mbpp,340,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+def float_to_tuple(s):
+    return tuple((float(num) for num in s.split(',') if num.strip()))
+assert float_to_tuple(""1.2, 1.3, 2.3, 2.4, 6.5"") == (1.2, 1.3, 2.3, 2.4, 6.5)
+assert float_to_tuple(""2.3, 2.4, 5.6, 5.4, 8.9"") == (2.3, 2.4, 5.6, 5.4, 8.9)
+assert float_to_tuple(""0.3, 0.5, 7.8, 9.4"") == (0.3, 0.5, 7.8, 9.4)",,bwrap_sandbox,passed
+mbpp,340,Qwen3-8B,1.0,1.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+def float_to_tuple(s):
+    parts = s.split(',')
+    stripped_parts = [part.strip() for part in parts]
+    floats = [float(p) for p in stripped_parts]
+    return tuple(floats)
+assert float_to_tuple(""1.2, 1.3, 2.3, 2.4, 6.5"") == (1.2, 1.3, 2.3, 2.4, 6.5)
+assert float_to_tuple(""2.3, 2.4, 5.6, 5.4, 8.9"") == (2.3, 2.4, 5.6, 5.4, 8.9)
+assert float_to_tuple(""0.3, 0.5, 7.8, 9.4"") == (0.3, 0.5, 7.8, 9.4)",,bwrap_sandbox,passed
+mbpp,341,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+def is_valid_parenthese(s):
+    stack = []
+    mapping = {')': '(', '}': '{', ']': '['}
+    for char in s:
+        if char in mapping.values():
+            stack.append(char)
+        elif char in mapping.keys():
+            if not stack or stack[-1] != mapping[char]:
+                return False
+            stack.pop()
+    return len(stack) == 0
+assert is_valid_parenthese(""(){}[]"")==True
+assert is_valid_parenthese(""()[{)}"")==False
+assert is_valid_parenthese(""()"")==True",,bwrap_sandbox,passed
+mbpp,341,Qwen3-8B,1.0,0.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+def is_valid_parenthese(s):
+    stack = []
+    closing_to_opening = {')': '(', '}': '{', ']': '['}
+    for char in s:
+        if char in closing_to_opening:
+            if not stack:
+                return False
+            top = stack.pop()
+assert is_valid_parenthese(""(){}[]"")==True
+assert is_valid_parenthese(""()[{)}"")==False
+assert is_valid_parenthese(""()"")==True",,bwrap_sandbox,failed: 
+mbpp,393,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+
+assert snake_to_camel('python_program')=='PythonProgram'
+assert snake_to_camel('python_language')==('PythonLanguage')
+assert snake_to_camel('programming_language')==('ProgrammingLanguage')",,bwrap_sandbox,failed: name 'snake_to_camel' is not defined
+mbpp,393,Qwen3-8B,1.0,1.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+def snake_to_camel(s):
+    parts = s.split('_')
+    camel = ''.join([part[0].upper() + part[1:] for part in parts])
+    return camel
+assert snake_to_camel('python_program')=='PythonProgram'
+assert snake_to_camel('python_language')==('PythonLanguage')
+assert snake_to_camel('programming_language')==('ProgrammingLanguage')",,bwrap_sandbox,passed
+mbpp,428,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+def bitwise_xor(tuple1, tuple2):
+    return tuple((a ^ b for a, b in zip(tuple1, tuple2)))
+assert bitwise_xor((10, 4, 6, 9), (5, 2, 3, 3)) == (15, 6, 5, 10)
+assert bitwise_xor((11, 5, 7, 10), (6, 3, 4, 4)) == (13, 6, 3, 14)
+assert bitwise_xor((12, 6, 8, 11), (7, 4, 5, 6)) == (11, 2, 13, 13)",,bwrap_sandbox,passed
+mbpp,428,Qwen3-8B,0.0,1.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+def bitwise_xor(tuple1, tuple2):
+    return tuple((a ^ b for a, b in zip(tuple1, tuple2)))
+assert bitwise_xor((10, 4, 6, 9), (5, 2, 3, 3)) == (15, 6, 5, 10)
+assert bitwise_xor((11, 5, 7, 10), (6, 3, 4, 4)) == (13, 6, 3, 14)
+assert bitwise_xor((12, 6, 8, 11), (7, 4, 5, 6)) == (11, 2, 13, 13)",,bwrap_sandbox,passed
+mbpp,547,DeepSeek-R1-0528-Qwen3-8B,0.0,1.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+import re
+def check_literals(text, literals):
+    for literal in literals:
+        pattern = re.escape(literal)
+        if re.search(pattern, text):
+            return 'Matched!'
+    return 'Not Matched!'
+assert check_literals('The quick brown fox jumps over the lazy dog.',['fox']) == 'Matched!'
+assert check_literals('The quick brown fox jumps over the lazy dog.',['horse']) == 'Not Matched!'
+assert check_literals('The quick brown fox jumps over the lazy dog.',['lazy']) == 'Matched!'",,bwrap_sandbox,passed
+mbpp,547,Qwen3-8B,1.0,1.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+import re
+def check_literals(s, literals):
+    pattern = '|'.join(map(re.escape, literals))
+    if re.search(pattern, s):
+        return 'Matched!'
+    else:
+        return 'Not Matched!'
+assert check_literals('The quick brown fox jumps over the lazy dog.',['fox']) == 'Matched!'
+assert check_literals('The quick brown fox jumps over the lazy dog.',['horse']) == 'Not Matched!'
+assert check_literals('The quick brown fox jumps over the lazy dog.',['lazy']) == 'Matched!'",,bwrap_sandbox,passed
+mbpp,606,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+
+assert largest_neg([1,2,3,-4,-6]) == -6
+assert largest_neg([1,2,3,-8,-9]) == -9
+assert largest_neg([1,2,3,4,-1]) == -1",,bwrap_sandbox,failed: name 'largest_neg' is not defined
+mbpp,606,Qwen3-8B,1.0,1.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+def largest_neg(lst):
+    negatives = [x for x in lst if x < 0]
+    return min(negatives)
+assert largest_neg([1,2,3,-4,-6]) == -6
+assert largest_neg([1,2,3,-8,-9]) == -9
+assert largest_neg([1,2,3,4,-1]) == -1",,bwrap_sandbox,passed
+mbpp,697,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+def average_Even(n):
+    return (2 + n) / 2
+assert average_Even(2) == 2
+assert average_Even(4) == 3
+assert average_Even(100) == 51",,bwrap_sandbox,passed
+mbpp,697,Qwen3-8B,1.0,1.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+def average_Even(x):
+    return x // 2 + 1
+assert average_Even(2) == 2
+assert average_Even(4) == 3
+assert average_Even(100) == 51",,bwrap_sandbox,passed
+mbpp,742,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+
+assert maximize_elements(((1, 3), (4, 5), (2, 9), (1, 10)), ((6, 7), (3, 9), (1, 1), (7, 3))) == ((6, 7), (4, 9), (2, 9), (7, 10))
+assert maximize_elements(((2, 4), (5, 6), (3, 10), (2, 11)), ((7, 8), (4, 10), (2, 2), (8, 4))) == ((7, 8), (5, 10), (3, 10), (8, 11))
+assert maximize_elements(((3, 5), (6, 7), (4, 11), (3, 12)), ((8, 9), (5, 11), (3, 3), (9, 5))) == ((8, 9), (6, 11), (4, 11), (9, 12))",,bwrap_sandbox,failed: name 'maximize_elements' is not defined
+mbpp,742,Qwen3-8B,1.0,1.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+def maximize_elements(t1, t2):
+    result = []
+    for a, b in zip(t1, t2):
+        new_pair = (max(a[0], b[0]), max(a[1], b[1]))
+        result.append(new_pair)
+    return tuple(result)
+assert maximize_elements(((1, 3), (4, 5), (2, 9), (1, 10)), ((6, 7), (3, 9), (1, 1), (7, 3))) == ((6, 7), (4, 9), (2, 9), (7, 10))
+assert maximize_elements(((2, 4), (5, 6), (3, 10), (2, 11)), ((7, 8), (4, 10), (2, 2), (8, 4))) == ((7, 8), (5, 10), (3, 10), (8, 11))
+assert maximize_elements(((3, 5), (6, 7), (4, 11), (3, 12)), ((8, 9), (5, 11), (3, 3), (9, 5))) == ((8, 9), (6, 11), (4, 11), (9, 12))",,bwrap_sandbox,passed
+mbpp,773,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+def armstrong_number(n):
+    num_str = str(n)
+    num_digits = len(num_str)
+    total = sum((int(digit) ** num_digits for digit in num_str))
+    return total == n
+assert armstrong_number(153)==True
+assert armstrong_number(259)==False
+assert armstrong_number(4458)==False",,bwrap_sandbox,passed
+mbpp,773,Qwen3-8B,1.0,1.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+def armstrong_number(n):
+    digits = list(str(n))
+    length = len(digits)
+    total = 0
+    for d in digits:
+        total += int(d) ** length
+    return total == n
+assert armstrong_number(153)==True
+assert armstrong_number(259)==False
+assert armstrong_number(4458)==False",,bwrap_sandbox,passed
+mbpp,875,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+
+assert replace_specialchar('Python language, Programming language.')==('Python:language::Programming:language:')
+assert replace_specialchar('a b c,d e f')==('a:b:c:d:e:f')
+assert replace_specialchar('ram reshma,ram rahim')==('ram:reshma:ram:rahim')",,bwrap_sandbox,failed: name 'replace_specialchar' is not defined
+mbpp,875,Qwen3-8B,1.0,1.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+def replace_specialchar(s):
+    return s.replace(' ', ':').replace(',', ':').replace('.', ':')
+assert replace_specialchar('Python language, Programming language.')==('Python:language::Programming:language:')
+assert replace_specialchar('a b c,d e f')==('a:b:c:d:e:f')
+assert replace_specialchar('ram reshma,ram rahim')==('ram:reshma:ram:rahim')",,bwrap_sandbox,passed
+mbpp,879,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+
+assert jacobsthal_lucas(5) == 31
+assert jacobsthal_lucas(2) == 5
+assert jacobsthal_lucas(4) == 17",,bwrap_sandbox,failed: name 'jacobsthal_lucas' is not defined
+mbpp,879,Qwen3-8B,0.0,0.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+def jacobsthal_lucas(n):
+    if n == 0:
+        return 2
+    elif n == 1:
+        return 1
+    else:
+        a, b = (2, 1)
+        for _ in range(2, n + 1):
+            c = a + 2 * b
+            a, b = (b, c)
+        return b
+assert jacobsthal_lucas(5) == 31
+assert jacobsthal_lucas(2) == 5
+assert jacobsthal_lucas(4) == 17",,bwrap_sandbox,failed: 
+mbpp,915,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+import re
+def check_substring(s, substring):
+    pattern = '^' + re.escape(substring)
+    if re.match(pattern, s):
+        return 'string starts with the given substring'
+    else:
+        return 'string doesnt start with the given substring'
+assert check_substring(""dreams for dreams makes life fun"", ""makes"") == 'string doesnt start with the given substring'
+assert check_substring(""Hi there how are you Hi alex"", ""Hi"") == 'string starts with the given substring'
+assert check_substring(""Its been a long day"", ""been"") == 'string doesnt start with the given substring'",,bwrap_sandbox,passed
+mbpp,915,Qwen3-8B,1.0,1.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+import re
+def check_substring(s, substr):
+    pattern = '^' + re.escape(substr)
+    if re.match(pattern, s):
+        return 'string starts with the given substring'
+    else:
+        return 'string doesnt start with the given substring'
+assert check_substring(""dreams for dreams makes life fun"", ""makes"") == 'string doesnt start with the given substring'
+assert check_substring(""Hi there how are you Hi alex"", ""Hi"") == 'string starts with the given substring'
+assert check_substring(""Its been a long day"", ""been"") == 'string doesnt start with the given substring'",,bwrap_sandbox,passed
+mbpp,931,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+def square_perimeter(a):
+    return 4 * a
+assert square_perimeter(10)==40
+assert square_perimeter(5)==20
+assert square_perimeter(4)==16",,bwrap_sandbox,passed
+mbpp,931,Qwen3-8B,0.0,0.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+
+assert square_perimeter(10)==40
+assert square_perimeter(5)==20
+assert square_perimeter(4)==16",,bwrap_sandbox,failed: name 'square_perimeter' is not defined
+mbpp,943,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+
+assert rearrange_bigger(12)==21
+assert rearrange_bigger(10)==False
+assert rearrange_bigger(102)==120",,bwrap_sandbox,failed: name 'rearrange_bigger' is not defined
+mbpp,943,Qwen3-8B,0.0,0.0,"import math
+import re
+import sys
+import copy
+import datetime
+import itertools
+import collections
+import heapq
+import functools
+import hashlib
+import numpy
+import numpy as np
+import string
+from typing import *
+from collections import *
+digits = list(map(int, str(n)))
+assert rearrange_bigger(12)==21
+assert rearrange_bigger(10)==False
+assert rearrange_bigger(102)==120",,bwrap_sandbox,failed: name 'n' is not defined
+medqa,20,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,D,,host,
+medqa,20,Qwen3-8B,0.0,0.0,B,,host,
+medqa,36,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,A,,host,
+medqa,36,Qwen3-8B,1.0,1.0,A,,host,
+medqa,161,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,B,,host,
+medqa,161,Qwen3-8B,0.0,0.0,A,,host,
+medqa,381,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,A,,host,
+medqa,381,Qwen3-8B,1.0,0.0,A,,host,
+medqa,382,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,C,,host,
+medqa,382,Qwen3-8B,0.0,0.0,B,,host,
+medqa,431,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,A,,host,
+medqa,431,Qwen3-8B,1.0,1.0,A,,host,
+medqa,496,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,A,,host,
+medqa,496,Qwen3-8B,1.0,1.0,A,,host,
+medqa,506,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,B,,host,
+medqa,506,Qwen3-8B,1.0,1.0,B,,host,
+medqa,707,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,D,,host,
+medqa,707,Qwen3-8B,0.0,0.0,D,,host,
+medqa,753,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,C,,host,
+medqa,753,Qwen3-8B,1.0,1.0,C,,host,
+medqa,885,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,A,,host,
+medqa,885,Qwen3-8B,1.0,1.0,A,,host,
+medqa,917,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,A,,host,
+medqa,917,Qwen3-8B,1.0,1.0,A,,host,
+medqa,964,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,D,,host,
+medqa,964,Qwen3-8B,1.0,1.0,D,,host,
+medqa,1002,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,C,,host,
+medqa,1002,Qwen3-8B,1.0,1.0,C,,host,
+medqa,1094,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,B,,host,
+medqa,1094,Qwen3-8B,1.0,1.0,B,,host,
+medqa,1111,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,C,,host,
+medqa,1111,Qwen3-8B,1.0,1.0,C,,host,
+medqa,1120,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,D,,host,
+medqa,1120,Qwen3-8B,1.0,1.0,D,,host,
+medqa,1128,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,C,,host,
+medqa,1128,Qwen3-8B,1.0,1.0,C,,host,
+medqa,1220,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,C,,host,
+medqa,1220,Qwen3-8B,1.0,1.0,C,,host,
+medqa,1237,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,B,,host,
+medqa,1237,Qwen3-8B,1.0,1.0,B,,host,
+meld,33,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,B,,host,
+meld,33,Qwen3-8B,1.0,1.0,B,,host,
+meld,85,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,E,,host,
+meld,85,Qwen3-8B,0.0,0.0,C,,host,
+meld,98,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,F,,host,
+meld,98,Qwen3-8B,0.0,0.0,F,,host,
+meld,120,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,F,,host,
+meld,120,Qwen3-8B,0.0,0.0,C,,host,
+meld,127,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,G,,host,
+meld,127,Qwen3-8B,1.0,1.0,G,,host,
+meld,175,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,B,,host,
+meld,175,Qwen3-8B,0.0,0.0,B,,host,
+meld,246,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,E,,host,
+meld,246,Qwen3-8B,0.0,0.0,A,,host,
+meld,254,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,B,,host,
+meld,254,Qwen3-8B,0.0,0.0,F,,host,
+meld,263,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,E,,host,
+meld,263,Qwen3-8B,1.0,1.0,E,,host,
+meld,272,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,B,,host,
+meld,272,Qwen3-8B,0.0,0.0,F,,host,
+meld,506,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,E,,host,
+meld,506,Qwen3-8B,0.0,0.0,E,,host,
+meld,539,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,E,,host,
+meld,539,Qwen3-8B,1.0,1.0,E,,host,
+meld,540,DeepSeek-R1-0528-Qwen3-8B,0.0,0.0,C,,host,
+meld,540,Qwen3-8B,0.0,0.0,C,,host,
+meld,567,DeepSeek-R1-0528-Qwen3-8B,0.0,1.0,A,,host,
+meld,567,Qwen3-8B,0.0,1.0,A,,host,
+meld,653,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,A,,host,
+meld,653,Qwen3-8B,1.0,1.0,A,,host,
+meld,811,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,F,,host,
+meld,811,Qwen3-8B,1.0,1.0,F,,host,
+meld,894,DeepSeek-R1-0528-Qwen3-8B,1.0,0.0,E,,host,
+meld,894,Qwen3-8B,0.0,0.0,E,,host,
+meld,1132,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,F,,host,
+meld,1132,Qwen3-8B,0.0,0.0,E,,host,
+meld,1146,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,C,,host,
+meld,1146,Qwen3-8B,1.0,1.0,C,,host,
+meld,1199,DeepSeek-R1-0528-Qwen3-8B,1.0,1.0,A,,host,
+meld,1199,Qwen3-8B,1.0,1.0,A,,host,

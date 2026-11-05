@@ -1,0 +1,7 @@
+dataset,n_queries,stable_queries,stable_rate,original_winner_repeat_wins,original_winner_repeat_win_rate,opposite_winner_repeat_wins,opposite_winner_repeat_win_rate,tie_repeats,tie_rate
+bbh,20.0,5.0,0.25,43.0,0.43,8.0,0.08,49.0,0.49
+finqa,20.0,5.0,0.25,40.0,0.4,6.0,0.06,54.0,0.54
+korbench,20.0,5.0,0.25,41.0,0.41,12.0,0.12,47.0,0.47
+mbpp,20.0,11.0,0.55,61.0,0.61,3.0,0.03,36.0,0.36
+medqa,20.0,4.0,0.2,43.0,0.43,5.0,0.05,52.0,0.52
+meld,20.0,2.0,0.1,39.0,0.39,9.0,0.09,52.0,0.52

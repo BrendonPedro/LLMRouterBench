@@ -1,0 +1,30 @@
+check,model,status,value,detail
+0_completeness,DeepSeek-R1-0528-Qwen3-8B,PASS,120/120 ok,error attempts logged: 0; duplicate ok: 0
+1_model_identity,DeepSeek-R1-0528-Qwen3-8B,PASS,120/120 exact name,"revision=['6e8885a6ff5c1dc5201574c8fd700323f23c25fa'] dtype=['bfloat16'] engine=vllm ['0.8.4'] generation_config=['auto'] log engines=[[['V1', '0.8.4']]] log sampling defaults=[[]] gpus=['NVIDIA A100 80GB PCIe, 81920 MiB, 595.91.07']"
+2_thinking_active,DeepSeek-R1-0528-Qwen3-8B,PASS,120/120 contain <think>,reasoning-parser fields present: 0
+3_length_policy,DeepSeek-R1-0528-Qwen3-8B,PASS,0 truncated below 32768,finish_reason=length at cap: 0
+4_cache_disabled,DeepSeek-R1-0528-Qwen3-8B,PASS,1 run(s),
+5_evaluator_scored_all,DeepSeek-R1-0528-Qwen3-8B,PASS,120/120 scored,MBPP in sandbox: True (20 items)
+0_completeness,Qwen3-8B,PASS,120/120 ok,error attempts logged: 0; duplicate ok: 0
+1_model_identity,Qwen3-8B,PASS,120/120 exact name,"revision=['b968826d9c46dd6066d109eabc6255188de91218'] dtype=['bfloat16'] engine=vllm ['0.8.4'] generation_config=['auto'] log engines=[[['V1', '0.8.4']]] log sampling defaults=[[['model', {'temperature': 0.6, 'top_k': 20, 'top_p': 0.95}]]] gpus=['NVIDIA A100 80GB PCIe, 81920 MiB, 595.91.07']"
+2_thinking_active,Qwen3-8B,PASS,120/120 contain <think>,reasoning-parser fields present: 0
+3_length_policy,Qwen3-8B,PASS,0 truncated below 32768,finish_reason=length at cap: 2
+4_cache_disabled,Qwen3-8B,PASS,1 run(s),
+5_evaluator_scored_all,Qwen3-8B,PASS,120/120 scored,MBPP in sandbox: True (20 items)
+mcnemar_exact_two_sided,DeepSeek-R1-0528-Qwen3-8B,NO_GROSS_MISMATCH_DETECTED,p=1,stored1_fresh0=4 stored0_fresh1=4 alpha=0.05 (operational warning only)
+accuracy_descriptive,DeepSeek-R1-0528-Qwen3-8B,INFO,stored=0.675 fresh=0.675 diff=+0.000,"stored Wilson95=[0.587,0.752] fresh Wilson95=[0.587,0.752] paired Newcombe95 diff=[-0.049,+0.049]"
+accuracy_by_benchmark_descriptive,DeepSeek-R1-0528-Qwen3-8B,INFO,bbh: stored=1.00 fresh=1.00,n=20
+accuracy_by_benchmark_descriptive,DeepSeek-R1-0528-Qwen3-8B,INFO,korbench: stored=0.45 fresh=0.50,n=20
+accuracy_by_benchmark_descriptive,DeepSeek-R1-0528-Qwen3-8B,INFO,mbpp: stored=0.50 fresh=0.45,n=20
+accuracy_by_benchmark_descriptive,DeepSeek-R1-0528-Qwen3-8B,INFO,meld: stored=0.50 fresh=0.50,n=20
+accuracy_by_benchmark_descriptive,DeepSeek-R1-0528-Qwen3-8B,INFO,medqa: stored=0.85 fresh=0.85,n=20
+accuracy_by_benchmark_descriptive,DeepSeek-R1-0528-Qwen3-8B,INFO,finqa: stored=0.75 fresh=0.75,n=20
+mcnemar_exact_two_sided,Qwen3-8B,NO_GROSS_MISMATCH_DETECTED,p=0.3877,stored1_fresh0=4 stored0_fresh1=8 alpha=0.05 (operational warning only)
+accuracy_descriptive,Qwen3-8B,INFO,stored=0.667 fresh=0.700 diff=+0.033,"stored Wilson95=[0.578,0.745] fresh Wilson95=[0.613,0.775] paired Newcombe95 diff=[-0.025,+0.092]"
+accuracy_by_benchmark_descriptive,Qwen3-8B,INFO,bbh: stored=0.95 fresh=0.95,n=20
+accuracy_by_benchmark_descriptive,Qwen3-8B,INFO,korbench: stored=0.40 fresh=0.45,n=20
+accuracy_by_benchmark_descriptive,Qwen3-8B,INFO,mbpp: stored=0.70 fresh=0.80,n=20
+accuracy_by_benchmark_descriptive,Qwen3-8B,INFO,meld: stored=0.40 fresh=0.45,n=20
+accuracy_by_benchmark_descriptive,Qwen3-8B,INFO,medqa: stored=0.80 fresh=0.75,n=20
+accuracy_by_benchmark_descriptive,Qwen3-8B,INFO,finqa: stored=0.75 fresh=0.80,n=20
+disclaimer,,INFO,Pre-flight = reconstruction validity check only; not evidence of label stability; passing is not an equivalence certificate.,

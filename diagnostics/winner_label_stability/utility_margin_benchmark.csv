@@ -1,0 +1,7 @@
+dataset,n_queries,mean_abs_margin,median_abs_margin,zero_margin_queries,zero_margin_rate,weak_margin_le_0.2_rate,strong_margin_ge_0.4_rate,ds_preference_queries,qwen_preference_queries,original_agreement_nonzero_n,original_agreement_nonzero_rate,winner_stable_rate
+bbh,20.0,0.47000000000000003,0.4,1.0,0.05,0.4,0.6,11.0,8.0,19.0,0.7894736842105263,0.25
+finqa,20.0,0.43999999999999995,0.4,4.0,0.2,0.35,0.65,6.0,10.0,16.0,0.8125,0.25
+korbench,20.0,0.45,0.5,4.0,0.2,0.35,0.65,7.0,9.0,16.0,0.75,0.25
+mbpp,20.0,0.6199999999999999,0.8,1.0,0.05,0.2,0.8,9.0,10.0,19.0,0.9473684210526315,0.55
+medqa,20.0,0.42000000000000004,0.4,3.0,0.15,0.4,0.6,7.0,10.0,17.0,0.8823529411764706,0.2
+meld,20.0,0.36000000000000004,0.4,4.0,0.2,0.4,0.6,7.0,9.0,16.0,0.875,0.1
