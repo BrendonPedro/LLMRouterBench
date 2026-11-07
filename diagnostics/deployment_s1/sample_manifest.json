@@ -1,0 +1,59 @@
+{
+  "created_utc": "2026-11-07T10:20:46.883935+00:00",
+  "seed": 20261107,
+  "procedure": "per benchmark: frame = cached LLMRouterBench Qwen3-8B records (later copies of a duplicated prompt dropped), sorted by index, shuffled with random.Random('deployment-s1:<seed>:<dataset>'); the first n are taken. Extension to 400 = first 2n of the same permutation.",
+  "n_per_benchmark": {
+    "mmlupro": 60,
+    "gpqa": 60,
+    "livemathbench": 40,
+    "livecodebench": 40
+  },
+  "frames": {
+    "mmlupro": {
+      "records": 1001,
+      "frame": 1000,
+      "dropped_duplicate_prompts": [
+        338
+      ]
+    },
+    "gpqa": {
+      "records": 198,
+      "frame": 198,
+      "dropped_duplicate_prompts": []
+    },
+    "livemathbench": {
+      "records": 121,
+      "frame": 121,
+      "dropped_duplicate_prompts": []
+    },
+    "livecodebench": {
+      "records": 1055,
+      "frame": 1055,
+      "dropped_duplicate_prompts": []
+    }
+  },
+  "cached_files": {
+    "mmlupro": {
+      "path": "mmlupro/test_1000/Qwen3-8B/mmlupro-test-Qwen3-8B-20251019_064245.json",
+      "sha256": "c7a4219859615ffefef13ff8894ee85abea4e0a032b9129a6bac42b2880a6056"
+    },
+    "gpqa": {
+      "path": "gpqa/test/Qwen3-8B/gpqa-test-Qwen3-8B-20251019_064106.json",
+      "sha256": "87c8f9226fa944eecbb4ae6335b593dfc3837606b5b58b5a37df5cddda711207"
+    },
+    "livemathbench": {
+      "path": "livemathbench/test/Qwen3-8B/livemathbench-test-Qwen3-8B-20250919_112608.json",
+      "sha256": "6a34d4d51d91fdc295a1ec1d8490fa4b330945df10253b79c878c41dad12e7c9"
+    },
+    "livecodebench": {
+      "path": "livecodebench/test/Qwen3-8B/livecodebench-test-Qwen3-8B-20251002_155958.json",
+      "sha256": "ff871d9818d7ac2cfdf91113bee648534f2908b0dda33da15c3f1c24805258eb"
+    }
+  },
+  "bench_tarball": {
+    "url": "https://huggingface.co/datasets/NPULH/LLMRouterBench/resolve/b95870f9e60c589e82f7972c91ffa8de9ca89f85/bench-release.tar.gz",
+    "sha256": "b79f8cde1a6f029c2efa663a3a3b6f7748defb22341fe59f328cebef6648c8f1"
+  },
+  "sample_sha256": "2c4df49360f997c3e35593030da40111c2826f068f03b1401284a394d9716955",
+  "python": "3.12.3"
+}
