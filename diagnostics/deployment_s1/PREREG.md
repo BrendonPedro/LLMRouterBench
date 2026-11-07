@@ -1,6 +1,7 @@
 # S1 / E0-Q3 pre-registration: server-only quality gate
 
-Frozen 2026-11-07, before any generation. **No S1 generation has been run.**
+Frozen 2026-11-07, before any generation. Amended once on 2026-11-07, also before any generation
+(**A1**, §10: `presence_penalty=1.5` for the three AWQ models). **No S1 generation has been run.**
 
 Sources of the design (not changed here):
 - `~/dev/cloud_slm-router/deployment-pivot/E0-SPLIT-VIABILITY.md`: §3.1 models and the mode amendment, §4.3 Q3
@@ -92,7 +93,13 @@ allowed.
 | S1 non-thinking | false | 0.7 | 0.8 | 20 | 0 | 16384 | 0, 1 |
 | Harness parity (Qwen3-8B only) | true | 0.2 | 1.0 | 20 | 0 | none (32768 total cap) | 0 |
 
-`presence_penalty` is not sent, so it stays at 0 (§9).
+`presence_penalty` is set per model, not per setting (amendment A1, §10):
+- **AWQ models** (Qwen3-8B-AWQ, Qwen3-14B-AWQ, Qwen3-32B-AWQ): `presence_penalty=1.5` is sent with every request,
+  in both modes and in the smoke run.
+- **bf16 models** (Qwen3-32B, Qwen3-8B, including harness parity): `presence_penalty` is not sent, so it stays at
+  the vLLM default 0.
+
+Every other field in the table is identical for AWQ and bf16 models.
 
 **Matrix.** 5 models × 2 modes × 2 seeds × 200 queries = 4,000 generations.
 
@@ -186,11 +193,11 @@ The full run order is Qwen3-32B → 8B-AWQ → 14B-AWQ → 32B-AWQ → 8B. This 
 
 ## 9. Known deviations and biases (stated before data)
 
-1. **No presence penalty.** The Qwen3 AWQ cards recommend `presence_penalty=1.5` for quantised models; E0 freezes
-   only T, top_p and top_k. All models get 0.
-   - *Direction:* this can raise AWQ repetition and truncation, which lowers AWQ accuracy, widens the gap and favours
-     keeping SPLIT (against the early stop).
-   - *Visibility:* the per-model truncation table shows it.
+1. **Presence penalty differs by precision (amended by A1, §10).** AWQ models get `presence_penalty=1.5`, as their
+   model cards recommend for quantised models. bf16 models get 0. E0 freezes only T, top_p and top_k.
+   - *Direction:* see §10. The original bias (all models at 0, which favours SPLIT) is removed. A smaller residual of
+     unknown sign remains.
+   - *Visibility:* the per-model truncation table and mean completion tokens show it.
 2. **FP8 KV is not measured.** Qwen3-32B-AWQ counts at 24 GB under E0's FP8-KV assumption, but S1 serves it with an
    fp16 KV cache.
    - *Direction:* it slightly flatters the 24 GB competitor.
@@ -210,3 +217,51 @@ The full run order is Qwen3-32B → 8B-AWQ → 14B-AWQ → 32B-AWQ → 8B. This 
    per server launch.
 8. **Evaluator inputs** come from cached records and the public LiveCodeBench release instead of the LFS data files
    (§4). This is verified as described there.
+
+## 10. Amendments (pre-data)
+
+### A1 (2026-11-07): `presence_penalty=1.5` for the three AWQ models
+
+**Status.** Made before any S1 generation (smoke, parity or run) and before any S1 output was seen.
+
+**Change.** Every request to Qwen3-8B-AWQ, Qwen3-14B-AWQ and Qwen3-32B-AWQ carries `presence_penalty=1.5`. This
+covers both modes, both seeds and the smoke run. The bf16 models (Qwen3-32B, Qwen3-8B, including harness parity) are
+unchanged: `presence_penalty` is not sent, so it stays at 0.
+
+**Unchanged.** Every other sampling field (T, top_p, top_k, min_p, max_tokens, seeds, enable_thinking), the sample,
+the models and revisions, the engine and flags, the metric, the 3.0 pt threshold and the early-stop rules.
+
+**Reason.** The official Qwen3 AWQ model cards strongly recommend `presence_penalty=1.5` for the quantised models.
+The frozen design sent 0 to every model. That serves the AWQ models outside their recommended configuration.
+
+**Direction of the bias removed.** Without the penalty, quantised models are more prone to repetition loops. In
+thinking mode with a 16,384-token cap, a loop becomes a truncated, usually wrong answer. That would lower AWQ
+accuracy and so lower EDGE-best at every memory class: all 12 and 16 GB candidates are AWQ, and so is one of the
+two at 24 GB. The result:
+- the measured gap `acc(Qwen3-32B) − acc(EDGE-best)` would widen;
+- `CONTINUE` would become more likely and `DROP_16_24` / `STOP_NO_HEADROOM` less likely.
+
+The quality-gap test would therefore be biased in favour of SPLIT, the outcome S1 is meant to be able to rule out.
+That is a one-sided bias against the early stop.
+
+**Residual bias after A1 (sign unknown, stated before data).**
+- **Towards the early stop (against SPLIT).** The bf16 reference stays at 0. Any repetition or truncation it has at 0
+  lowers `acc(Qwen3-32B)` and narrows the gap. The bf16 model cards make the penalty optional, not recommended, so
+  0 is kept as frozen.
+- **Towards SPLIT.** A presence penalty also discourages tokens a correct answer legitimately repeats (code
+  identifiers, mathematical notation, answer formats). Where that costs accuracy, AWQ accuracy falls and the gap
+  widens.
+- **24 GB comparison.** The candidates are Qwen3-8B bf16 (at 0) and Qwen3-32B-AWQ (at 1.5). Which of them is
+  EDGE-best(24) can depend on A1. The 24 GB outcome is information only (§6).
+- *Visibility:* the per-model × mode × benchmark truncation rate and mean completion tokens (§6) are reported for
+  every model. AWQ-vs-bf16 differences in truncation can be read directly. They are not used to re-score or to
+  change any decision.
+
+**Enforcement** (`run_s1.py`).
+- `MODELS[...]["presence_penalty"]` is the single source of the value, and `build_request` adds it only for the AWQ
+  models.
+- `check` verifies every planned request (s1, parity and smoke): 1.5 on AWQ, absent on bf16, and all other fields
+  equal to the frozen settings.
+- `selftest` checks the request bodies and that the fake server receives 1.5 on every AWQ request.
+- Resuming over any existing `ok` record whose stored request differs from the current one (for example, one
+  generated before A1) is refused before a request is sent, so pre- and post-amendment generations cannot be mixed.

@@ -106,18 +106,23 @@ SAMPLE_SHA256 = "2c4df49360f997c3e35593030da40111c2826f068f03b1401284a394d971695
 # Official Qwen repos named on the Qwen3 AWQ model cards (and the E0 desk check); revisions are
 # the HF main SHAs on 2026-11-07. AWQ checkpoints declare torch_dtype float16, so they are served
 # with --dtype auto (= float16); bf16 checkpoints with --dtype bfloat16.
+# presence_penalty (pre-data amendment A1, 2026-11-07, PREREG §10): the AWQ cards' recommended 1.5
+# for quantised models is sent with every AWQ request; None = not sent (vLLM default 0), unchanged
+# for the bf16 models.
+AWQ_PRESENCE_PENALTY = 1.5
 MODELS = {
     "Qwen3-32B": {"repo": "Qwen/Qwen3-32B", "revision": "9216db5781bf21249d130ec9da846c4624c16137",
-                  "dtype": "bfloat16", "weights_gb": 65.5},
+                  "dtype": "bfloat16", "weights_gb": 65.5, "presence_penalty": None},
     "Qwen3-8B": {"repo": "Qwen/Qwen3-8B", "revision": "b968826d9c46dd6066d109eabc6255188de91218",
-                 "dtype": "bfloat16", "weights_gb": 16.4},
+                 "dtype": "bfloat16", "weights_gb": 16.4, "presence_penalty": None},
     "Qwen3-8B-AWQ": {"repo": "Qwen/Qwen3-8B-AWQ", "revision": "4da05a8edb55c6046cce958586c33b61da07bb79",
-                     "dtype": "auto", "weights_gb": 6.1},
+                     "dtype": "auto", "weights_gb": 6.1, "presence_penalty": AWQ_PRESENCE_PENALTY},
     "Qwen3-14B-AWQ": {"repo": "Qwen/Qwen3-14B-AWQ", "revision": "31c69efc29464b6bb0aee1398b5a7b50a99340c3",
-                      "dtype": "auto", "weights_gb": 10.0},
+                      "dtype": "auto", "weights_gb": 10.0, "presence_penalty": AWQ_PRESENCE_PENALTY},
     "Qwen3-32B-AWQ": {"repo": "Qwen/Qwen3-32B-AWQ", "revision": "0499c3ac83fdef8810b907a23894ba91e95eddd8",
-                      "dtype": "auto", "weights_gb": 19.3},
+                      "dtype": "auto", "weights_gb": 19.3, "presence_penalty": AWQ_PRESENCE_PENALTY},
 }
+AWQ_MODELS = [m for m in MODELS if m.endswith("-AWQ")]
 REFERENCE_MODEL = "Qwen3-32B"
 # Reference first, then the 12/16 GB competitors that decide the early stop, then 24 GB ones.
 RUN_ORDER = ["Qwen3-32B", "Qwen3-8B-AWQ", "Qwen3-14B-AWQ", "Qwen3-32B-AWQ", "Qwen3-8B"]
@@ -128,7 +133,8 @@ MAX_NEW_TOKENS = 16384         # E0 §4.3
 SEEDS = [0, 1]
 
 # One entry per decoding setting. `mode` is the chat-template switch; `sampling` names the
-# parameter set. min_p 0 as on the model cards; presence_penalty is not sent (vLLM default 0).
+# parameter set. min_p 0 as on the model cards. presence_penalty is per model (MODELS), not per
+# setting: 1.5 on AWQ requests, not sent on bf16 requests.
 SETTINGS = {
     "thinking": {"mode": "thinking", "sampling": "vendor_thinking", "enable_thinking": True,
                  "temperature": 0.6, "top_p": 0.95, "top_k": 20, "min_p": 0.0},
@@ -517,6 +523,8 @@ def build_request(model, prompt, setting, seed, max_tokens):
             "temperature": s["temperature"], "top_p": s["top_p"], "top_k": s["top_k"],
             "min_p": s["min_p"], "seed": seed,
             "chat_template_kwargs": {"enable_thinking": s["enable_thinking"]}}
+    if MODELS[model]["presence_penalty"] is not None:
+        body["presence_penalty"] = MODELS[model]["presence_penalty"]
     if max_tokens is not None:
         body["max_tokens"] = max_tokens
     return body
@@ -724,6 +732,15 @@ def generation_state(path):
     return ok, attempts
 
 
+def stale_requests(path, jobs, max_tokens):
+    """Planned keys whose existing ok record was sent with a different request than the one that
+    would be sent now (e.g. generated before amendment A1). Resume would silently reuse them."""
+    want = {j["key"]: request_record(build_request(j["model"], j["q"]["prompt"], j["setting"], j["seed"],
+                                                   max_tokens)) for j in jobs}
+    return sorted({r["key"] for r in read_jsonl(path)
+                   if r["status"] == "ok" and r["key"] in want and r.get("request") != want[r["key"]]})
+
+
 def run_jobs(base, jobs, out_path, max_tokens, args, run_id):
     """Send every job without an ok record (resumable). Returns (n_ok, n_err, n_skipped)."""
     n_ok = n_err = 0
@@ -766,6 +783,11 @@ def generate(args, run, sample, models=None, settings=None, max_tokens="spec"):
     all_stuck = []
     for model in models or spec["models"]:
         jobs = plan_jobs(spec, sample, [model], settings)
+        stale = stale_requests(out, jobs, mt)
+        if stale:
+            raise RuntimeError(f"{len(stale)} existing ok records in {out} were sent with a different request "
+                               f"than the current settings (first: {stale[:3]}); nothing sent. Use a fresh "
+                               f"--runs-dir; do not mix pre- and post-amendment generations.")
         ok, _ = generation_state(out)
         pending = [j for j in jobs if j["key"] not in ok]
         print(f"[{model}] {len(jobs)} jobs, {len(jobs) - len(pending)} already ok, {len(pending)} to send", flush=True)
@@ -1065,17 +1087,29 @@ def cmd_check(args):
                                         f"{[k for k, v in lcb.items() if not v]}; run fetch-data)")
 
     # Every request the three runs would send is buildable and fits the context.
-    too_long = []
+    too_long, bad_sampling = [], []
     for run, spec in RUN_SPECS.items():
         for j in plan_jobs(spec, sample):
             body = build_request(j["model"], j["q"]["prompt"], j["setting"], j["seed"], spec["max_tokens"])
             json.dumps(body)
+            s = SETTINGS[j["setting"]]
+            # Amendment A1: 1.5 on every AWQ request, absent on every bf16 request; all other
+            # sampling fields exactly the frozen per-setting values.
+            pp_ok = (body.get("presence_penalty") == 1.5) if j["model"] in AWQ_MODELS else ("presence_penalty" not in body)
+            rest_ok = all(body[k] == s[k] for k in ("temperature", "top_p", "top_k", "min_p")) and \
+                body["chat_template_kwargs"] == {"enable_thinking": s["enable_thinking"]} and \
+                body["seed"] == j["seed"] and body.get("max_tokens") == spec["max_tokens"]
+            if not (pp_ok and rest_ok):
+                bad_sampling.append((run, j["key"]))
             need = j["q"]["ref_qwen3_8b"]["prompt_tokens"] + TEMPLATE_MARGIN_TOKENS + (spec["max_tokens"] or 0)
             if need > MAX_MODEL_LEN:
                 too_long.append((run, j["key"]))
     n_s1 = len(plan_jobs(RUN_SPECS["s1"], sample))
     rep("request plan", n_s1 == 5 * 2 * 2 * 200, f"s1 jobs {n_s1}")
     rep("prompt + max_tokens fits max_model_len", not too_long, f"{len(too_long)} too long")
+    n_awq = sum(j["model"] in AWQ_MODELS for spec in RUN_SPECS.values() for j in plan_jobs(spec, sample))
+    rep("sampling: presence_penalty 1.5 on AWQ only (A1), other fields frozen", not bad_sampling,
+        f"{n_awq} AWQ requests; {len(bad_sampling)} mismatched")
     failed = [n for n, ok in results if ok is False]
     print(f"\n{sum(ok is True for _, ok in results)} OK, {sum(ok is None for _, ok in results)} SKIP, {len(failed)} FAIL")
     sys.exit(1 if failed else 0)
@@ -1322,7 +1356,23 @@ def cmd_selftest(args):
     check("thinking request", b["chat_template_kwargs"] == {"enable_thinking": True} and b["temperature"] == 0.6
           and b["top_p"] == 0.95 and "presence_penalty" not in b)
     b = build_request("Qwen3-8B", "hi", "parity", 0, None)
-    check("parity request has no max_tokens", "max_tokens" not in b and b["temperature"] == 0.2 and b["top_p"] == 1.0)
+    check("parity request has no max_tokens", "max_tokens" not in b and b["temperature"] == 0.2 and b["top_p"] == 1.0
+          and "presence_penalty" not in b)
+    # Amendment A1: presence_penalty 1.5 on the three AWQ models only; nothing else differs.
+    modes = ("thinking", "nonthinking")
+    check("A1: the three AWQ models send presence_penalty 1.5",
+          AWQ_MODELS == ["Qwen3-8B-AWQ", "Qwen3-14B-AWQ", "Qwen3-32B-AWQ"]
+          and all(build_request(m, "hi", st, 0, MAX_NEW_TOKENS)["presence_penalty"] == 1.5
+                  for m in AWQ_MODELS for st in modes))
+    check("A1: bf16 models send no presence_penalty", all(
+        "presence_penalty" not in build_request(m, "hi", st, 0, MAX_NEW_TOKENS)
+        for m in ("Qwen3-32B", "Qwen3-8B") for st in SETTINGS))
+
+    def strip(body, extra=()):
+        return {k: v for k, v in body.items() if k not in ("model", *extra)}
+    check("A1: AWQ request otherwise identical to the bf16 request", all(
+        strip(build_request(m, "hi", st, 1, MAX_NEW_TOKENS), ("presence_penalty",))
+        == strip(build_request("Qwen3-32B", "hi", st, 1, MAX_NEW_TOKENS)) for m in AWQ_MODELS for st in modes))
     keys = [j["key"] for j in plan_jobs(RUN_SPECS["s1"], sample)]
     check("s1 plan: 4000 unique keys", len(keys) == 4000 == len(set(keys)))
     check("smoke plan: 2 per benchmark x 2 modes", len(plan_jobs(RUN_SPECS["smoke"], sample)) == 16)
@@ -1373,6 +1423,8 @@ def cmd_selftest(args):
         check("server received vendor sampling + enable_thinking switch",
               {(b["chat_template_kwargs"]["enable_thinking"], b["temperature"]) for b in bodies}
               == {(True, 0.6), (False, 0.7)} and all(b["max_tokens"] == 1024 for b in bodies))
+        check("A1: server received presence_penalty 1.5 on every AWQ request",
+              all(b.get("presence_penalty") == 1.5 for b in bodies))
         sc = latest_scores(Path(td) / "smoke")
         nonlcb = [s for s in sc.values() if s["dataset"] != "livecodebench"]
         qs = {q["key"]: q for q in sample}
@@ -1391,6 +1443,14 @@ def cmd_selftest(args):
                             "--skip-lcb"], capture_output=True, text=True)
         check("wrong served model refused, nothing sent",
               r.returncode != 0 and "server checks failed" in r.stderr and len(state["bodies"]) == n_posts)
+        # Resume over a record sent without the A1 penalty is refused before anything is sent.
+        old = Path(td) / "pre_a1"
+        (old / "smoke").mkdir(parents=True)
+        rec = dict(all_ok[0], request={k: v for k, v in all_ok[0]["request"].items() if k != "presence_penalty"})
+        append_jsonl(old / "smoke" / "generations.jsonl", rec)
+        r = subprocess.run([*base_cmd[:4], str(old), *base_cmd[5:]], capture_output=True, text=True)
+        check("A1: resume over pre-amendment records refused, nothing sent",
+              r.returncode != 0 and "different request" in r.stderr and len(state["bodies"]) == n_posts)
     srv.shutdown()
 
     # Launcher path: a stand-in `vllm` executable is started, health-checked and stopped.
