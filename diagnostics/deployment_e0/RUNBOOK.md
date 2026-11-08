@@ -80,7 +80,9 @@ apt-get update && apt-get install -y git tmux iproute2 curl
 pip install -U uv
 cd /workspace
 GIT_LFS_SKIP_SMUDGE=1 git clone --branch deployment-e0-split-prep https://github.com/BrendonPedro/LLMRouterBench.git
-git -C /workspace/LLMRouterBench log --oneline -1          # must be the E0 commit
+git -C /workspace/LLMRouterBench fetch --tags
+git -C /workspace/LLMRouterBench checkout e0-prereg-v1     # the frozen pre-registration (PREREG §10)
+git -C /workspace/LLMRouterBench describe --tags --exact-match   # must print e0-prereg-v1
 
 uv venv /workspace/venv-e0 --python 3.12
 uv pip install --python /workspace/venv-e0/bin/python "torch==2.6.0" --index-url https://download.pytorch.org/whl/cu124
@@ -106,6 +108,14 @@ $PY -c "import sys;sys.path.insert(0,'$E0');import torch,e0_instrument as I;I.wr
 Every later shell starts with `source /workspace/e0_env.sh`.
 
 ## 3. Stage 1: edge single-machine (≈ 2.5 h)
+
+**What Stage 1 is (PREREG §9.4, §9.5):**
+- It is only a CUDA, memory and upper-bound feasibility gate.
+- Its first `split-fit` is the **first CUDA execution** of this harness; nothing has been validated on CUDA
+  before it.
+- A CONTINUE here is **not** evidence that SPLIT meets any latency or deadline requirement.
+- A non-memory exception in any `split-fit` makes Stage 1 **INVALID**, not an F failure (PREREG §5.6). Fix it
+  without changing anything memory-relevant, commit, and re-run Stage 1 from scratch into a fresh `$RUNS/stage1`.
 
 ```bash
 source /workspace/e0_env.sh
@@ -138,13 +148,23 @@ kill %1
 **Gates G-F and G-UB1.** These can run on the pod or locally after copying `$RUNS/stage1`.
 
 ```bash
-$PY -c "import json;r=json.load(open('$RUNS/stage1/f_results.json'));print(r['u_max'],r['edge_eligible']);assert r['F_pass_static']"
+$PY -c "import json;r=json.load(open('$RUNS/stage1/f_results.json'));print('valid',r['valid'],r['harness_defects']);print('u_max',r['u_max']);print('eligible',r['edge_eligible']);print('blocked',r['no_split_pass_classes']);print('F_pass_static',r['F_pass_static'])"
 $PY $E0/e0_r.py gate-ub1 --stage1-dir $RUNS/stage1 --server-gpu H200 --out $RUNS/gates/gate_ub1.json
 ```
 
-- `F_pass_static` false: **STOP** (F fails).
-- `gate_ub1.json` decision `STOP`: **STOP** (R fails by bound).
-- Either way, write `DECISION.md` from the gate file and release the hardware.
+Read the outcome in this order:
+
+| Condition | Outcome |
+|---|---|
+| `valid` false (a `split-fit` raised a non-memory exception) | **INVALID**: fix the harness defect, re-run all of Stage 1. Not an F result |
+| `F_pass_static` false (no class has a U-max; (1,1) does not fit 24 GB) | **STOP**: F fails, SPLIT removed |
+| `gate_ub1.json` decision `INCOMPLETE` | measure the missing edge-segment profile, re-run the gate |
+| `gate_ub1.json` decision `STOP` (no bound cell reaches Δ ≥ 3.0 pt) | **STOP**: R fails by bound, SPLIT removed |
+| `gate_ub1.json` decision `CONTINUE` | proceed to Stage 2. This is **not** latency evidence |
+
+- On any STOP, write `DECISION.md` from the gate file and release the hardware.
+- `no_split_pass_classes` lists classes blocked by PREREG §8.4 (b), where a desk-eligible EDGE competitor failed
+  its fit for a non-memory reason. If every class with a U-max is blocked, the gate STOPs.
 
 ## 4. Stage 2: server single-machine (≈ 2.5 h on 1× H200)
 
@@ -186,7 +206,9 @@ $PY $E0/e0_latency.py run-hf-local --model-dir $MODELS/Qwen3-32B --out-dir $RUNS
 $PY $E0/e0_r.py gate-ub2 --stage1-dir $RUNS/stage1 --stage2-dir $RUNS/stage2 --out $RUNS/gates/gate_ub2.json
 ```
 
-Decision `STOP`: **STOP**. Do not book Stage 3.
+- Decision `STOP`: **STOP**. Do not book Stage 3.
+- `INCOMPLETE`: measure the missing server-segment profile, then re-run the gate.
+- `CONTINUE`: book Stage 3. It is not latency evidence (PREREG §9.4).
 
 ## 5. Stage 3: joint (≈ 5 h, both pods in one datacenter)
 
@@ -210,7 +232,9 @@ python3 -m http.server 8090 --directory $RUNS > /dev/null 2>&1 &
 ```bash
 source /workspace/e0_env.sh
 export SRV=<server address>   IF=<edge interface, e.g. eth0>
-$PY $E0/e0_latency.py linkcheck --server $SRV:29501 --out $RUNS/stage3/linkcheck.json   # joint_allowed must be true
+$PY $E0/e0_latency.py linkcheck --server $SRV:29501 --out $RUNS/stage3/linkcheck.json
+# G-link: joint_allowed = (rt_ms_p50 <= 5.0) and (bulk_mbps_median >= 900). False => BLOCKED: stop here and
+# re-provision the pairing in one datacenter (not an E0 outcome).
 curl -fsS http://$SRV:8090/q_refs.tgz | tar xz -C $RUNS
 K16=$(kv 16)
 $PY $E0/e0_q.py cmp --config hf --model-dir $MODELS/Qwen3-8B --cont $RUNS/q/cont.jsonl --ref-dir $RUNS/q/ref8_server \
@@ -273,8 +297,12 @@ $PY $E0/e0_r.py decide --f-results $RUNS/stage1/f_results.json --lat-dir $RUNS/s
 ```
 
 - `R/R_cells.md` lists every cell.
-- `R/DECISION.md` gives Q / F / R and the E0 §8 consequence.
-- If any 24 GB cell passes, apply PREREG §8.4 (a) before declaring anything.
+- `R/DECISION.md` gives Q / F / R, the E0 §8 consequence and `memory_class_scope`.
+- `E0 = PENDING` has exactly two causes:
+  - the §8.5 extension is triggered: run it once with `frozen/extension_400_keys.json`;
+  - a 24 GB-only pass awaits §8.4 (a): add Qwen3-30B-A3B, re-run `r`, then `decide --a3b-added`.
+
+  Nothing else changes.
 
 ## 7. Runtime and cost (planning estimates; verify prices at booking)
 

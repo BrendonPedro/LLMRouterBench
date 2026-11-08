@@ -21,6 +21,10 @@ S1_Q3_SHA256 = "e00736dc9dafae8bc2864ce44d70849e6de9cc71e11ec27b9cd5623a84b793ce
 S1_SAMPLE_SHA256 = "2c4df49360f997c3e35593030da40111c2826f068f03b1401284a394d9716955"
 TOKENIZER_JSON_SHA256 = "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4"   # Qwen3-32B @ rev
 WORKLOAD_IDS_SHA256 = "615f0392ca28aeca083a720ca5df9a70363551883e65a81797fbee9b6a5c3d47"
+# The pre-declared 400-query extension (E0 §4.4, PREREG §8.5): run_s1.draw_sample(scale=2), i.e. the first
+# 2n of the same seeded permutation per benchmark. Pinned before any E0 data (frozen/extension_400_keys.json).
+EXT400_SAMPLE_SHA256 = "b6ae701a5813d04d66de0809c0d6b2ba78b38401473423df6242b573c96bb908"
+EXT400_KEYS_SHA256 = "005ca5149c95b5c59245e3339edb334a665cd11ad5e352191cbceb7ef1c85b9f"   # sha256(json(sorted keys))
 
 
 def load_s1():
@@ -56,10 +60,12 @@ QWEN3_32B_SHARDS = 17
 # Split architecture (E0 §3.2)                                                #
 # --------------------------------------------------------------------------- #
 # U-shaped: edge = embedding, layers [0, k), layers [64-j, 64), final norm, LM head; server = [k, 64-j).
-# Raw text and output tokens never leave the edge iff k >= 1 and j >= 1. Only bf16 residual-stream
-# activations [n_tokens, 5120] cross the link, once per direction per forward step.
+# Raw text, token ids and logits never leave the edge iff k >= 1 and j >= 1. The only model-content tensor on
+# the link is the bf16 residual stream [n_tokens, 5120], once per direction per forward step; control
+# metadata (72-byte header: positions, token counts, request counter, timings; HELLO identity) also crosses
+# (PREREG §2.1).
 U_MIN = (1, 1)
-# Predicted U-max(M) from e0_memory (symmetric k = j). The run uses the *measured* U-max (PREREG §3.3).
+# Predicted U-max(M) from e0_memory (symmetric k = j). The run uses the *measured* U-max (PREREG §5.3).
 U_MAX_PREDICTED = {12: (3, 3), 16: (5, 5), 24: (9, 9)}
 SYMMETRIC_ONLY = True
 
@@ -173,7 +179,7 @@ def cells():
             add("load", p, load=ld)
     for h in HELDOUT:
         add("heldout", h["path"], rtt=h["rtt_ms"], bw=h["bw_mbps"], load=h["load"])
-    # Informational (PREREG A5): engine gap, unsplit HF on the server, client on the edge.
+    # Informational (PREREG A8): engine gap, unsplit HF on the server, client on the edge.
     add("info", "REMOTE-HF", role="informational")
     return c
 
@@ -193,6 +199,13 @@ R_MARGIN_PT = 3.0
 R_BOOT = 10000
 R_BOOT_SEED = 20261107
 R_MIN_UTILITY = 0.05                            # cells where every action has U < 0.05 are excluded
+# Upper-bound gates (PREREG §9.2): measured segment compute is scaled by this factor before it is used as a
+# lower bound, so timer noise and unit-to-unit variation between the Stage 1/2 and Stage 3 GPUs (same model,
+# possibly another physical card) cannot turn the bound into an over-estimate. Gate-only; R never uses it.
+UB_SEGMENT_DISCOUNT = 0.90
+# G-link (PREREG §6.3): the native link must realise the "native, 1 Gbps" cells.
+LINK_MAX_RTT_P50_MS = 5.0
+LINK_MIN_BULK_MBPS = 900                       # TCP goodput of a nominal 1 Gbps link is about 940 Mbps
 MODES = ("thinking", "nonthinking")
 EDGE_MODELS = ("Qwen3-8B-AWQ", "Qwen3-14B-AWQ", "Qwen3-32B-AWQ", "Qwen3-8B")
 # Desk-check eligibility (S1 PREREG §3); replaced by the measured F/edge-fit JSON when it exists.

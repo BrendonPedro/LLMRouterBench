@@ -390,7 +390,8 @@ def linkcheck(a):
            "bulk_mbps_median": bits / statistics.median(big) / 1e6, "n": a.n, "n_big": a.n_big}
     res["go_rtt_lt_1ms"] = res["rt_ms_p50"] < 1.0
     res["go_bw_ge_1gbps"] = res["bulk_mbps_median"] >= 1000
-    res["joint_allowed"] = res["rt_ms_p50"] <= 5.0          # PREREG §6.3: native > 5 ms => do not run Stage 3
+    # G-link (PREREG §6.3, §9): the native link must realise the "native, 1 Gbps" cells, else Stage 3 is blocked
+    res["joint_allowed"] = res["rt_ms_p50"] <= S.LINK_MAX_RTT_P50_MS and res["bulk_mbps_median"] >= S.LINK_MIN_BULK_MBPS
     if a.out:
         I.write_json(a.out, res)
     print(json.dumps(res, indent=1))

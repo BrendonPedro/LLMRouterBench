@@ -1,4 +1,4 @@
-# E0 local validation (CPU only, 2026-11-08)
+# E0 local validation (CPU only, 2026-11-08; re-run after the pre-hardware audit, PREREG §10.1)
 
 **Host:** the WSL box (Ryzen 5 8500G, 9 GB RAM, **no CUDA**).
 
@@ -20,7 +20,7 @@ numpy 2.2.6 (`requirements-e0.txt`).
 - Qwen3-32B tokenizer and index at revision `9216db57`; `tokenizer.json` sha256 `aeb13307…dae4`.
 - Qwen3-0.6B at revision `c1899de2`; `model.safetensors` sha256 `f47f7117…874b`.
 
-**Result: 33 PASS, 0 FAIL, 0 SKIP (455 s)**, run on the final committed code. Log: `results_local/selftest.log`. JSON with the environment: `results_local/selftest_report.json`.
+**Result: 37 PASS, 0 FAIL, 0 SKIP (603 s)**, run on the final audited code (tag `e0-prereg-v1`). Before the audit: 33 PASS, 0 FAIL, 0 SKIP (455 s) on commit `3600904`. The 4 new checks cover the audit corrections (PREREG §10.1). Log: `results_local/selftest.log`. JSON with the environment: `results_local/selftest_report.json`.
 
 ## What was validated
 
@@ -31,6 +31,7 @@ numpy 2.2.6 (`requirements-e0.txt`).
 | spec | E0 revisions and the vLLM version equal the S1 run's | PASS |
 | s1 | sha256 of `q3_scores.jsonl` and `sample_200.jsonl` pinned | PASS |
 | s1 | 10 actions × 200 queries × 2 seeds complete; CONTINUE recomputed from per-query data; gaps equal `S1_SUMMARY.md` | PASS |
+| s1 | the pre-declared 400-query extension sample: the pinned keys and sample hashes, 120/120/80/80, contains the 200, re-draws byte-identically from the benchmark cache | PASS |
 | template | the pinned tokenizer + chat template reproduce **400 / 400** S1 `prompt_tokens` (200 prompts × thinking / non-thinking) | PASS |
 | template | the frozen workload rebuilds to ids sha256 `615f0392…3d47`; the frozen Q2 keys reproduce | PASS |
 | runtime | teacher-forced split hidden states are **bitwise equal** to HF `Qwen3Model.forward` for U-min, (2,3), (3,3); bf16 in-process and over TCP, fp32 in-process; the wire refuses non-bf16 tensors | PASS |
@@ -44,6 +45,8 @@ numpy 2.2.6 (`requirements-e0.txt`).
 | q | the coarse KL is 0 for identical distributions, ≥ 0, and ≤ the full-vocabulary KL (50 random cases) | PASS |
 | q | Q1 thresholds incl. both floors 0; Q2 near-tie counting (27/30), degeneration (period, invalid id), "split degenerate only" | PASS |
 | f | the U-max search returns the largest passing k from any start (6 truths × 5 starts) and never repeats an attempt | PASS |
+| f | edge-fit keeps the S5 profile only from the passing (last) attempt; the others become `.rejected` | PASS |
+| f | failure classes: CUDA OOM, cuBLAS allocation and vLLM KV-capacity texts count as memory; anything else as harness/engine; `summarize` marks Stage 1 invalid on a harness defect and blocks a class whose desk-eligible competitor failed for an engine reason | PASS |
 | f | the NVML sampler (fake device): peak minus baseline, trapezoid energy | PASS |
 | f | `split-fit --cpu-dry` CLI: load, 17,664-token chunked prefill, 256 decode tokens, final context = L_F, JSON record | PASS |
 | latency | request plans (2 warm-ups + 30, or 36 with depth probes), seeded order, every cell scheduled once | PASS |
@@ -55,9 +58,10 @@ numpy 2.2.6 (`requirements-e0.txt`).
 | r | the stratified bootstrap keeps per-benchmark counts; identical actions give Δ = 0 (fail); the no-competitor exclusion | PASS |
 | r | the grid passes a strictly better SPLIT, fails a slower one at short D, fails `open` when REMOTE is identical | PASS |
 | r | upper-bound monotonicity: a lower-bounded T gives Δ and CI-low ≥ the true values in every cell | PASS |
+| r | upper-bound STOP rule on real S1 data. It does not STOP at 16 GB, where the instantaneous bound gives Δ = +3.25 with CI low < 0 (the §8.5 zone; the pre-audit rule would have STOPped). It STOPs at 24 GB, where max Δ = +2.50. Missing profile: INCOMPLETE. No EDGE competitor: open cells bounded with REMOTE at U = 0. The 0.90 discount only shortens times | PASS |
 | r | the additive model recovers synthetic coefficients (within 2 %) and contention ratios; held-out validation passes, and fails when held-out cells are perturbed by +20 %, falling back to measured cells only | PASS |
 | r | R CLIs on synthetic stage directories: `gate-ub1`, `gate-ub2`, `fit`, `r` (120 cells), `decide` | PASS |
-| r | decision table: Q / F / R / errors map to the E0 §8 consequences | PASS |
+| r | decision table: Q / F / R / errors map to the E0 §8 consequences; the §8.5 trigger gives PENDING once (never at n = 400, never with Q/F failing, not at Δ < 3); a 24 GB-only pass gives PENDING (§8.4 a); a 12 GB pass is labelled EMULATED | PASS |
 | docs | every `e0_*.py <subcommand>` named in `RUNBOOK.md` exists | PASS |
 
 ## Defects found and fixed by the self-test (before any hardware)
@@ -89,7 +93,13 @@ The S1 per-query data with spec-sheet roofline profiles (PREREG §12):
 
 16 GB, 24 GB and `open` fail everywhere. This is not a result.
 
-## Not validated locally (needs a CUDA host; covered by the pod self-test + G-gates)
+## Not validated locally. Stage 1 is the first CUDA validation (PREREG §9.5)
+
+These checks are encouraging but are CPU-only. They do **not** validate CUDA, the allocator cap, pinned transfers,
+NVML or any Qwen3-32B execution. The pod self-test runs the same CPU checks. **Stage 1's first `split-fit` is the
+first CUDA execution of the harness**, and a non-memory failure there is a harness defect (PREREG §5.6), not an
+F result.
+
 
 - The CUDA allocator cap (`set_per_process_memory_fraction`), pinned-memory non-blocking copies, CUDA-event
   timing and NVML on a real device.

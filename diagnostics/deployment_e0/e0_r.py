@@ -3,9 +3,9 @@
 Subcommands
   prior      informational pre-hardware R prior: S1 per-query (score, tokens) + spec-sheet roofline
              profiles (NOT a measurement, decides nothing)
-  gate-ub1   after Stage 1: SPLIT time lower-bounded by the measured edge-segment compute + the
-             server's datasheet roofline + zero link; R impossible => STOP before Stage 2
-  gate-ub2   after Stage 2: same with the measured server-segment compute in place of the roofline
+  gate-ub1   after Stage 1: SPLIT time lower-bounded by the measured edge-segment compute (x 0.90) + the
+             server's datasheet roofline + zero link; STOP only if no bound cell reaches delta >= 3.0 pt
+  gate-ub2   after Stage 2: same with the measured server-segment compute (x 0.90) in place of the roofline
   fit        fit per-cell profiles + the additive SPLIT model from E0-L logs; held-out validation
   r          evaluate every R cell from measured profiles (E0 §8 R) -> R_cells.{json,md}
   decide     combine S1, F, Q, R into DECISION.{json,md} (E0 §8 consequence table)
@@ -493,20 +493,39 @@ def server_lb_profile(gpu, k, j):
                             f"{gpu} roofline LB U({k},{j})", first_token_step=False)
 
 
+def scaled(p, f):
+    """Profile with every time multiplied by f (f < 1 turns a measured segment into a safer lower bound)."""
+    return Profile(p.pre_n, p.pre_s * f, p.a * f, p.b * f, f"{p.label} x{f:g}")
+
+
 def upper_bound_gate(data, edge_seg, server_seg, edge_prof, eligible, W, umax):
-    """R can pass only if some no-raw-text/good/RTT-0 cell passes with SPLIT time lower-bounded.
+    """Bound on every R cell with SPLIT time lower-bounded (PREREG §9.2).
 
     U_SPLIT is monotone non-increasing in T, so lower-bounding T upper-bounds U_SPLIT per query and per
-    bootstrap replicate. Contention, RTT > 0 and the `open` class only shrink Delta (PREREG §9.2).
+    bootstrap replicate, hence Delta and its CI. Contention and RTT > 0 only add SPLIT time; the EDGE
+    competitors are the same measured profiles R uses; REMOTE (open cells) is bounded below by U = 0.
+    STOP is allowed only if no bound cell reaches Delta >= 3.0 pt: then no real cell can pass at 200 queries
+    or trigger the §8.5 extension. A class with a U-max but no segment profile makes the gate INCOMPLETE.
     """
-    split_prof = {}
-    for M, (k, j) in umax.items():
-        if (M, k) in edge_seg and (M, k) in server_seg:
-            split_prof[(M, "good", None)] = edge_seg[(M, k)] + server_seg[(M, k)]
-    grid = [(M, "no-raw-text", "good", None, D) for M in S.R_MEMORY for D in S.R_DEADLINES_S]
-    cells = evaluate_grid(data, split_prof, edge_prof, {}, eligible, W, grid, "upper bound")
+    missing = sorted(M for M, (k, j) in umax.items() if (M, k) not in edge_seg or (M, k) not in server_seg)
+    split_prof = {(M, "good", None): edge_seg[(M, k)] + server_seg[(M, k)]
+                  for M, (k, j) in umax.items() if M not in missing}
+    remote_zero = {("good", None): Profile([64.0], [1e12], 1e12, 0.0, "REMOTE bounded below by U = 0")}
+    grid = [(M, pv, "good", None, D) for M in S.R_MEMORY for pv in S.R_PRIVACY for D in S.R_DEADLINES_S]
+    cells = evaluate_grid(data, split_prof, edge_prof, remote_zero, eligible, W, grid, "upper bound")
     s = summarize_cells(cells)
-    return {"cells": cells, "R_possible": s["R_pass"], "summary": s}
+    deltas = [c["delta_pt"] for c in cells if c["status"] == "evaluated"]
+    best = max(deltas) if deltas else None
+    if missing:
+        decision = (f"INCOMPLETE: no segment profile for class(es) {missing}; measure it, then re-run the gate "
+                    "(neither STOP nor CONTINUE)")
+    elif best is not None and best >= S.R_MARGIN_PT:
+        decision = ("CONTINUE: R is not excluded by the bound. This is NOT evidence that SPLIT meets any latency "
+                    "or deadline requirement.")
+    else:
+        decision = "STOP: R fails by bound (no bound cell reaches delta >= 3.0 pt; SPLIT removed)"
+    return {"cells": cells, "summary": s, "missing_profiles": missing, "max_delta_bound_pt": best,
+            "R_possible": decision.startswith(("CONTINUE", "INCOMPLETE")), "decision": decision}
 
 
 # --------------------------------------------------------------------------- #
@@ -598,6 +617,7 @@ def main(argv=None):
     d.add_argument("--q", required=True)
     d.add_argument("--r", required=True)
     d.add_argument("--out-dir", required=True)
+    d.add_argument("--a3b-added", action="store_true", help="R was re-evaluated with Qwen3-30B-A3B (PREREG §8.4 a)")
     a = ap.parse_args(argv)
     data = S1Data()
 
@@ -621,19 +641,24 @@ def main(argv=None):
         W = boot_weights(data.strata)
         st1 = Path(a.stage1_dir)
         fres = json.loads((st1 / "f_results.json").read_text())
-        umax = {int(m): tuple(v) for m, v in fres["u_max"].items() if v}
+        if not fres.get("valid", True):
+            sys.exit(f"Stage 1 invalid (harness defects {fres['harness_defects']}): fix and re-run Stage 1 (PREREG §5.6)")
+        blocked = set(fres.get("no_split_pass_classes", []))   # R cannot pass there (§8.4 b): bound excludes them
+        umax = {int(m): tuple(v) for m, v in fres["u_max"].items() if v and int(m) not in blocked}
         eligible = {int(m): v for m, v in fres["edge_eligible"].items()}
         edge_prof = edge_profiles_from_dir(st1)
         eseg_k = load_seg_profiles(st1, EDGE_KEYS, "P-edge-U(")
-        edge_seg = {(M, k): eseg_k[k] for M, (k, j) in umax.items() if k in eseg_k}
+        f = S.UB_SEGMENT_DISCOUNT
+        edge_seg = {(M, k): scaled(eseg_k[k], f) for M, (k, j) in umax.items() if k in eseg_k}
         if a.cmd == "gate-ub1":
             server_seg = {(M, k): server_lb_profile(a.server_gpu, k, j) for M, (k, j) in umax.items()}
         else:
             sseg_k = load_seg_profiles(a.stage2_dir, SERVER_KEYS, "P-server-U(")
-            server_seg = {(M, k): sseg_k[k] for M, (k, j) in umax.items() if k in sseg_k}
+            server_seg = {(M, k): scaled(sseg_k[k], f) for M, (k, j) in umax.items() if k in sseg_k}
         res = upper_bound_gate(data, edge_seg, server_seg, edge_prof, eligible, W, umax)
-        res["decision"] = "CONTINUE" if res["R_possible"] else "STOP: R fails by bound (SPLIT removed)"
         I.write_json(a.out, {"gate": a.cmd, "decision": res["decision"], "summary": res["summary"],
+                             "max_delta_bound_pt": res["max_delta_bound_pt"],
+                             "missing_profiles": res["missing_profiles"], "segment_discount": f,
                              "cells": _json_cells(res["cells"])})
         Path(str(a.out).replace(".json", ".md")).write_text(
             f"# {a.cmd}: {res['decision']}\n\n" + cells_markdown(res["cells"], "Upper-bound cells"))
@@ -648,18 +673,35 @@ def main(argv=None):
         fres = json.loads((st1 / "f_results.json").read_text())
         eligible = {int(m): v for m, v in fres["edge_eligible"].items()}
         sp, src = split_profiles_from_bundle(bundle)
+        blocked = set(fres.get("no_split_pass_classes", []))
+        sp = {key: v for key, v in sp.items() if key[0] not in blocked}
         cells = evaluate_grid(data, sp, edge_profiles_from_dir(st1), remote_profiles_from_bundle(bundle), eligible,
                               W, label=src)
+        for c in cells:
+            if c["M"] in blocked:
+                c["status"] = ("blocked: a desk-eligible EDGE competitor failed its fit for a non-memory reason "
+                               "(PREREG §8.4 b); no SPLIT pass at this class")
         s = summarize_cells(cells)
         out = Path(a.out_dir)
-        I.write_json(out / "R_cells.json", {"source": src, "summary": s, "cells": _json_cells(cells)})
+        I.write_json(out / "R_cells.json", {"source": src, "sample_n": len(data.keys), "summary": s,
+                                            "cells": _json_cells(cells)})
         (out / "R_cells.md").write_text(f"Source of SPLIT profiles: {src}\n\n" + cells_markdown(cells, "E0-R cells"))
         print(json.dumps({k: v for k, v in s.items() if k != "best"}))
     elif a.cmd == "decide":
         decide(a)
 
 
+def extension_triggered(rr):
+    """PREREG §8.5 / E0 §4.4: R fails at 200 queries, yet its best cell has delta >= 3.0 pt with CI low <= 0.
+    Fires at most once (never on the 400-query re-evaluation)."""
+    best = rr["summary"].get("best")
+    return bool(not rr["summary"]["R_pass"] and rr.get("sample_n", 200) == 200 and best is not None
+                and best["delta_pt"] >= S.R_MARGIN_PT and best["ci95"][0] <= 0)
+
+
 def decide(a):
+    """F: a class passes iff it has a measured U-max; F additionally needs zero failed E0-L requests on ANY
+    path (E0 §8 F, read literally; failed rows are never erased by a resume)."""
     fres = json.loads(Path(a.f_results).read_text())
     errs = {}
     for f in (f for d in a.lat_dir for f in Path(d).glob("*.jsonl")):
@@ -672,8 +714,15 @@ def decide(a):
     rr = json.loads(Path(a.r).read_text())
     R = rr["summary"]["R_pass"]
     Q = q["pass"]
+    ext = Q and F and extension_triggered(rr)
     if not Q or not F:
         cons = "SPLIT removed. F3 = EDGE/REMOTE; H-joint must pass on contention alone."
+    elif ext:
+        cons = ("PENDING: the pre-declared 400-query extension (PREREG §8.5) is triggered. Run it once with the "
+                "pinned sample and the same profiles, thresholds and seeds; then re-run r and decide. No other change.")
+    elif R and set(rr["summary"].get("pass_classes", [])) == {24} and not getattr(a, "a3b_added", False):
+        cons = ("PENDING: every passing cell is at 24 GB. PREREG §8.4 (a): add Qwen3-30B-A3B as an EDGE competitor "
+                "and re-evaluate before declaring anything.")
     elif not R:
         cons = "SPLIT removed for lack of a regime; report 'weight-quantised edge models dominate layer split'."
     elif rr["summary"]["open_pass"]:
@@ -683,9 +732,20 @@ def decide(a):
                 "never a privacy claim; report measured leakage).")
     if R and rr["summary"]["only_12GB"]:
         cons += " Regime restricted to memory-starved (12 GB) edges."
+    if R and 24 in rr["summary"].get("pass_classes", []) and not getattr(a, "a3b_added", False):
+        cons += " Any 24 GB passing cell is held pending PREREG §8.4 (a) (Qwen3-30B-A3B) and is not claimed."
+    passing = set(rr["summary"].get("pass_classes", []))
+    scope = None
+    if Q and F and R:
+        scope = ("physical 24 GB device (capped by 512 MiB)" if passing == {24} else
+                 "12/16 GB classes are EMULATED on a capped 24 GB GPU: no claim about physical 12/16 GB devices "
+                 "without a separate physical validation (PREREG §3.3)")
     res = {"Q": Q, "F": F, "F_classes": F_classes, "transport_or_oom_errors": errs, "R": R,
            "R_robust_to_multiplicity": rr["summary"]["pass_robust_to_multiplicity"],
-           "E0": "PASS" if (Q and F and R) else "FAIL", "consequence": cons}
+           "R_sample_n": rr.get("sample_n", 200), "extension_triggered": ext,
+           "E0": "PENDING" if cons.startswith("PENDING") else ("PASS" if (Q and F and R) else "FAIL"),
+           "memory_class_scope": scope,
+           "consequence": cons}
     out = Path(a.out_dir)
     I.write_json(out / "DECISION.json", res)
     (out / "DECISION.md").write_text(

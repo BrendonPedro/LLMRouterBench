@@ -1,25 +1,26 @@
 [PASS] spec: held-out cells equal their seeded draw; 22 decision cells (0.0s)
-[PASS] spec: L_F covers every S1 prompt + 16,384 tokens; budgets; U-max prediction = desk check (0.0s)
+[PASS] spec: L_F covers every S1 prompt + 16,384 tokens; budgets; U-max prediction = desk check (0.2s)
 [PASS] spec: E0 model revisions equal the S1 run's (0.0s)
 [PASS] s1: pinned hashes of the S1 per-query file and sample (0.0s)
+[PASS] s1: the pre-declared 400-query extension sample is pinned, contains the 200, and re-draws identically (6.2s)
 [PASS] s1: 4,000 complete rows; CONTINUE recomputed; gaps equal S1_SUMMARY (0.0s)
-[PASS] template: pinned tokenizer + chat template reproduce S1 prompt_tokens for 200 x 2 modes (4.0s)
-[PASS] template: frozen workload rebuilds to the pinned ids hash; frozen Q2 keys reproduce (1.6s)
-segment server ready on 127.0.0.1:34819 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
-segment server ready on 127.0.0.1:34583 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
-segment server ready on 127.0.0.1:59769 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
-segment server ready on 127.0.0.1:34367 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
-[PASS] runtime: teacher-forced split == HF forward, bitwise (bf16 local+TCP, fp32 local; U-min, (2,3), (3,3)); wire refuses non-bf16 (3.8s)
-segment server ready on 127.0.0.1:42327 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
-[PASS] runtime: greedy split decoding == HF generate (chunked prefill 7 / 16 / unchunked, TCP) (2.9s)
-segment server ready on 127.0.0.1:53921 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
+[PASS] template: pinned tokenizer + chat template reproduce S1 prompt_tokens for 200 x 2 modes (3.0s)
+[PASS] template: frozen workload rebuilds to the pinned ids hash; frozen Q2 keys reproduce (0.5s)
+segment server ready on 127.0.0.1:33489 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
+segment server ready on 127.0.0.1:47161 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
+segment server ready on 127.0.0.1:50685 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
+segment server ready on 127.0.0.1:56231 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
+[PASS] runtime: teacher-forced split == HF forward, bitwise (bf16 local+TCP, fp32 local; U-min, (2,3), (3,3)); wire refuses non-bf16 (4.1s)
+segment server ready on 127.0.0.1:39671 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
+[PASS] runtime: greedy split decoding == HF generate (chunked prefill 7 / 16 / unchunked, TCP) (2.8s)
+segment server ready on 127.0.0.1:35661 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
 [PASS] runtime: wire carries exactly n x hidden x 2 bytes + header each way; server cache tracks positions (0.2s)
-segment server ready on 127.0.0.1:43853 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
-segment server ready on 127.0.0.1:43507 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
-segment server ready on 127.0.0.1:49237 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
+segment server ready on 127.0.0.1:44891 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
+segment server ready on 127.0.0.1:34555 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
+segment server ready on 127.0.0.1:58537 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
 [PASS] runtime: failure paths: wrong position, illegal split, version mismatch, cache overflow, peer drop (0.2s)
-segment server ready on 127.0.0.1:36129 {"model_id": "echo", "echo": true, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu"}
-segment server ready on 127.0.0.1:48805 {"model_id": "echo", "echo": true, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu"}
+segment server ready on 127.0.0.1:39131 {"model_id": "echo", "echo": true, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu"}
+segment server ready on 127.0.0.1:50671 {"model_id": "echo", "echo": true, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu"}
 [PASS] runtime: echo stub returns the payload unchanged; app shaper adds RTT + serialisation per round trip (0.1s)
 [PASS] runtime: Slice materialises only owned weights (param bytes exact; rest on meta) (0.0s)
 /home/brendonpedro/.cache/LLMRouterBench/venv-e0/lib/python3.12/site-packages/transformers/generation/configuration_utils.py:631: UserWarning: `do_sample` is set to `False`. However, `temperature` is set to `0.6` -- this flag is only used in sample-based generation modes. You should set `do_sample=True` or unset `temperature`.
@@ -29,29 +30,33 @@ segment server ready on 127.0.0.1:48805 {"model_id": "echo", "echo": true, "soft
 /home/brendonpedro/.cache/LLMRouterBench/venv-e0/lib/python3.12/site-packages/transformers/generation/configuration_utils.py:653: UserWarning: `do_sample` is set to `False`. However, `top_k` is set to `20` -- this flag is only used in sample-based generation modes. You should set `do_sample=True` or unset `top_k`.
   warnings.warn(
 The attention mask is not set and cannot be inferred from input because pad token is same as eos token. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
-segment server ready on 127.0.0.1:42777 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "e22b98e04b7706c9", "loaded_layers": [1, 27]}
-[PASS] real: Qwen3-0.6B real weights: TCP split U(2,3) bitwise == HF; greedy == HF generate (chat prompt) (41.8s)
-segment server ready on 127.0.0.1:39461 {"model_id": "real", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "e22b98e04b7706c9", "loaded_layers": [1, 27]}
-[PASS] real: Q pipeline CLIs end to end on Qwen3-0.6B (cont-gen, ref, cmp hf/split, q2-ref/run, rules) (155.8s)
+segment server ready on 127.0.0.1:37317 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "e22b98e04b7706c9", "loaded_layers": [1, 27]}
+[PASS] real: Qwen3-0.6B real weights: TCP split U(2,3) bitwise == HF; greedy == HF generate (chat prompt) (39.9s)
+segment server ready on 127.0.0.1:40815 {"model_id": "real", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "e22b98e04b7706c9", "loaded_layers": [1, 27]}
+[PASS] real: Q pipeline CLIs end to end on Qwen3-0.6B (cont-gen, ref, cmp hf/split, q2-ref/run, rules) (267.7s)
 [PASS] q: coarse KL: 0 for identical, > 0 otherwise, <= full-vocabulary KL (0.1s)
 [PASS] q: Q1 rule thresholds incl. zero floors; Q2 near-tie count, degeneration, first divergence (0.0s)
 [PASS] f: U-max search finds the largest passing k from any start; None if (1,1) fails (0.1s)
+[PASS] f: edge-fit keeps the S5 profile only from the passing (last) attempt; others set aside (0.0s)
+[PASS] f: failure classes: memory vs harness/engine; summarize marks invalid Stage 1 and blocked classes (0.1s)
 [PASS] f: sampler: device-view peak minus baseline, trapezoid energy (0.2s)
-[PASS] f: split-fit CLI, CPU dry run: load, depth prefill (17,664 tok, chunked), 256 decode, JSON record (20.0s)
+[PASS] f: split-fit CLI, CPU dry run: load, depth prefill (17,664 tok, chunked), 256 decode, JSON record (19.9s)
 [PASS] latency: request plans: 2 warm-ups + 30 (36 with depth); seeded order; all cells scheduled once (0.0s)
 [PASS] latency: netem commands and state parsing (both directions, delay = RTT/2, rate) (0.0s)
-segment server ready on 127.0.0.1:45457 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "1dcfc6cf0b4d3d22", "loaded_layers": [1, 5]}
-[PASS] latency: SPLIT cell runner over TCP writes complete per-token/per-step records (tiny model, workload) (217.7s)
-segment server ready on 127.0.0.1:43295 {"model_id": "echo", "echo": true, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu"}
+segment server ready on 127.0.0.1:38487 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "1dcfc6cf0b4d3d22", "loaded_layers": [1, 5]}
+[PASS] latency: SPLIT cell runner over TCP writes complete per-token/per-step records (tiny model, workload) (247.9s)
+segment server ready on 127.0.0.1:45113 {"model_id": "echo", "echo": true, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu"}
 [PASS] latency: linkcheck over the split protocol against a local echo stub (0.3s)
-[PASS] latency: streaming client counts tokens from continuous usage (coalesced chunks), app RTT adjust (1.1s)
-[PASS] r: Profile.T closed form == explicit sum; addition; extrapolation (0.1s)
-[PASS] r: stratified bootstrap keeps per-benchmark counts; identical actions give delta 0 and fail (0.2s)
+[PASS] latency: streaming client counts tokens from continuous usage (coalesced chunks), app RTT adjust (1.0s)
+[PASS] r: Profile.T closed form == explicit sum; addition; extrapolation (0.0s)
+[PASS] r: stratified bootstrap keeps per-benchmark counts; identical actions give delta 0 and fail (0.1s)
 [PASS] r: grid: SPLIT strictly better on-time passes; competitor faster at short D wins; open fails (0.2s)
 [PASS] r: upper-bound gate dominates the true delta in every cell and replicate (monotonicity) (0.1s)
-[PASS] r: additive model recovers synthetic coefficients; held-out validation passes, fails at +20% (0.9s)
-[PASS] r: R CLIs on synthetic stage dirs: gate-ub1, gate-ub2, fit, r, decide (3.3s)
+[PASS] r: upper-bound STOP rule: never STOP while a cell could pass or trigger §8.5; INCOMPLETE; open bound (0.2s)
+[PASS] r: additive model recovers synthetic coefficients; held-out validation passes, fails at +20% (1.2s)
+[PASS] r: R CLIs on synthetic stage dirs: gate-ub1, gate-ub2, fit, r, decide (6.4s)
 [PASS] r: decision table: Q/F/R combinations map to the E0 §8 consequences (0.0s)
 [PASS] docs: every `e0_*.py <subcommand>` named in RUNBOOK.md exists (0.0s)
 
-33 PASS, 0 FAIL, 0 SKIP in 455s
+37 PASS, 0 FAIL, 0 SKIP in 603s
+exit 0

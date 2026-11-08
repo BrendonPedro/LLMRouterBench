@@ -7,6 +7,7 @@ Subcommands (edge host; the GPU must be exclusive)
               step up while PASS, down while FAIL; U-max(M) = largest passing symmetric k
   edge-fit    EDGE competitor fit under the same budget: vLLM with gpu_memory_utilization = budget/total,
               max_model_len = L_F, one depth request; optional S5 latency profile on the same server
+              (kept as P-edge-<model>-cap<M>.jsonl only from the attempt that passes the fit)
   summarize   collect attempts -> f_results.json (U-max per class, EDGE eligibility, F verdict)
 
 PASS for an attempt: no exception (OOM, cache overflow, transport) AND device-view peak <= budget AND
@@ -39,6 +40,17 @@ def _free_port():
     p = s.getsockname()[1]
     s.close()
     return p
+
+
+# Failure classification (PREREG §5.6). Only memory failures are F evidence; anything else in Stage 1 (the
+# first CUDA execution of this harness) is a harness/engine defect. Unrecognised text never counts as memory.
+MEMORY_ERROR_PATTERNS = ("out of memory", "outofmemoryerror", "alloc_failed", "cudaerrormemoryallocation",
+                         "no available memory", "kv cache memory", "kv cache is needed")
+
+
+def failure_kind(text):
+    t = (text or "").lower()
+    return "memory" if any(x in t for x in MEMORY_ERROR_PATTERNS) else "other"
 
 
 class _DryNVML:
@@ -117,6 +129,7 @@ def split_fit(a):
     except Exception as e:
         rec["error"] = f"{type(e).__name__}: {e}"
         rec["error_phase"] = phase
+        rec["error_kind"] = "memory" if failure_kind(rec["error"]) == "memory" else "harness"
         try:
             rec["at_error"] = astats()
             rec["memory_summary"] = torch.cuda.memory_summary(a.device, abbreviated=True)[-3000:]
@@ -189,6 +202,17 @@ def _wait_ready(base, proc, timeout_s=1200):
     return False
 
 
+def settle_profiles(profile_dir, model, mem_class, n_attempts, passed):
+    """Keep the S5 profile only from the last attempt and only if it passed the fit; set the others aside
+    (`.rejected`, outside every *.jsonl glob) so R never uses a profile from an over-budget server."""
+    for i in range(n_attempts):
+        tagged = Path(profile_dir) / f"attempt{i}-P-edge-{model}-cap{mem_class}.jsonl"
+        if tagged.exists():
+            keep = passed and i == n_attempts - 1
+            tagged.rename(Path(profile_dir) / (f"P-edge-{model}-cap{mem_class}.jsonl" if keep
+                                               else f"{tagged.name}.rejected"))
+
+
 def edge_fit(a):
     s1 = S.load_s1()
     spec = s1.MODELS[a.model]
@@ -230,10 +254,11 @@ def edge_fit(a):
                 at["depth_ok"] = len(stamps) == S.GEN_TOKENS
                 at["usage"] = usage
                 if a.profile_out and at["depth_ok"]:
+                    # attempt-tagged label; renamed to the canonical P-edge-* name only if this attempt passes
                     prof = [sys.executable, str(S.E0_DIR / "e0_latency.py"), "run-openai", "--out-dir", a.profile_out,
                             "--base-url", base, "--served-model", a.model, "--path", "EDGE", "--edge-class",
-                            str(a.mem_class), "--label", f"P-edge-{a.model}-cap{a.mem_class}", "--nvml",
-                            "--with-depth", "1", "--workload", a.workload]
+                            str(a.mem_class), "--label", f"attempt{attempt}-P-edge-{a.model}-cap{a.mem_class}",
+                            "--nvml", "--with-depth", "1", "--workload", a.workload]
                     at["profile_rc"] = subprocess.run(prof).returncode
         except Exception as e:
             at["error"] = f"{type(e).__name__}: {e}"
@@ -246,12 +271,18 @@ def edge_fit(a):
         at["nvml"] = sampler.stop()
         peak = at["nvml"].get("peak_used_mib")
         at["pass"] = bool(at.get("depth_ok") and peak is not None and peak <= budget)
+        if not at["pass"]:
+            over = peak is not None and peak > budget
+            at["fail_kind"] = "memory" if over or failure_kind(at.get("error")) == "memory" else "engine"
         rec["attempts"].append(at)
         if at["pass"] or not at.get("depth_ok") or peak is None:
             break
         util = util - (peak - budget) * MIB / total - 0.01      # the single pre-declared retry
         time.sleep(10)
     rec["pass"] = rec["attempts"][-1]["pass"]
+    rec["fail_kind"] = None if rec["pass"] else rec["attempts"][-1]["fail_kind"]
+    if a.profile_out:
+        settle_profiles(a.profile_out, a.model, a.mem_class, len(rec["attempts"]), rec["pass"])
     I.write_json(out / f"edge_fit_{a.model}_c{a.mem_class}.json", rec)
     print(json.dumps({"model": a.model, "class": a.mem_class, "pass": rec["pass"]}))
 
@@ -268,10 +299,23 @@ def summarize(a):
             if g.exists() and json.loads(g.read_text())["pass"]:
                 eligible[str(m)].append(model)
     umin = d / "split_fit_c12_k1.json"
+    # PREREG §5.6: a non-memory exception in any split-fit attempt invalidates Stage 1 (fix, re-run all of it)
+    defects = sorted(g.name for g in d.glob("split_fit_c*_k*.json")
+                     if json.loads(g.read_text()).get("error_kind") == "harness")
+    # PREREG §8.4 (b): a desk-eligible EDGE competitor that failed its fit for a non-memory reason blocks every
+    # SPLIT pass at that class (the competitor set would be incomplete)
+    engine = {}
+    for m in S.MEMORY_CLASSES:
+        for model in S.EDGE_ELIGIBLE_DESK[m]:
+            g = d / f"edge_fit_{model}_c{m}.json"
+            if g.exists() and json.loads(g.read_text()).get("fail_kind") == "engine":
+                engine.setdefault(str(m), []).append(model)
     res = {"u_max": u_max, "u_min_fits_12": json.loads(umin.read_text())["pass"] if umin.exists() else None,
            "edge_eligible": eligible, "F_class_pass_static": {m: v is not None for m, v in u_max.items()},
            "F_pass_static": any(v is not None for v in u_max.values()),
-           "note": "F also requires zero OOM/transport errors over every E0-L request (checked in e0_r decide)."}
+           "harness_defects": defects, "valid": not defects,
+           "edge_engine_failures": engine, "no_split_pass_classes": sorted(int(m) for m in engine),
+           "note": "G-F is evaluated only if valid. F also requires zero failed E0-L requests (e0_r decide)."}
     I.write_json(d / "f_results.json", res)
     I.write_json(d / "edge_fit.json", eligible)   # summarize_s1.py --fit-json format
     print(json.dumps(res, indent=1))

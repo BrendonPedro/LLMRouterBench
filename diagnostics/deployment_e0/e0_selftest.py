@@ -164,6 +164,25 @@ def t_s1_hash():
     assert S.sha256_file(S.load_s1().SAMPLE_JSONL) == S.S1_SAMPLE_SHA256
 
 
+@check("s1", "the pre-declared 400-query extension sample is pinned, contains the 200, and re-draws identically")
+def t_s1_ext400():
+    import hashlib
+    ext = json.loads((HERE / "frozen" / "extension_400_keys.json").read_text())
+    keys = ext["keys"]
+    assert hashlib.sha256(json.dumps(sorted(keys)).encode()).hexdigest() == S.EXT400_KEYS_SHA256 == ext["keys_sha256"]
+    assert len(keys) == len(set(keys)) == 400 and ext["sample_sha256"] == S.EXT400_SAMPLE_SHA256
+    assert ext["per_benchmark"] == {"mmlupro": 120, "gpqa": 120, "livemathbench": 80, "livecodebench": 80}
+    s1 = S.load_s1()
+    first = {json.loads(x)["key"] for x in open(s1.SAMPLE_JSONL)}
+    assert first <= set(keys)
+    try:
+        rows, _ = s1.draw_sample(2)
+    except Exception as e:   # benchmark cache absent (pods clone without LFS): the pinned hashes above still hold
+        raise Skip(f"re-draw needs the benchmark cache: {type(e).__name__}") from None
+    assert hashlib.sha256(s1.sample_bytes(rows)).hexdigest() == S.EXT400_SAMPLE_SHA256
+    assert sorted(r["key"] for r in rows) == sorted(keys)
+
+
 @check("s1", "4,000 complete rows; CONTINUE recomputed; gaps equal S1_SUMMARY")
 def t_s1_continue():
     import e0_r as Rr
@@ -495,6 +514,58 @@ def t_f_search():
             assert len(calls) == len(set(calls))
 
 
+@check("f", "edge-fit keeps the S5 profile only from the passing (last) attempt; others set aside")
+def t_f_settle():
+    import e0_f as F
+    tmp = Path(tempfile.mkdtemp(prefix="e0settle_"))
+    for passed, n in ((True, 2), (False, 2), (True, 1)):
+        for f in tmp.iterdir():
+            f.unlink()
+        for i in range(n):
+            (tmp / f"attempt{i}-P-edge-Qwen3-8B-AWQ-cap12.jsonl").write_text(f"{i}\n")
+        F.settle_profiles(tmp, "Qwen3-8B-AWQ", 12, n, passed)
+        names = sorted(f.name for f in tmp.iterdir())
+        canon = tmp / "P-edge-Qwen3-8B-AWQ-cap12.jsonl"
+        assert canon.exists() == passed, names
+        if passed:
+            assert canon.read_text() == f"{n - 1}\n"
+        assert sum(x.endswith(".rejected") for x in names) == n - passed, names
+        assert not [x for x in names if x.startswith("attempt") and x.endswith(".jsonl")], names
+    shutil.rmtree(tmp, ignore_errors=True)
+
+
+@check("f", "failure classes: memory vs harness/engine; summarize marks invalid Stage 1 and blocked classes")
+def t_f_classify():
+    import e0_f as F
+    for t in ("OutOfMemoryError: CUDA out of memory. Tried to allocate 560.00 MiB",
+              "RuntimeError: CUDA error: CUBLAS_STATUS_ALLOC_FAILED when calling `cublasCreate(handle)`",
+              "ValueError: No available memory for the cache blocks. Try increasing `gpu_memory_utilization`",
+              "ValueError: To serve at least one request ... (2.1 GiB KV cache is needed, which is larger than the "
+              "available KV cache memory (1.3 GiB)"):
+        assert F.failure_kind(t) == "memory", t
+    for t in ("AttributeError: 'NoneType' object has no attribute 'cfg'", "CacheOverflow: 17921 > 17920",
+              "TransportError: peer closed the connection", "server did not start: ImportError: libcuda", None):
+        assert F.failure_kind(t) == "other", t
+    tmp = Path(tempfile.mkdtemp(prefix="e0sum_"))
+    for m, k in ((12, 3), (16, 5), (24, 9)):
+        (tmp / f"umax_c{m}.json").write_text(json.dumps({"u_max": [k, k]}))
+    (tmp / "split_fit_c12_k1.json").write_text(json.dumps({"pass": True}))
+    (tmp / "edge_fit_Qwen3-8B-AWQ_c12.json").write_text(json.dumps({"pass": True}))
+    (tmp / "edge_fit_Qwen3-14B-AWQ_c16.json").write_text(json.dumps({"pass": False, "fail_kind": "engine"}))
+    (tmp / "edge_fit_Qwen3-32B-AWQ_c12.json").write_text(json.dumps({"pass": False, "fail_kind": "engine"}))
+    with contextlib.redirect_stdout(io.StringIO()):
+        F.summarize(argparse.Namespace(dir=str(tmp)))
+    r = json.loads((tmp / "f_results.json").read_text())
+    # 14B-AWQ is desk-eligible at 16 GB -> class blocked; 32B-AWQ is not desk-eligible at 12 GB -> no block
+    assert r["valid"] and r["no_split_pass_classes"] == [16] and r["edge_eligible"]["12"] == ["Qwen3-8B-AWQ"], r
+    (tmp / "split_fit_c16_k6.json").write_text(json.dumps({"pass": False, "error_kind": "harness"}))
+    with contextlib.redirect_stdout(io.StringIO()):
+        F.summarize(argparse.Namespace(dir=str(tmp)))
+    r = json.loads((tmp / "f_results.json").read_text())
+    assert not r["valid"] and r["harness_defects"] == ["split_fit_c16_k6.json"]
+    shutil.rmtree(tmp, ignore_errors=True)
+
+
 @check("f", "sampler: device-view peak minus baseline, trapezoid energy")
 def t_f_sampler():
     import e0_instrument as I
@@ -704,7 +775,40 @@ def t_r_ub():
         assert y["delta_pt"] >= x["delta_pt"] - 1e-9 and y["ci95"][0] >= x["ci95"][0] - 1e-9
     g = Rr.upper_bound_gate(d, {(12, 3): lb}, {(12, 3): Rr.Profile([64], [0.0], 0.0, 0.0)}, edge,
                             {12: ["Qwen3-8B-AWQ"]}, W, {12: (3, 3)})
-    assert isinstance(g["R_possible"], bool) and len(g["cells"]) == 15
+    assert isinstance(g["R_possible"], bool) and len(g["cells"]) == 30
+
+
+@check("r", "upper-bound STOP rule: never STOP while a cell could pass or trigger §8.5; INCOMPLETE; open bound")
+def t_r_ub_stop():
+    import e0_r as Rr
+    d = Rr.S1Data()
+    W = Rr.boot_weights(d.strata, 2000)
+    zero = Rr.Profile([64.0], [0.0], 0.0, 0.0, "instant")
+    seg = {(16, 5): zero}
+    e16 = {("Qwen3-8B-AWQ", 16): zero, ("Qwen3-14B-AWQ", 16): zero}
+    # 16 GB with every action instantaneous: S1 pooled quality gap = +3.25 pt with CI low < 0. The old rule
+    # (STOP unless a bound cell passes) would STOP here although a real cell could trigger the extension.
+    g = Rr.upper_bound_gate(d, seg, seg, e16, {16: ["Qwen3-8B-AWQ", "Qwen3-14B-AWQ"]}, W, {16: (5, 5)})
+    ev = [c for c in g["cells"] if c["status"] == "evaluated"]
+    assert not any(c["pass"] for c in ev) and g["max_delta_bound_pt"] >= S.R_MARGIN_PT, g["max_delta_bound_pt"]
+    assert min(c["ci95"][0] for c in ev) <= 0 and g["decision"].startswith("CONTINUE") and g["R_possible"]
+    assert "NOT evidence" in g["decision"]
+    # 24 GB with 32B-AWQ instantaneous: max bound delta +2.5 pt < 3.0 => STOP is safe
+    seg24 = {(24, 9): zero}
+    e24 = {(m, 24): zero for m in S.EDGE_ELIGIBLE_DESK[24]}
+    g = Rr.upper_bound_gate(d, seg24, seg24, e24, {24: S.EDGE_ELIGIBLE_DESK[24]}, W, {24: (9, 9)})
+    assert g["max_delta_bound_pt"] < S.R_MARGIN_PT and g["decision"].startswith("STOP") and not g["R_possible"]
+    # a class with a U-max but no segment profile: INCOMPLETE, never STOP
+    g = Rr.upper_bound_gate(d, {}, seg24, e24, {24: S.EDGE_ELIGIBLE_DESK[24]}, W, {24: (9, 9)})
+    assert g["decision"].startswith("INCOMPLETE") and g["missing_profiles"] == [24] and g["R_possible"]
+    # no EDGE competitor fits: no-raw-text excluded, but the open cell is bounded with REMOTE at U = 0
+    g = Rr.upper_bound_gate(d, {(12, 3): zero}, {(12, 3): zero}, {}, {12: []}, W, {12: (3, 3)})
+    op = [c for c in g["cells"] if c["M"] == 12 and c["privacy"] == "open" and c["status"] == "evaluated"]
+    assert len(op) == 5 and g["decision"].startswith("CONTINUE"), [c["status"] for c in g["cells"]][:12]
+    # the measured-segment discount only shortens times
+    p = Rr.Profile([256, 2048], [0.2, 1.0], 0.03, 1e-6)
+    q = Rr.scaled(p, S.UB_SEGMENT_DISCOUNT)
+    assert 0 < S.UB_SEGMENT_DISCOUNT < 1 and abs(q.T(500, 300) - S.UB_SEGMENT_DISCOUNT * p.T(500, 300)) < 1e-12
 
 
 def _synthetic_logs(tmp, coef, perturb_heldout=0.0, seed=0):
@@ -840,18 +944,19 @@ def t_r_cli():
         extra = ["--stage2-dir", str(st2)] if g == "gate-ub2" else []
         run(g, "--stage1-dir", str(st1), "--out", str(tmp / f"{g}.json"), *extra)
         gj = json.loads((tmp / f"{g}.json").read_text())
-        assert gj["decision"].startswith(("CONTINUE", "STOP")) and len(gj["cells"]) == 15
+        assert gj["decision"].startswith(("CONTINUE", "STOP")) and len(gj["cells"]) == 30
+        assert gj["segment_discount"] == S.UB_SEGMENT_DISCOUNT and gj["missing_profiles"] == []
         assert all(c["status"] == "evaluated" for c in gj["cells"]), [c["status"] for c in gj["cells"]][:3]
     run("fit", "--lat-dir", str(lat), "--f-results", str(st1 / "f_results.json"), "--out", str(tmp / "bundle.json"))
     run("r", "--bundle", str(tmp / "bundle.json"), "--stage1-dir", str(st1), "--out-dir", str(tmp))
     rc = json.loads((tmp / "R_cells.json").read_text())
-    assert rc["source"].startswith("additive") and rc["summary"]["n_cells"] == 120
+    assert rc["source"].startswith("additive") and rc["summary"]["n_cells"] == 120 and rc["sample_n"] == 200
     assert rc["summary"]["n_evaluated"] >= 100, rc["summary"]
     (tmp / "q.json").write_text(json.dumps({"pass": True}))
     run("decide", "--f-results", str(st1 / "f_results.json"), "--lat-dir", str(lat), "--q", str(tmp / "q.json"),
         "--r", str(tmp / "R_cells.json"), "--out-dir", str(tmp))
     dj = json.loads((tmp / "DECISION.json").read_text())
-    assert dj["E0"] in ("PASS", "FAIL") and dj["F"] is True and "consequence" in dj
+    assert dj["E0"] in ("PASS", "FAIL", "PENDING") and dj["F"] is True and "consequence" in dj
     shutil.rmtree(tmp, ignore_errors=True)
 
 
@@ -863,10 +968,11 @@ def t_r_decide():
     f = tmp / "f.json"
     f.write_text(json.dumps({"u_max": {"12": [3, 3], "16": None, "24": None}}))
 
-    def run(Q, R, only12=True, open_=False, err=False):
+    def run(Q, R, only12=True, open_=False, err=False, best=None, n=200):
         (tmp / "q.json").write_text(json.dumps({"pass": Q}))
-        (tmp / "r.json").write_text(json.dumps({"summary": {"R_pass": R, "only_12GB": only12, "open_pass": open_,
-                                                            "pass_robust_to_multiplicity": R}}))
+        (tmp / "r.json").write_text(json.dumps({"sample_n": n, "summary": {
+            "R_pass": R, "only_12GB": only12, "open_pass": open_, "pass_robust_to_multiplicity": R,
+            "pass_classes": [12] if (R and only12) else ([12, 24] if R else []), "best": best}}))
         lat = tmp / "lat" / "x.jsonl"
         lat.write_text(json.dumps({"prompt_id": "a", "ok": not err, "error": "OOM" if err else None}) + "\n")
         a = argparse.Namespace(f_results=str(f), lat_dir=[str(tmp / "lat")], q=str(tmp / "q.json"), r=str(tmp / "r.json"),
@@ -876,6 +982,26 @@ def t_r_decide():
         return json.loads((tmp / "DECISION.json").read_text())
     x = run(True, True)
     assert x["E0"] == "PASS" and "no-raw-text quality tier" in x["consequence"] and "12 GB" in x["consequence"]
+    assert "EMULATED" in x["memory_class_scope"]
+    straddle = {"delta_pt": 3.4, "ci95": [-0.3, 7.1]}
+    e = run(True, False, best=straddle)
+    assert e["E0"] == "PENDING" and e["extension_triggered"] and "400-query extension" in e["consequence"]
+    assert run(True, False, best=straddle, n=400)["E0"] == "FAIL"          # the extension is used at most once
+    assert run(True, False, best={"delta_pt": 2.9, "ci95": [-0.3, 6.0]})["E0"] == "FAIL"
+    assert run(False, False, best=straddle)["E0"] == "FAIL"                 # Q or F failures are never pending
+    assert run(True, False, best=straddle, err=True)["E0"] == "FAIL"
+    (tmp / "r.json").write_text(json.dumps({"sample_n": 200, "summary": {
+        "R_pass": True, "only_12GB": False, "open_pass": False, "pass_robust_to_multiplicity": True,
+        "pass_classes": [24], "best": None}}))
+    a = argparse.Namespace(f_results=str(f), lat_dir=[str(tmp / "lat")], q=str(tmp / "q.json"), r=str(tmp / "r.json"),
+                           out_dir=str(tmp), a3b_added=False)
+    (tmp / "lat" / "x.jsonl").write_text(json.dumps({"prompt_id": "a", "ok": True}) + "\n")
+    (tmp / "q.json").write_text(json.dumps({"pass": True}))
+    with contextlib.redirect_stdout(io.StringIO()):
+        Rr.decide(a)
+    z = json.loads((tmp / "DECISION.json").read_text())
+    assert z["E0"] == "PENDING" and "30B-A3B" in z["consequence"], z          # §8.4 (a)
+    assert "EMULATED" not in z["memory_class_scope"]
     assert run(False, True)["E0"] == "FAIL" and "SPLIT removed" in run(False, True)["consequence"]
     assert "lack of a regime" in run(True, False)["consequence"]
     y = run(True, True, err=True)

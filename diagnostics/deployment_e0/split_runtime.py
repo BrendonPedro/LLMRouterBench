@@ -3,7 +3,8 @@
 Edge process: embedding, layers [0, k), layers [L-j, L), final norm, LM head, sampling.
 Server process: layers [k, L-j) (a superset range may be loaded; HELLO selects the active range).
 Per forward step the edge sends the bf16 residual stream after layer k-1 ([n, hidden] raw bytes)
-and receives the residual stream after layer L-j-1. Token ids, text and logits never leave the edge.
+and receives the residual stream after layer L-j-1. Token ids, text and logits never leave the edge;
+control metadata (72-byte header per message, HELLO identity) does cross (PREREG §2.1).
 
 The runtime reuses the transformers 4.51.3 Qwen3 modules unchanged (decoder layers, rotary
 embedding, causal-mask construction). Each side holds a preallocated KV cache for its own layers
@@ -314,7 +315,7 @@ def _sync(device):
 class AppShaper:
     """Application-level link emulation on the edge side of a strictly synchronous protocol:
     each round trip is delayed by rtt_ms plus serialisation of both payloads at bw_mbps.
-    Used only where tc netem is unavailable (PREREG §6.4); recorded as shaping="app"."""
+    Used only where tc netem is unavailable (PREREG §6.3); recorded as shaping="app"."""
 
     def __init__(self, rtt_ms=None, bw_mbps=None):
         self.rtt_s = (rtt_ms or 0) / 1e3
