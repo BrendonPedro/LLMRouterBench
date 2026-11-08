@@ -1,0 +1,724 @@
+{
+  "decision": "CONTINUE",
+  "complete": true,
+  "rule16": false,
+  "rule12": false,
+  "all_below": {
+    "12": false,
+    "16": false,
+    "24": false
+  },
+  "threshold_pt": 3.0,
+  "eligible": {
+    "12": [
+      "Qwen3-8B-AWQ"
+    ],
+    "16": [
+      "Qwen3-8B-AWQ",
+      "Qwen3-14B-AWQ"
+    ],
+    "24": [
+      "Qwen3-8B-AWQ",
+      "Qwen3-14B-AWQ",
+      "Qwen3-8B",
+      "Qwen3-32B-AWQ"
+    ]
+  },
+  "eligibility_source": "E0 \u00a71 desk check (default)",
+  "coverage": {
+    "Qwen3-32B|thinking": 400,
+    "Qwen3-32B|nonthinking": 400,
+    "Qwen3-8B-AWQ|thinking": 400,
+    "Qwen3-8B-AWQ|nonthinking": 400,
+    "Qwen3-14B-AWQ|thinking": 400,
+    "Qwen3-14B-AWQ|nonthinking": 400,
+    "Qwen3-32B-AWQ|thinking": 400,
+    "Qwen3-32B-AWQ|nonthinking": 400,
+    "Qwen3-8B|thinking": 400,
+    "Qwen3-8B|nonthinking": 400
+  },
+  "acc": [
+    {
+      "model": "Qwen3-32B",
+      "mode": "thinking",
+      "dataset": "mmlupro",
+      "acc_pct": 77.5
+    },
+    {
+      "model": "Qwen3-8B-AWQ",
+      "mode": "thinking",
+      "dataset": "mmlupro",
+      "acc_pct": 61.666666666666664
+    },
+    {
+      "model": "Qwen3-14B-AWQ",
+      "mode": "thinking",
+      "dataset": "mmlupro",
+      "acc_pct": 71.66666666666667
+    },
+    {
+      "model": "Qwen3-32B-AWQ",
+      "mode": "thinking",
+      "dataset": "mmlupro",
+      "acc_pct": 75.0
+    },
+    {
+      "model": "Qwen3-8B",
+      "mode": "thinking",
+      "dataset": "mmlupro",
+      "acc_pct": 65.83333333333333
+    },
+    {
+      "model": "Qwen3-32B",
+      "mode": "nonthinking",
+      "dataset": "mmlupro",
+      "acc_pct": 68.33333333333333
+    },
+    {
+      "model": "Qwen3-8B-AWQ",
+      "mode": "nonthinking",
+      "dataset": "mmlupro",
+      "acc_pct": 40.833333333333336
+    },
+    {
+      "model": "Qwen3-14B-AWQ",
+      "mode": "nonthinking",
+      "dataset": "mmlupro",
+      "acc_pct": 63.333333333333336
+    },
+    {
+      "model": "Qwen3-32B-AWQ",
+      "mode": "nonthinking",
+      "dataset": "mmlupro",
+      "acc_pct": 62.5
+    },
+    {
+      "model": "Qwen3-8B",
+      "mode": "nonthinking",
+      "dataset": "mmlupro",
+      "acc_pct": 51.666666666666664
+    },
+    {
+      "model": "Qwen3-32B",
+      "mode": "thinking",
+      "dataset": "gpqa",
+      "acc_pct": 69.16666666666667
+    },
+    {
+      "model": "Qwen3-8B-AWQ",
+      "mode": "thinking",
+      "dataset": "gpqa",
+      "acc_pct": 59.166666666666664
+    },
+    {
+      "model": "Qwen3-14B-AWQ",
+      "mode": "thinking",
+      "dataset": "gpqa",
+      "acc_pct": 64.16666666666667
+    },
+    {
+      "model": "Qwen3-32B-AWQ",
+      "mode": "thinking",
+      "dataset": "gpqa",
+      "acc_pct": 64.16666666666667
+    },
+    {
+      "model": "Qwen3-8B",
+      "mode": "thinking",
+      "dataset": "gpqa",
+      "acc_pct": 60.833333333333336
+    },
+    {
+      "model": "Qwen3-32B",
+      "mode": "nonthinking",
+      "dataset": "gpqa",
+      "acc_pct": 53.333333333333336
+    },
+    {
+      "model": "Qwen3-8B-AWQ",
+      "mode": "nonthinking",
+      "dataset": "gpqa",
+      "acc_pct": 38.333333333333336
+    },
+    {
+      "model": "Qwen3-14B-AWQ",
+      "mode": "nonthinking",
+      "dataset": "gpqa",
+      "acc_pct": 45.833333333333336
+    },
+    {
+      "model": "Qwen3-32B-AWQ",
+      "mode": "nonthinking",
+      "dataset": "gpqa",
+      "acc_pct": 47.5
+    },
+    {
+      "model": "Qwen3-8B",
+      "mode": "nonthinking",
+      "dataset": "gpqa",
+      "acc_pct": 37.5
+    },
+    {
+      "model": "Qwen3-32B",
+      "mode": "thinking",
+      "dataset": "livemathbench",
+      "acc_pct": 76.25
+    },
+    {
+      "model": "Qwen3-8B-AWQ",
+      "mode": "thinking",
+      "dataset": "livemathbench",
+      "acc_pct": 73.75
+    },
+    {
+      "model": "Qwen3-14B-AWQ",
+      "mode": "thinking",
+      "dataset": "livemathbench",
+      "acc_pct": 78.75
+    },
+    {
+      "model": "Qwen3-32B-AWQ",
+      "mode": "thinking",
+      "dataset": "livemathbench",
+      "acc_pct": 82.5
+    },
+    {
+      "model": "Qwen3-8B",
+      "mode": "thinking",
+      "dataset": "livemathbench",
+      "acc_pct": 77.5
+    },
+    {
+      "model": "Qwen3-32B",
+      "mode": "nonthinking",
+      "dataset": "livemathbench",
+      "acc_pct": 65.0
+    },
+    {
+      "model": "Qwen3-8B-AWQ",
+      "mode": "nonthinking",
+      "dataset": "livemathbench",
+      "acc_pct": 61.25
+    },
+    {
+      "model": "Qwen3-14B-AWQ",
+      "mode": "nonthinking",
+      "dataset": "livemathbench",
+      "acc_pct": 61.25
+    },
+    {
+      "model": "Qwen3-32B-AWQ",
+      "mode": "nonthinking",
+      "dataset": "livemathbench",
+      "acc_pct": 60.0
+    },
+    {
+      "model": "Qwen3-8B",
+      "mode": "nonthinking",
+      "dataset": "livemathbench",
+      "acc_pct": 57.5
+    },
+    {
+      "model": "Qwen3-32B",
+      "mode": "thinking",
+      "dataset": "livecodebench",
+      "acc_pct": 77.5
+    },
+    {
+      "model": "Qwen3-8B-AWQ",
+      "mode": "thinking",
+      "dataset": "livecodebench",
+      "acc_pct": 60.0
+    },
+    {
+      "model": "Qwen3-14B-AWQ",
+      "mode": "thinking",
+      "dataset": "livecodebench",
+      "acc_pct": 75.0
+    },
+    {
+      "model": "Qwen3-32B-AWQ",
+      "mode": "thinking",
+      "dataset": "livecodebench",
+      "acc_pct": 70.0
+    },
+    {
+      "model": "Qwen3-8B",
+      "mode": "thinking",
+      "dataset": "livecodebench",
+      "acc_pct": 62.5
+    },
+    {
+      "model": "Qwen3-32B",
+      "mode": "nonthinking",
+      "dataset": "livecodebench",
+      "acc_pct": 42.5
+    },
+    {
+      "model": "Qwen3-8B-AWQ",
+      "mode": "nonthinking",
+      "dataset": "livecodebench",
+      "acc_pct": 32.5
+    },
+    {
+      "model": "Qwen3-14B-AWQ",
+      "mode": "nonthinking",
+      "dataset": "livecodebench",
+      "acc_pct": 45.0
+    },
+    {
+      "model": "Qwen3-32B-AWQ",
+      "mode": "nonthinking",
+      "dataset": "livecodebench",
+      "acc_pct": 41.25
+    },
+    {
+      "model": "Qwen3-8B",
+      "mode": "nonthinking",
+      "dataset": "livecodebench",
+      "acc_pct": 38.75
+    }
+  ],
+  "gaps": [
+    {
+      "dataset": "mmlupro",
+      "mode": "thinking",
+      "class_gb": 12,
+      "best": "Qwen3-8B-AWQ",
+      "ref_acc": 77.5,
+      "best_acc": 61.666666666666664,
+      "gap_pt": 15.833333333333336,
+      "ci95_pt": [
+        6.666666666666667,
+        25.0
+      ],
+      "n": 60,
+      "per_model_gap_pt": {
+        "Qwen3-8B-AWQ": 15.833333333333336
+      }
+    },
+    {
+      "dataset": "mmlupro",
+      "mode": "thinking",
+      "class_gb": 16,
+      "best": "Qwen3-14B-AWQ",
+      "ref_acc": 77.5,
+      "best_acc": 71.66666666666667,
+      "gap_pt": 5.833333333333329,
+      "ci95_pt": [
+        -0.8333333333333334,
+        12.5
+      ],
+      "n": 60,
+      "per_model_gap_pt": {
+        "Qwen3-8B-AWQ": 15.833333333333336,
+        "Qwen3-14B-AWQ": 5.833333333333329
+      }
+    },
+    {
+      "dataset": "mmlupro",
+      "mode": "thinking",
+      "class_gb": 24,
+      "best": "Qwen3-32B-AWQ",
+      "ref_acc": 77.5,
+      "best_acc": 75.0,
+      "gap_pt": 2.5,
+      "ci95_pt": [
+        -2.5,
+        8.333333333333332
+      ],
+      "n": 60,
+      "per_model_gap_pt": {
+        "Qwen3-8B-AWQ": 15.833333333333336,
+        "Qwen3-14B-AWQ": 5.833333333333329,
+        "Qwen3-8B": 11.666666666666671,
+        "Qwen3-32B-AWQ": 2.5
+      }
+    },
+    {
+      "dataset": "mmlupro",
+      "mode": "nonthinking",
+      "class_gb": 12,
+      "best": "Qwen3-8B-AWQ",
+      "ref_acc": 68.33333333333333,
+      "best_acc": 40.833333333333336,
+      "gap_pt": 27.499999999999993,
+      "ci95_pt": [
+        16.666666666666664,
+        38.333333333333336
+      ],
+      "n": 60,
+      "per_model_gap_pt": {
+        "Qwen3-8B-AWQ": 27.499999999999993
+      }
+    },
+    {
+      "dataset": "mmlupro",
+      "mode": "nonthinking",
+      "class_gb": 16,
+      "best": "Qwen3-14B-AWQ",
+      "ref_acc": 68.33333333333333,
+      "best_acc": 63.333333333333336,
+      "gap_pt": 4.999999999999993,
+      "ci95_pt": [
+        -4.166666666666666,
+        15.0
+      ],
+      "n": 60,
+      "per_model_gap_pt": {
+        "Qwen3-8B-AWQ": 27.499999999999993,
+        "Qwen3-14B-AWQ": 4.999999999999993
+      }
+    },
+    {
+      "dataset": "mmlupro",
+      "mode": "nonthinking",
+      "class_gb": 24,
+      "best": "Qwen3-14B-AWQ",
+      "ref_acc": 68.33333333333333,
+      "best_acc": 63.333333333333336,
+      "gap_pt": 4.999999999999993,
+      "ci95_pt": [
+        -5.0,
+        15.0
+      ],
+      "n": 60,
+      "per_model_gap_pt": {
+        "Qwen3-8B-AWQ": 27.499999999999993,
+        "Qwen3-14B-AWQ": 4.999999999999993,
+        "Qwen3-8B": 16.666666666666664,
+        "Qwen3-32B-AWQ": 5.833333333333329
+      }
+    },
+    {
+      "dataset": "gpqa",
+      "mode": "thinking",
+      "class_gb": 12,
+      "best": "Qwen3-8B-AWQ",
+      "ref_acc": 69.16666666666667,
+      "best_acc": 59.166666666666664,
+      "gap_pt": 10.000000000000007,
+      "ci95_pt": [
+        0.8333333333333334,
+        19.166666666666668
+      ],
+      "n": 60,
+      "per_model_gap_pt": {
+        "Qwen3-8B-AWQ": 10.000000000000007
+      }
+    },
+    {
+      "dataset": "gpqa",
+      "mode": "thinking",
+      "class_gb": 16,
+      "best": "Qwen3-14B-AWQ",
+      "ref_acc": 69.16666666666667,
+      "best_acc": 64.16666666666667,
+      "gap_pt": 5.0,
+      "ci95_pt": [
+        -1.6666666666666667,
+        12.5
+      ],
+      "n": 60,
+      "per_model_gap_pt": {
+        "Qwen3-8B-AWQ": 10.000000000000007,
+        "Qwen3-14B-AWQ": 5.0
+      }
+    },
+    {
+      "dataset": "gpqa",
+      "mode": "thinking",
+      "class_gb": 24,
+      "best": "Qwen3-14B-AWQ",
+      "ref_acc": 69.16666666666667,
+      "best_acc": 64.16666666666667,
+      "gap_pt": 5.0,
+      "ci95_pt": [
+        -2.5,
+        12.5
+      ],
+      "n": 60,
+      "per_model_gap_pt": {
+        "Qwen3-8B-AWQ": 10.000000000000007,
+        "Qwen3-14B-AWQ": 5.0,
+        "Qwen3-8B": 8.333333333333336,
+        "Qwen3-32B-AWQ": 5.0
+      }
+    },
+    {
+      "dataset": "gpqa",
+      "mode": "nonthinking",
+      "class_gb": 12,
+      "best": "Qwen3-8B-AWQ",
+      "ref_acc": 53.333333333333336,
+      "best_acc": 38.333333333333336,
+      "gap_pt": 15.0,
+      "ci95_pt": [
+        4.166666666666666,
+        25.833333333333336
+      ],
+      "n": 60,
+      "per_model_gap_pt": {
+        "Qwen3-8B-AWQ": 15.0
+      }
+    },
+    {
+      "dataset": "gpqa",
+      "mode": "nonthinking",
+      "class_gb": 16,
+      "best": "Qwen3-14B-AWQ",
+      "ref_acc": 53.333333333333336,
+      "best_acc": 45.833333333333336,
+      "gap_pt": 7.5,
+      "ci95_pt": [
+        -5.0,
+        20.0
+      ],
+      "n": 60,
+      "per_model_gap_pt": {
+        "Qwen3-8B-AWQ": 15.0,
+        "Qwen3-14B-AWQ": 7.5
+      }
+    },
+    {
+      "dataset": "gpqa",
+      "mode": "nonthinking",
+      "class_gb": 24,
+      "best": "Qwen3-32B-AWQ",
+      "ref_acc": 53.333333333333336,
+      "best_acc": 47.5,
+      "gap_pt": 5.833333333333336,
+      "ci95_pt": [
+        -3.3333333333333335,
+        15.0
+      ],
+      "n": 60,
+      "per_model_gap_pt": {
+        "Qwen3-8B-AWQ": 15.0,
+        "Qwen3-14B-AWQ": 7.5,
+        "Qwen3-8B": 15.833333333333336,
+        "Qwen3-32B-AWQ": 5.833333333333336
+      }
+    },
+    {
+      "dataset": "livemathbench",
+      "mode": "thinking",
+      "class_gb": 12,
+      "best": "Qwen3-8B-AWQ",
+      "ref_acc": 76.25,
+      "best_acc": 73.75,
+      "gap_pt": 2.5,
+      "ci95_pt": [
+        -2.5,
+        8.75
+      ],
+      "n": 40,
+      "per_model_gap_pt": {
+        "Qwen3-8B-AWQ": 2.5
+      }
+    },
+    {
+      "dataset": "livemathbench",
+      "mode": "thinking",
+      "class_gb": 16,
+      "best": "Qwen3-14B-AWQ",
+      "ref_acc": 76.25,
+      "best_acc": 78.75,
+      "gap_pt": -2.5,
+      "ci95_pt": [
+        -8.75,
+        5.0
+      ],
+      "n": 40,
+      "per_model_gap_pt": {
+        "Qwen3-8B-AWQ": 2.5,
+        "Qwen3-14B-AWQ": -2.5
+      }
+    },
+    {
+      "dataset": "livemathbench",
+      "mode": "thinking",
+      "class_gb": 24,
+      "best": "Qwen3-32B-AWQ",
+      "ref_acc": 76.25,
+      "best_acc": 82.5,
+      "gap_pt": -6.25,
+      "ci95_pt": [
+        -12.5,
+        -1.25
+      ],
+      "n": 40,
+      "per_model_gap_pt": {
+        "Qwen3-8B-AWQ": 2.5,
+        "Qwen3-14B-AWQ": -2.5,
+        "Qwen3-8B": -1.25,
+        "Qwen3-32B-AWQ": -6.25
+      }
+    },
+    {
+      "dataset": "livemathbench",
+      "mode": "nonthinking",
+      "class_gb": 12,
+      "best": "Qwen3-8B-AWQ",
+      "ref_acc": 65.0,
+      "best_acc": 61.25,
+      "gap_pt": 3.75,
+      "ci95_pt": [
+        -5.0,
+        12.5
+      ],
+      "n": 40,
+      "per_model_gap_pt": {
+        "Qwen3-8B-AWQ": 3.75
+      }
+    },
+    {
+      "dataset": "livemathbench",
+      "mode": "nonthinking",
+      "class_gb": 16,
+      "best": "Qwen3-8B-AWQ",
+      "ref_acc": 65.0,
+      "best_acc": 61.25,
+      "gap_pt": 3.75,
+      "ci95_pt": [
+        -5.0,
+        12.5
+      ],
+      "n": 40,
+      "per_model_gap_pt": {
+        "Qwen3-8B-AWQ": 3.75,
+        "Qwen3-14B-AWQ": 3.75
+      }
+    },
+    {
+      "dataset": "livemathbench",
+      "mode": "nonthinking",
+      "class_gb": 24,
+      "best": "Qwen3-8B-AWQ",
+      "ref_acc": 65.0,
+      "best_acc": 61.25,
+      "gap_pt": 3.75,
+      "ci95_pt": [
+        -5.0,
+        12.5
+      ],
+      "n": 40,
+      "per_model_gap_pt": {
+        "Qwen3-8B-AWQ": 3.75,
+        "Qwen3-14B-AWQ": 3.75,
+        "Qwen3-8B": 7.5,
+        "Qwen3-32B-AWQ": 5.0
+      }
+    },
+    {
+      "dataset": "livecodebench",
+      "mode": "thinking",
+      "class_gb": 12,
+      "best": "Qwen3-8B-AWQ",
+      "ref_acc": 77.5,
+      "best_acc": 60.0,
+      "gap_pt": 17.5,
+      "ci95_pt": [
+        8.75,
+        28.749999999999996
+      ],
+      "n": 40,
+      "per_model_gap_pt": {
+        "Qwen3-8B-AWQ": 17.5
+      }
+    },
+    {
+      "dataset": "livecodebench",
+      "mode": "thinking",
+      "class_gb": 16,
+      "best": "Qwen3-14B-AWQ",
+      "ref_acc": 77.5,
+      "best_acc": 75.0,
+      "gap_pt": 2.5,
+      "ci95_pt": [
+        -6.25,
+        12.5
+      ],
+      "n": 40,
+      "per_model_gap_pt": {
+        "Qwen3-8B-AWQ": 17.5,
+        "Qwen3-14B-AWQ": 2.5
+      }
+    },
+    {
+      "dataset": "livecodebench",
+      "mode": "thinking",
+      "class_gb": 24,
+      "best": "Qwen3-14B-AWQ",
+      "ref_acc": 77.5,
+      "best_acc": 75.0,
+      "gap_pt": 2.5,
+      "ci95_pt": [
+        -7.5,
+        12.5
+      ],
+      "n": 40,
+      "per_model_gap_pt": {
+        "Qwen3-8B-AWQ": 17.5,
+        "Qwen3-14B-AWQ": 2.5,
+        "Qwen3-8B": 15.0,
+        "Qwen3-32B-AWQ": 7.5
+      }
+    },
+    {
+      "dataset": "livecodebench",
+      "mode": "nonthinking",
+      "class_gb": 12,
+      "best": "Qwen3-8B-AWQ",
+      "ref_acc": 42.5,
+      "best_acc": 32.5,
+      "gap_pt": 10.0,
+      "ci95_pt": [
+        0.0,
+        21.25
+      ],
+      "n": 40,
+      "per_model_gap_pt": {
+        "Qwen3-8B-AWQ": 10.0
+      }
+    },
+    {
+      "dataset": "livecodebench",
+      "mode": "nonthinking",
+      "class_gb": 16,
+      "best": "Qwen3-14B-AWQ",
+      "ref_acc": 42.5,
+      "best_acc": 45.0,
+      "gap_pt": -2.5,
+      "ci95_pt": [
+        -13.750000000000002,
+        8.75
+      ],
+      "n": 40,
+      "per_model_gap_pt": {
+        "Qwen3-8B-AWQ": 10.0,
+        "Qwen3-14B-AWQ": -2.5
+      }
+    },
+    {
+      "dataset": "livecodebench",
+      "mode": "nonthinking",
+      "class_gb": 24,
+      "best": "Qwen3-14B-AWQ",
+      "ref_acc": 42.5,
+      "best_acc": 45.0,
+      "gap_pt": -2.5,
+      "ci95_pt": [
+        -13.750000000000002,
+        8.75
+      ],
+      "n": 40,
+      "per_model_gap_pt": {
+        "Qwen3-8B-AWQ": 10.0,
+        "Qwen3-14B-AWQ": -2.5,
+        "Qwen3-8B": 3.75,
+        "Qwen3-32B-AWQ": 1.25
+      }
+    }
+  ]
+}
