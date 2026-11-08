@@ -1,0 +1,13 @@
+# E0 HF/runtime environment (edge and server must be identical; HELLO refuses a torch/transformers/CUDA mismatch).
+# torch is installed first and separately:
+#   pods (CUDA):  torch==2.6.0 from https://download.pytorch.org/whl/cu124
+#   local (CPU):  torch==2.6.0 from https://download.pytorch.org/whl/cpu
+# Same torch / transformers as the S1 vLLM 0.8.5.post1 stack (servers/*.json in the S1 result).
+# Versions below are exactly the ones the local self-test ran with (2026-11-08).
+transformers==4.51.3
+accelerate==1.6.0
+safetensors==0.8.0
+tokenizers==0.21.4
+huggingface_hub==0.36.2
+numpy==2.2.6
+nvidia-ml-py==12.570.86

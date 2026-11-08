@@ -1,0 +1,41 @@
+{
+ "seed": "deployment-e0:q2:20261108",
+ "per_bench": {
+  "mmlupro": 9,
+  "gpqa": 9,
+  "livemathbench": 6,
+  "livecodebench": 6
+ },
+ "keys": [
+  "mmlupro:574",
+  "mmlupro:703",
+  "mmlupro:104",
+  "mmlupro:313",
+  "mmlupro:554",
+  "mmlupro:357",
+  "mmlupro:35",
+  "mmlupro:859",
+  "mmlupro:200",
+  "gpqa:15",
+  "gpqa:93",
+  "gpqa:75",
+  "gpqa:163",
+  "gpqa:170",
+  "gpqa:195",
+  "gpqa:167",
+  "gpqa:56",
+  "gpqa:197",
+  "livemathbench:93",
+  "livemathbench:49",
+  "livemathbench:3",
+  "livemathbench:63",
+  "livemathbench:86",
+  "livemathbench:44",
+  "livecodebench:387",
+  "livecodebench:80",
+  "livecodebench:665",
+  "livecodebench:519",
+  "livecodebench:739",
+  "livecodebench:268"
+ ]
+}

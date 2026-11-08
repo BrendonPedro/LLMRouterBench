@@ -1,0 +1,265 @@
+{
+ "utc": "2026-11-08T08:26:34Z",
+ "counts": {
+  "PASS": 33,
+  "FAIL": 0,
+  "SKIP": 0
+ },
+ "results": [
+  {
+   "group": "spec",
+   "check": "held-out cells equal their seeded draw; 22 decision cells",
+   "status": "PASS",
+   "seconds": 0.0,
+   "detail": ""
+  },
+  {
+   "group": "spec",
+   "check": "L_F covers every S1 prompt + 16,384 tokens; budgets; U-max prediction = desk check",
+   "status": "PASS",
+   "seconds": 0.0,
+   "detail": ""
+  },
+  {
+   "group": "spec",
+   "check": "E0 model revisions equal the S1 run's",
+   "status": "PASS",
+   "seconds": 0.0,
+   "detail": ""
+  },
+  {
+   "group": "s1",
+   "check": "pinned hashes of the S1 per-query file and sample",
+   "status": "PASS",
+   "seconds": 0.0,
+   "detail": ""
+  },
+  {
+   "group": "s1",
+   "check": "4,000 complete rows; CONTINUE recomputed; gaps equal S1_SUMMARY",
+   "status": "PASS",
+   "seconds": 0.0,
+   "detail": ""
+  },
+  {
+   "group": "template",
+   "check": "pinned tokenizer + chat template reproduce S1 prompt_tokens for 200 x 2 modes",
+   "status": "PASS",
+   "seconds": 4.0,
+   "detail": ""
+  },
+  {
+   "group": "template",
+   "check": "frozen workload rebuilds to the pinned ids hash; frozen Q2 keys reproduce",
+   "status": "PASS",
+   "seconds": 1.6,
+   "detail": ""
+  },
+  {
+   "group": "runtime",
+   "check": "teacher-forced split == HF forward, bitwise (bf16 local+TCP, fp32 local; U-min, (2,3), (3,3)); wire refuses non-bf16",
+   "status": "PASS",
+   "seconds": 3.8,
+   "detail": ""
+  },
+  {
+   "group": "runtime",
+   "check": "greedy split decoding == HF generate (chunked prefill 7 / 16 / unchunked, TCP)",
+   "status": "PASS",
+   "seconds": 2.9,
+   "detail": ""
+  },
+  {
+   "group": "runtime",
+   "check": "wire carries exactly n x hidden x 2 bytes + header each way; server cache tracks positions",
+   "status": "PASS",
+   "seconds": 0.2,
+   "detail": ""
+  },
+  {
+   "group": "runtime",
+   "check": "failure paths: wrong position, illegal split, version mismatch, cache overflow, peer drop",
+   "status": "PASS",
+   "seconds": 0.2,
+   "detail": ""
+  },
+  {
+   "group": "runtime",
+   "check": "echo stub returns the payload unchanged; app shaper adds RTT + serialisation per round trip",
+   "status": "PASS",
+   "seconds": 0.1,
+   "detail": ""
+  },
+  {
+   "group": "runtime",
+   "check": "Slice materialises only owned weights (param bytes exact; rest on meta)",
+   "status": "PASS",
+   "seconds": 0.0,
+   "detail": ""
+  },
+  {
+   "group": "real",
+   "check": "Qwen3-0.6B real weights: TCP split U(2,3) bitwise == HF; greedy == HF generate (chat prompt)",
+   "status": "PASS",
+   "seconds": 41.8,
+   "detail": ""
+  },
+  {
+   "group": "real",
+   "check": "Q pipeline CLIs end to end on Qwen3-0.6B (cont-gen, ref, cmp hf/split, q2-ref/run, rules)",
+   "status": "PASS",
+   "seconds": 155.8,
+   "detail": ""
+  },
+  {
+   "group": "q",
+   "check": "coarse KL: 0 for identical, > 0 otherwise, <= full-vocabulary KL",
+   "status": "PASS",
+   "seconds": 0.1,
+   "detail": ""
+  },
+  {
+   "group": "q",
+   "check": "Q1 rule thresholds incl. zero floors; Q2 near-tie count, degeneration, first divergence",
+   "status": "PASS",
+   "seconds": 0.0,
+   "detail": ""
+  },
+  {
+   "group": "f",
+   "check": "U-max search finds the largest passing k from any start; None if (1,1) fails",
+   "status": "PASS",
+   "seconds": 0.1,
+   "detail": ""
+  },
+  {
+   "group": "f",
+   "check": "sampler: device-view peak minus baseline, trapezoid energy",
+   "status": "PASS",
+   "seconds": 0.2,
+   "detail": ""
+  },
+  {
+   "group": "f",
+   "check": "split-fit CLI, CPU dry run: load, depth prefill (17,664 tok, chunked), 256 decode, JSON record",
+   "status": "PASS",
+   "seconds": 20.0,
+   "detail": ""
+  },
+  {
+   "group": "latency",
+   "check": "request plans: 2 warm-ups + 30 (36 with depth); seeded order; all cells scheduled once",
+   "status": "PASS",
+   "seconds": 0.0,
+   "detail": ""
+  },
+  {
+   "group": "latency",
+   "check": "netem commands and state parsing (both directions, delay = RTT/2, rate)",
+   "status": "PASS",
+   "seconds": 0.0,
+   "detail": ""
+  },
+  {
+   "group": "latency",
+   "check": "SPLIT cell runner over TCP writes complete per-token/per-step records (tiny model, workload)",
+   "status": "PASS",
+   "seconds": 217.7,
+   "detail": ""
+  },
+  {
+   "group": "latency",
+   "check": "linkcheck over the split protocol against a local echo stub",
+   "status": "PASS",
+   "seconds": 0.3,
+   "detail": ""
+  },
+  {
+   "group": "latency",
+   "check": "streaming client counts tokens from continuous usage (coalesced chunks), app RTT adjust",
+   "status": "PASS",
+   "seconds": 1.1,
+   "detail": ""
+  },
+  {
+   "group": "r",
+   "check": "Profile.T closed form == explicit sum; addition; extrapolation",
+   "status": "PASS",
+   "seconds": 0.1,
+   "detail": ""
+  },
+  {
+   "group": "r",
+   "check": "stratified bootstrap keeps per-benchmark counts; identical actions give delta 0 and fail",
+   "status": "PASS",
+   "seconds": 0.2,
+   "detail": ""
+  },
+  {
+   "group": "r",
+   "check": "grid: SPLIT strictly better on-time passes; competitor faster at short D wins; open fails",
+   "status": "PASS",
+   "seconds": 0.2,
+   "detail": ""
+  },
+  {
+   "group": "r",
+   "check": "upper-bound gate dominates the true delta in every cell and replicate (monotonicity)",
+   "status": "PASS",
+   "seconds": 0.1,
+   "detail": ""
+  },
+  {
+   "group": "r",
+   "check": "additive model recovers synthetic coefficients; held-out validation passes, fails at +20%",
+   "status": "PASS",
+   "seconds": 0.9,
+   "detail": ""
+  },
+  {
+   "group": "r",
+   "check": "R CLIs on synthetic stage dirs: gate-ub1, gate-ub2, fit, r, decide",
+   "status": "PASS",
+   "seconds": 3.3,
+   "detail": ""
+  },
+  {
+   "group": "r",
+   "check": "decision table: Q/F/R combinations map to the E0 \u00a78 consequences",
+   "status": "PASS",
+   "seconds": 0.0,
+   "detail": ""
+  },
+  {
+   "group": "docs",
+   "check": "every `e0_*.py <subcommand>` named in RUNBOOK.md exists",
+   "status": "PASS",
+   "seconds": 0.0,
+   "detail": ""
+  }
+ ],
+ "env": {
+  "utc": "2026-11-08T08:26:34Z",
+  "host": "DESKTOP-7QU46KG",
+  "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "python": "3.12.3",
+  "nvidia_smi": "",
+  "nvidia_topo": "",
+  "mig": "",
+  "cpu": "CPU(s):                               4\nModel name:                           AMD Ryzen 5 8500G w/ Radeon 740M Graphics",
+  "mem": "total        used        free      shared  buff/cache   available\nMem:               9           5           1           0           3           4",
+  "pip_freeze": [],
+  "git": "d849ed62a728401268a57ee132e45ba27fe6f399",
+  "git_dirty": true,
+  "tc": "tc utility, iproute2-6.1.0, libbpf 1.3.0",
+  "net_admin": "no-sudo",
+  "torch": {
+   "version": "2.6.0+cpu",
+   "cuda": null,
+   "cuda_available": false,
+   "bf16": null,
+   "tf32_matmul": false,
+   "deterministic": false
+  }
+ }
+}
