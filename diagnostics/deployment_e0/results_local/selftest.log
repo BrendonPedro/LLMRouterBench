@@ -2,25 +2,25 @@
 [PASS] spec: L_F covers every S1 prompt + 16,384 tokens; budgets; U-max prediction = desk check (0.0s)
 [PASS] spec: E0 model revisions equal the S1 run's (0.0s)
 [PASS] s1: pinned hashes of the S1 per-query file and sample (0.0s)
-[PASS] s1: the pre-declared 400-query extension sample is pinned, contains the 200, and re-draws identically (2.5s)
+[PASS] s1: the pre-declared 400-query extension sample is pinned, contains the 200, and re-draws identically (2.4s)
 [PASS] s1: 4,000 complete rows; CONTINUE recomputed; gaps equal S1_SUMMARY (0.0s)
-[PASS] template: pinned tokenizer + chat template reproduce S1 prompt_tokens for 200 x 2 modes (1.2s)
-[PASS] template: frozen workload rebuilds to the pinned ids hash; frozen Q2 keys reproduce (0.3s)
-segment server ready on 127.0.0.1:36897 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
-segment server ready on 127.0.0.1:49781 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
-segment server ready on 127.0.0.1:40223 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
-segment server ready on 127.0.0.1:42185 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
-[PASS] runtime: teacher-forced split == HF forward, bitwise (bf16 local+TCP, fp32 local; U-min, (2,3), (3,3)); wire refuses non-bf16 (2.0s)
-segment server ready on 127.0.0.1:48497 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
-[PASS] runtime: greedy split decoding == HF generate (chunked prefill 7 / 16 / unchunked, TCP) (2.5s)
-segment server ready on 127.0.0.1:34143 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
-[PASS] runtime: wire carries exactly n x hidden x 2 bytes + header each way; server cache tracks positions (0.1s)
-segment server ready on 127.0.0.1:51351 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
-segment server ready on 127.0.0.1:57995 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
-segment server ready on 127.0.0.1:47327 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
-[PASS] runtime: failure paths: wrong position, illegal split, version mismatch, cache overflow, peer drop (0.1s)
-segment server ready on 127.0.0.1:34277 {"model_id": "echo", "echo": true, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu"}
-segment server ready on 127.0.0.1:36159 {"model_id": "echo", "echo": true, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu"}
+[PASS] template: pinned tokenizer + chat template reproduce S1 prompt_tokens for 200 x 2 modes (2.8s)
+[PASS] template: frozen workload rebuilds to the pinned ids hash; frozen Q2 keys reproduce (0.6s)
+segment server ready on 127.0.0.1:60819 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
+segment server ready on 127.0.0.1:37197 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
+segment server ready on 127.0.0.1:60655 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
+segment server ready on 127.0.0.1:34249 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
+[PASS] runtime: teacher-forced split == HF forward, bitwise (bf16 local+TCP, fp32 local; U-min, (2,3), (3,3)); wire refuses non-bf16 (4.4s)
+segment server ready on 127.0.0.1:53975 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
+[PASS] runtime: greedy split decoding == HF generate (chunked prefill 7 / 16 / unchunked, TCP) (2.9s)
+segment server ready on 127.0.0.1:46827 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
+[PASS] runtime: wire carries exactly n x hidden x 2 bytes + header each way; server cache tracks positions (0.3s)
+segment server ready on 127.0.0.1:55191 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
+segment server ready on 127.0.0.1:33901 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
+segment server ready on 127.0.0.1:54237 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "caa0df3d49db61ae", "loaded_layers": [1, 7]}
+[PASS] runtime: failure paths: wrong position, illegal split, version mismatch, cache overflow, peer drop (0.2s)
+segment server ready on 127.0.0.1:53229 {"model_id": "echo", "echo": true, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu"}
+segment server ready on 127.0.0.1:40187 {"model_id": "echo", "echo": true, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu"}
 [PASS] runtime: echo stub returns the payload unchanged; app shaper adds RTT + serialisation per round trip (0.1s)
 [PASS] runtime: Slice materialises only owned weights (param bytes exact; rest on meta) (0.0s)
 /home/brendonpedro/.cache/LLMRouterBench/venv-e0/lib/python3.12/site-packages/transformers/generation/configuration_utils.py:631: UserWarning: `do_sample` is set to `False`. However, `temperature` is set to `0.6` -- this flag is only used in sample-based generation modes. You should set `do_sample=True` or unset `temperature`.
@@ -30,37 +30,91 @@ segment server ready on 127.0.0.1:36159 {"model_id": "echo", "echo": true, "soft
 /home/brendonpedro/.cache/LLMRouterBench/venv-e0/lib/python3.12/site-packages/transformers/generation/configuration_utils.py:653: UserWarning: `do_sample` is set to `False`. However, `top_k` is set to `20` -- this flag is only used in sample-based generation modes. You should set `do_sample=True` or unset `top_k`.
   warnings.warn(
 The attention mask is not set and cannot be inferred from input because pad token is same as eos token. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
-segment server ready on 127.0.0.1:39509 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "e22b98e04b7706c9", "loaded_layers": [1, 27]}
-[PASS] real: Qwen3-0.6B real weights: TCP split U(2,3) bitwise == HF; greedy == HF generate (chat prompt) (28.2s)
-segment server ready on 127.0.0.1:38003 {"model_id": "real", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "e22b98e04b7706c9", "loaded_layers": [1, 27]}
-[PASS] real: Q pipeline CLIs end to end on Qwen3-0.6B (cont-gen, ref, cmp hf/split, q2-ref/run, rules) (113.2s)
+segment server ready on 127.0.0.1:39043 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "e22b98e04b7706c9", "loaded_layers": [1, 27]}
+[PASS] real: Qwen3-0.6B real weights: TCP split U(2,3) bitwise == HF; greedy == HF generate (chat prompt) (52.5s)
+segment server ready on 127.0.0.1:36905 {"model_id": "real", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "e22b98e04b7706c9", "loaded_layers": [1, 27]}
+[PASS] real: Q pipeline CLIs end to end on Qwen3-0.6B (cont-gen, ref, cmp hf/split, q2-ref/run, rules) (339.9s)
 [PASS] q: coarse KL: 0 for identical, > 0 otherwise, <= full-vocabulary KL (0.1s)
 [PASS] q: Q1 rule thresholds incl. zero floors; Q2 near-tie count, degeneration, first divergence (0.0s)
-[PASS] f: U-max search finds the largest passing k from any start; None if (1,1) fails (0.1s)
+[PASS] f: U-max search finds the largest passing k from any start; None if (1,1) fails (0.2s)
 [PASS] f: edge-fit keeps the S5 profile only from the passing (last) attempt; others set aside (0.0s)
 [PASS] f: failure classes: memory vs harness/engine; summarize marks invalid Stage 1 and blocked classes (0.0s)
 [PASS] f: sampler: device-view peak minus baseline, trapezoid energy (0.2s)
-[PASS] f: split-fit CLI, CPU dry run: load, depth prefill (17,664 tok, chunked), 256 decode, JSON record (13.2s)
-segment server ready on 127.0.0.1:46257 {"model_id": "echo", "echo": true, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu"}
+[PASS] f: split-fit CLI, CPU dry run: load, depth prefill (17,664 tok, chunked), 256 decode, JSON record (25.6s)
+segment server ready on 127.0.0.1:34773 {"model_id": "echo", "echo": true, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu"}
 {"class": 12, "k": 2, "pass": true, "error": null, "peak_device_view_mib": 0.0, "peak_allocator_view_mib": 0, "budget_mib": 11776}
-[PASS] f: clean exit: split-fit (CPU dry) joins its echo thread, leaves no live thread and exits 0 without a libstdc++ terminate (3 runs; the parent records exit status 0); the echo thread also stops when no client connected; split-fit's exit sequence at Stage-1 wire scale exits 0 in 5 of 5 runs (46.1s)
+[PASS] f: clean exit: split-fit (CPU dry) joins its echo thread, leaves no live thread and exits 0 without a libstdc++ terminate (3 runs; the parent records exit status 0); the echo thread also stops when no client connected; split-fit's exit sequence at Stage-1 wire scale exits 0 in 5 of 5 runs (64.4s)
 terminate called without an active exception
-[PASS] f: exit-status audit: a child that aborts after writing a PASS record (the real daemon-thread/torch mechanism), a wrong exit code or a missing record is a harness defect; split-umax stops; summarize marks Stage 1 invalid for records without an exit status and for logged edge-fit/run-split statuses (2.2s)
+[PASS] f: exit-status audit: a child that aborts after writing a PASS record (the real daemon-thread/torch mechanism), a wrong exit code or a missing record is a harness defect; split-umax stops; summarize marks Stage 1 invalid for records without an exit status and for logged edge-fit/run-split statuses (3.2s)
+huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
+To disable this warning, you can either:
+	- Avoid using `tokenizers` before the fork if possible
+	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
+huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
+To disable this warning, you can either:
+	- Avoid using `tokenizers` before the fork if possible
+	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
+huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
+To disable this warning, you can either:
+	- Avoid using `tokenizers` before the fork if possible
+	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
+huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
+To disable this warning, you can either:
+	- Avoid using `tokenizers` before the fork if possible
+	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
+huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
+To disable this warning, you can either:
+	- Avoid using `tokenizers` before the fork if possible
+	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
+[PASS] f: vLLM server cleanup (H2): a server that already exited (and was reaped) is not signalled and keeps its own status; a running one is terminated (SIGTERM, else SIGKILL); a signal death is recorded; orphaned group members are killed; no stray process remains (34.8s)
+huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
+To disable this warning, you can either:
+	- Avoid using `tokenizers` before the fork if possible
+	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
+huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
+To disable this warning, you can either:
+	- Avoid using `tokenizers` before the fork if possible
+	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
+huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
+To disable this warning, you can either:
+	- Avoid using `tokenizers` before the fork if possible
+	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
+huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
+To disable this warning, you can either:
+	- Avoid using `tokenizers` before the fork if possible
+	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
+huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
+To disable this warning, you can either:
+	- Avoid using `tokenizers` before the fork if possible
+	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
+huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
+To disable this warning, you can either:
+	- Avoid using `tokenizers` before the fork if possible
+	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
+huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
+To disable this warning, you can either:
+	- Avoid using `tokenizers` before the fork if possible
+	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
+huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
+To disable this warning, you can either:
+	- Avoid using `tokenizers` before the fork if possible
+	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
+[PASS] f: edge-fit with a stand-in vLLM (H2): a start-up KV-capacity exit is a memory FAIL with the record written and exit 0; an engine error or a signal death is an engine FAIL with the status recorded; a running server PASSes and is terminated; a server that dies after serving, or a group member that survives SIGTERM, is a harness defect (exit non-zero); no stray process remains (41.8s)
 [PASS] latency: request plans: 2 warm-ups + 30 (36 with depth); seeded order; all cells scheduled once (0.0s)
 [PASS] latency: netem commands and state parsing (both directions, delay = RTT/2, rate) (0.0s)
-segment server ready on 127.0.0.1:39557 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "1dcfc6cf0b4d3d22", "loaded_layers": [1, 5]}
-[PASS] latency: SPLIT cell runner over TCP writes complete per-token/per-step records (tiny model, workload) (192.0s)
-segment server ready on 127.0.0.1:60723 {"model_id": "echo", "echo": true, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu"}
-[PASS] latency: linkcheck over the split protocol against a local echo stub (0.2s)
-[PASS] latency: streaming client counts tokens from continuous usage (coalesced chunks), app RTT adjust (1.0s)
-[PASS] r: Profile.T closed form == explicit sum; addition; extrapolation (0.0s)
-[PASS] r: stratified bootstrap keeps per-benchmark counts; identical actions give delta 0 and fail (0.1s)
-[PASS] r: grid: SPLIT strictly better on-time passes; competitor faster at short D wins; open fails (4.0s)
-[PASS] r: upper-bound gate dominates the true delta in every cell and replicate (monotonicity) (0.0s)
-[PASS] r: upper-bound STOP rule: never STOP while a cell could pass or trigger §8.5; INCOMPLETE; open bound (0.1s)
-[PASS] r: additive model recovers synthetic coefficients; held-out validation passes, fails at +20% (0.5s)
-[PASS] r: R CLIs on synthetic stage dirs: gate-ub1, gate-ub2, fit, r, decide (2.6s)
-[PASS] r: decision table: Q/F/R combinations map to the E0 §8 consequences (0.0s)
+segment server ready on 127.0.0.1:33017 {"model_id": "tiny", "echo": false, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu", "config_hash": "1dcfc6cf0b4d3d22", "loaded_layers": [1, 5]}
+[PASS] latency: SPLIT cell runner over TCP writes complete per-token/per-step records (tiny model, workload) (321.8s)
+segment server ready on 127.0.0.1:52451 {"model_id": "echo", "echo": true, "software": {"torch": "2.6.0+cpu", "transformers": "4.51.3", "cuda": null, "protocol": 1}, "host": "DESKTOP-7QU46KG", "device": "cpu", "gpu": "cpu"}
+[PASS] latency: linkcheck over the split protocol against a local echo stub (0.7s)
+[PASS] latency: streaming client counts tokens from continuous usage (coalesced chunks), app RTT adjust (1.4s)
+[PASS] r: Profile.T closed form == explicit sum; addition; extrapolation (0.1s)
+[PASS] r: stratified bootstrap keeps per-benchmark counts; identical actions give delta 0 and fail (0.3s)
+[PASS] r: grid: SPLIT strictly better on-time passes; competitor faster at short D wins; open fails (0.2s)
+[PASS] r: upper-bound gate dominates the true delta in every cell and replicate (monotonicity) (0.1s)
+[PASS] r: upper-bound STOP rule: never STOP while a cell could pass or trigger §8.5; INCOMPLETE; open bound (0.2s)
+[PASS] r: additive model recovers synthetic coefficients; held-out validation passes, fails at +20% (1.6s)
+[PASS] r: R CLIs on synthetic stage dirs: gate-ub1, gate-ub2, fit, r, decide (10.8s)
+[PASS] r: decision table: Q/F/R combinations map to the E0 §8 consequences (0.1s)
 [PASS] docs: every `e0_*.py <subcommand>` named in RUNBOOK.md exists (0.0s)
 
-39 PASS, 0 FAIL, 0 SKIP in 413s
+41 PASS, 0 FAIL, 0 SKIP in 914s

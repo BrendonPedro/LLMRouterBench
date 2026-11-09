@@ -106,3 +106,124 @@ reverse.
   - U-max = (3,3) / (5,5) / (9,9), as predicted.
   - U-min (k = 1) peaked at 7,440 MiB.
 - The re-run is not expected to differ, but its numbers are the ones that count.
+
+## H2. edge-fit crashed cleaning up a vLLM server that had already exited (Stage 1 run 2, 2026-11-09, INVALID)
+
+### Observation
+
+- **Run:** RTX 3090, commit `e17492d` (H1 fix). Archive `e0_stage1_INVALID_EDGEFIT_20261109.tgz`, sha256
+  `0e546bdd…3a5c1d`.
+- **H1 held.** All of split-umax (12/16/24) and the k = 1 `split-attempt` exited 0, every record has the
+  expected exit status, and every `shutdown` reads `{echo_thread_joined: true, live_threads: []}`.
+- **edge-fit, Qwen3-8B-AWQ at 12 GB, passed.** It printed `{"pass": true}` and exited 0.
+- **The next two fits crashed.** Qwen3-14B-AWQ at 12 GB and Qwen3-8B at 12 GB each ended with
+  `ProcessLookupError: [Errno 3] No such process` at `os.killpg(proc.pid, signal.SIGTERM)` and exited 1.
+  - They wrote no record.
+  - `exit_status.log` holds both `rc=1` lines, so the H1 audit would already have marked Stage 1 invalid.
+- The run was stopped during Qwen3-32B-AWQ at 12 GB, before the 16/24 GB fits, the edge-segment profiles, the
+  final `summarize` and G-UB1.
+
+### Root cause
+
+1. **The server exits on its own when its fit fails at start-up.** Both vLLM logs end with the engine's
+   `ValueError: No available memory for the cache blocks`, then `RuntimeError: Engine core initialization
+   failed`. The front end then exits with status 1, and so does the engine core.
+2. **`_wait_ready` sees the exit and reaps the server.** It calls `proc.poll()`, which collects the exit status
+   of the group leader.
+3. **The cleanup assumed a running server.** The `finally` block sent `os.killpg(proc.pid, SIGTERM)`
+   unconditionally. Once every member of the server's process group has exited, the kernel has no such group,
+   and `killpg` raises ESRCH (`ProcessLookupError`).
+4. **The exception escaped `edge_fit`.** It skipped `sampler.stop()`, the classification and the record, and
+   the process died with a traceback (exit 1).
+5. **Only failing fits are exposed.** A passing fit leaves the server running until cleanup, so `killpg`
+   succeeds. That is why 8B-AWQ at 12 GB, on both attempts, was unaffected.
+
+### Was the vLLM exit expected?
+
+Yes. Both are **memory-capacity failures** of models that are not desk-eligible at 12 GB (PREREG §3.2: only
+Qwen3-8B-AWQ is). They are not engine faults.
+
+- **Qwen3-8B (bf16).** The weights alone take 15.27 GiB, against an 11.50 GiB budget
+  (`--gpu-memory-utilization 0.4792`).
+- **Qwen3-14B-AWQ.** 9.36 GiB of weights leave no room for the KV cache at L_F.
+
+vLLM's message is a KV-capacity error, which PREREG §5.6 lists as a memory failure.
+
+### A second defect on the same path: the classification text
+
+- **What the old code classified.** On a start-up failure, it classified `failure_kind` on the last 2,000
+  characters of the vLLM log.
+- **vLLM's output order.** vLLM prints the engine's exception first, then a longer front-end traceback that
+  ends in `RuntimeError: Engine core initialization failed`.
+- **The result.** In both Stage-1 logs the 2,000-character tail does not contain "No available memory". The old
+  code would have recorded these as `fail_kind: engine`. (Checked on the archived logs.)
+- **Why it matters.** At 12 GB these two models are not desk-eligible, so the mistake changes nothing there. At
+  16 GB, Qwen3-14B-AWQ *is* desk-eligible, and the same misclassification would block every SPLIT pass at
+  16 GB (§8.4 (b)). That would happen for a failure PREREG §5.6 defines as memory.
+
+### Fix (`e0_f.py` only)
+
+1. **`stop_server(proc)` replaces the unconditional `killpg`.**
+   - **Status read first.** It reads the exit status with `poll()` before sending any signal.
+   - **Server already exited.** It is not signalled, and its own status is kept (`exited_on_its_own: true`).
+   - **Server still running.** It gets SIGTERM to its group, then SIGKILL after 120 s, as before. A
+     `ProcessLookupError` from a server that exits in between is tolerated and recorded as an exit on its own.
+   - **Leftover processes.** Any live (non-zombie) process left in the group, read from `/proc`, gets 30 s and
+     then SIGKILL, so no orphaned engine core holds GPU memory into the next fit.
+   - **The record.** Each attempt stores `server = {exited_on_its_own, stopped_by, exit_status, signal,
+     stray_pids, group_clear}`.
+2. **The failure text includes the server's own exception lines.**
+   - When an attempt has an error, or the server exited on its own, the server's exit status (and signal) and
+     its exception lines are appended to `error` (`server_exceptions`). Examples: `ValueError: No available
+     memory …` and `RuntimeError: Engine core …`.
+   - INFO lines such as vLLM's "Available KV cache memory" are not exception lines, so they cannot match.
+   - `failure_kind` and the memory patterns are unchanged. The text is a superset of the old one, so a
+     classification can only move from engine to memory, and only when the server itself raised a
+     memory-pattern exception.
+   - Anything unrecognised still counts as engine.
+3. **Genuine failures stay failures.**
+   - A start-up exit, a non-zero status or a signal death (e.g. SIGSEGV) is a FAIL. It is classified memory or
+     engine by the PREREG §5.6 rule, and its status is in the record.
+   - A server that exits on its own *after* serving the depth request is a **harness defect**
+     (`error_kind: harness`). So is a process that survives SIGKILL.
+   - On a harness defect, edge-fit writes its record and then exits non-zero.
+4. **`summarize` marks Stage 1 invalid for:**
+   - an edge-fit attempt without a `server` record (every pre-fix record);
+   - a harness attempt;
+   - a missing `edge_fit_<model>_c<M>.json`. A crashed fit must not read as "not eligible".
+5. **RUNBOOK §3 checks for:**
+   - `Traceback` in `console.log`, as well as the abort strings;
+   - exactly 12 edge-fit records.
+
+### Why this cannot change a memory or latency measurement
+
+- **Unchanged:**
+  - the vLLM command line and its utilisation;
+  - the single pre-declared retry;
+  - the depth request and the S5 profile;
+  - the idle baseline, the sampler and its interval;
+  - the PASS formula and the memory patterns.
+- **Ordering.** The cleanup still runs after the depth request and the profile, and before `sampler.stop()`,
+  as before. For a running server it sends the same signals.
+- **New work.** The only new steps are a `poll()`, `/proc` reads, and a log read after the server is down.
+- **The fit's NVML window.** Only when processes are left over can it now extend by up to 30 s of grace. Those
+  extra samples see only memory that the server's own processes still hold while shutting down, and no new
+  load.
+- **Latency profiles** are taken before cleanup, so they are unaffected.
+- **The classification change** affects `fail_kind` of a failed attempt only, in the direction PREREG §5.6
+  already defines.
+
+### The INVALID run's records
+
+- **Not admissible as F evidence.** Stage 1 is re-run completely into an empty directory, starting again with
+  the split-fit search.
+- **Debugging evidence only.**
+  - **Split-fit reproduced run 1 exactly.**
+    - U-max = (3,3) / (5,5) / (9,9).
+    - Peaks 11,100 / 14,850 / 22,292 MiB.
+    - k = 4 / 6 / 10 failed on memory at 11,532 / 15,192 / 23,980 MiB.
+    - U-min peaked at 7,440 MiB.
+  - **Qwen3-8B-AWQ at 12 GB.**
+    - Attempt 0 peaked at 12,313.5 MiB, over the 11,776 MiB budget.
+    - The retry at utilisation 0.4473 passed at 11,492 MiB.
+    - All 38 rows of its S5 profile are `ok`.

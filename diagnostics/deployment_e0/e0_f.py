@@ -19,12 +19,20 @@ which records the child's exit status in the attempt record. Exit 0 must go with
 pass = false; anything else (a signal such as SIGABRT, a missing record) is a harness defect, so the attempt is
 not F evidence and Stage 1 is INVALID (PREREG §5.6). split-fit itself joins its echo-server thread before it
 exits and records any thread still alive.
+
+vLLM server shutdown (HARNESS_FIXES.md H2): edge-fit reads the server's exit status before cleanup. A server
+that already exited on its own (an engine that failed at start-up) is not signalled and keeps its own status;
+a running one is terminated; leftover processes in its group are killed. Each attempt records this under
+"server". A failed attempt is classified from its error text plus the server's own exception lines (PREREG
+§5.6). A server that exits on its own after serving the depth request, or leaves processes behind, is a harness
+defect: edge-fit then exits non-zero and Stage 1 is INVALID.
 """
 
 import argparse
 import faulthandler
 import json
 import os
+import re
 import signal
 import socket
 import subprocess
@@ -271,6 +279,85 @@ def split_attempt(a):
         sys.exit(f"HARNESS DEFECT: {rec.get('harness_error') or rec.get('error')} -> Stage 1 INVALID (PREREG §5.6)")
 
 
+SERVER_STOP_TIMEOUT_S = 120     # SIGTERM -> SIGKILL escalation for the vLLM server
+GROUP_GRACE_S = 30              # time the rest of the server's group gets to follow the leader out
+_EXC_LINE = re.compile(r"^(?:ERROR \S+ \S+ \[[^\]]*\]\s*)?([A-Za-z_][\w.]*(?:Error|Exception|Interrupt|Exit)\b.*)")
+
+
+def server_exceptions(log_text):
+    """The exception lines of a vLLM log ("ValueError: No available memory ...", "RuntimeError: Engine core ..."),
+    deduplicated, in order (HARNESS_FIXES.md H2). vLLM prints the engine's exception and then a longer
+    front-end traceback, so the log tail alone can miss the line that says why the engine failed."""
+    out = []
+    for line in log_text.splitlines():
+        m = _EXC_LINE.match(line.strip())
+        if m and m.group(1) not in out:
+            out.append(m.group(1))
+    return out
+
+
+def _group_alive(pgid):
+    """PIDs of the live (not zombie or dead) processes in process group `pgid`, from /proc."""
+    pids = []
+    for st in Path("/proc").glob("[0-9]*/stat"):
+        try:
+            fields = st.read_text().rpartition(")")[2].split()
+        except OSError:
+            continue
+        if len(fields) > 2 and int(fields[2]) == pgid and fields[0] not in ("Z", "X"):
+            pids.append(int(st.parent.name))
+    return sorted(pids)
+
+
+def _signal_group(pgid, sig):
+    """killpg that tolerates a group that is already empty; True iff the signal was delivered."""
+    try:
+        os.killpg(pgid, sig)
+        return True
+    except ProcessLookupError:
+        return False
+
+
+def _wait_group(pgid, timeout_s):
+    t_end = time.monotonic() + timeout_s
+    while _group_alive(pgid) and time.monotonic() < t_end:
+        time.sleep(0.1)
+    return _group_alive(pgid)
+
+
+def stop_server(proc, timeout_s=None):
+    """Stop the vLLM server (leader of its own process group) and audit how it ended (HARNESS_FIXES.md H2).
+
+    The exit status is read before any signal is sent. A server that already exited on its own (its engine
+    failed at start-up and `_wait_ready` reaped it) is not signalled, and its own status is kept. A running
+    server gets SIGTERM, then SIGKILL after SERVER_STOP_TIMEOUT_S. Processes left in the group (e.g. an engine
+    core orphaned by its front end) get GROUP_GRACE_S to exit, then SIGKILL, so nothing holds GPU memory into
+    the next fit. Never raises for an already-exited process; returns the attempt's "server" record."""
+    timeout_s = SERVER_STOP_TIMEOUT_S if timeout_s is None else timeout_s
+    rc = proc.poll()
+    s = {"exited_on_its_own": rc is not None, "stopped_by": None}
+    if rc is None:
+        if _signal_group(proc.pid, signal.SIGTERM):
+            s["stopped_by"] = "SIGTERM"
+        try:
+            rc = proc.wait(timeout=timeout_s)
+        except subprocess.TimeoutExpired:
+            s["stopped_by"] = "SIGKILL"
+            _signal_group(proc.pid, signal.SIGKILL)
+            rc = proc.wait()
+        if s["stopped_by"] is None:          # it exited between poll() and killpg()
+            s["exited_on_its_own"] = True
+    s["exit_status"] = rc
+    if rc < 0:
+        s["signal"] = signal.Signals(-rc).name
+    s["stray_pids"] = _wait_group(proc.pid, GROUP_GRACE_S)
+    if s["stray_pids"]:
+        _signal_group(proc.pid, signal.SIGKILL)
+        _wait_group(proc.pid, GROUP_GRACE_S)
+    s["group_clear"] = not _group_alive(proc.pid)
+    return s
+
+
 def _wait_ready(base, proc, timeout_s=1200):
     t0 = time.time()
     while time.time() - t0 < timeout_s:
@@ -346,19 +433,30 @@ def edge_fit(a):
         except Exception as e:
             at["error"] = f"{type(e).__name__}: {e}"
         finally:
-            os.killpg(proc.pid, signal.SIGTERM)
-            try:
-                proc.wait(timeout=120)
-            except subprocess.TimeoutExpired:
-                os.killpg(proc.pid, signal.SIGKILL)
+            at["server"] = srv = stop_server(proc)
         at["nvml"] = sampler.stop()
+        if at.get("error") or srv["exited_on_its_own"]:
+            # PREREG §5.6 classifies a failure by its exception text: add the server's exit status and its own
+            # exception lines, which the log tail can miss (HARNESS_FIXES.md H2)
+            srv["exceptions"] = server_exceptions(log.read_text(errors="replace"))
+            status = f"server exit status {srv['exit_status']}" + (f" ({srv['signal']})" if "signal" in srv else "")
+            at["error"] = "\n".join([at.get("error") or "server exited on its own", status] + srv["exceptions"])
+        defects = []
+        if srv["exited_on_its_own"] and at.get("depth_ok"):
+            defects.append(f"the server exited on its own (status {srv['exit_status']}) after serving the depth "
+                           "request")
+        if not srv["group_clear"]:
+            defects.append(f"processes left in the server's process group: {_group_alive(proc.pid)}")
+        if defects:
+            at["error_kind"] = "harness"
+            at["harness_error"] = "; ".join(defects)
         peak = at["nvml"].get("peak_used_mib")
         at["pass"] = bool(at.get("depth_ok") and peak is not None and peak <= budget)
         if not at["pass"]:
             over = peak is not None and peak > budget
             at["fail_kind"] = "memory" if over or failure_kind(at.get("error")) == "memory" else "engine"
         rec["attempts"].append(at)
-        if at["pass"] or not at.get("depth_ok") or peak is None:
+        if at["pass"] or not at.get("depth_ok") or peak is None or at.get("error_kind") == "harness":
             break
         util = util - (peak - budget) * MIB / total - 0.01      # the single pre-declared retry
         time.sleep(10)
@@ -367,7 +465,11 @@ def edge_fit(a):
     if a.profile_out:
         settle_profiles(a.profile_out, a.model, a.mem_class, len(rec["attempts"]), rec["pass"])
     I.write_json(out / f"edge_fit_{a.model}_c{a.mem_class}.json", rec)
-    print(json.dumps({"model": a.model, "class": a.mem_class, "pass": rec["pass"]}))
+    print(json.dumps({"model": a.model, "class": a.mem_class, "pass": rec["pass"], "fail_kind": rec["fail_kind"],
+                      "server_exit": [at["server"]["exit_status"] for at in rec["attempts"]]}), flush=True)
+    harness = [at["harness_error"] for at in rec["attempts"] if at.get("error_kind") == "harness"]
+    if harness:
+        sys.exit(f"HARNESS DEFECT: {'; '.join(harness)} -> Stage 1 INVALID (PREREG §5.6)")
 
 
 def summarize(a):
@@ -395,6 +497,15 @@ def summarize(a):
         for at in json.loads(g.read_text()).get("attempts", []):
             if at.get("profile_rc") not in (None, 0, 1):
                 defects.append(f"{g.name}: profile exit status {at['profile_rc']}")
+            # H2: every attempt records how its vLLM server ended; a server that died after serving, or that left
+            # processes behind, is a harness defect
+            if "server" not in at:
+                defects.append(f"{g.name}: attempt {at.get('attempt')} has no server exit record")
+            elif at.get("error_kind") == "harness":
+                defects.append(f"{g.name}: attempt {at.get('attempt')}: {at.get('harness_error')}")
+    # H2: an edge-fit that crashed wrote no record; a missing competitor must not read as "not eligible"
+    defects += [f"edge_fit_{model}_c{m}.json missing" for m in S.MEMORY_CLASSES for model in S.EDGE_MODELS
+                if not (d / f"edge_fit_{model}_c{m}.json").exists()]
     log = d / "exit_status.log"
     if log.exists():
         for line in log.read_text().splitlines():

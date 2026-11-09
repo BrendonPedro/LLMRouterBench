@@ -81,8 +81,8 @@ pip install -U uv
 cd /workspace
 GIT_LFS_SKIP_SMUDGE=1 git clone --branch deployment-e0-split-prep https://github.com/BrendonPedro/LLMRouterBench.git
 git -C /workspace/LLMRouterBench fetch --tags
-# The harness commit after the first (INVALID) Stage 1 (HARNESS_FIXES.md). The tag e0-prereg-v1 stays the
-# pre-data pre-registration; the run uses the descendant commit that fixes the harness defect.
+# The harness commit after the INVALID Stage-1 runs (HARNESS_FIXES.md H1, H2). The tag e0-prereg-v1 stays the
+# pre-data pre-registration; the run uses the descendant commit that fixes the harness defects.
 git -C /workspace/LLMRouterBench checkout deployment-e0-split-prep
 git -C /workspace/LLMRouterBench rev-parse HEAD             # must equal the commit named for the re-run
 git -C /workspace/LLMRouterBench merge-base --is-ancestor e0-prereg-v1 HEAD && echo "descends from e0-prereg-v1"
@@ -143,7 +143,9 @@ st() { "$@" 2> >(tee -a $RUNS/stage1/console.log >&2); local rc=$?; echo "rc=$rc
 for M in 12 16 24; do st $PY $E0/e0_f.py split-umax --model-dir $MODELS/Qwen3-32B --class $M --out-dir $RUNS/stage1; done
 st $PY $E0/e0_f.py split-attempt --model-dir $MODELS/Qwen3-32B --class 12 --k 1 --out-dir $RUNS/stage1
 
-# EDGE competitors: measured fit for all 4 models x 3 classes; S5 latency profile when the fit passes
+# EDGE competitors: measured fit for all 4 models x 3 classes; S5 latency profile when the fit passes.
+# A FAIL (memory or engine) exits 0 with its record written; the vLLM server's exit status and any leftover
+# processes are recorded per attempt (HARNESS_FIXES.md H2); a harness defect exits non-zero
 for M in 12 16 24; do for m in Qwen3-8B-AWQ Qwen3-14B-AWQ Qwen3-8B Qwen3-32B-AWQ; do
   st $PY $E0/e0_f.py edge-fit --model $m --class $M --vllm-bin $VLLM --out-dir $RUNS/stage1 --profile-out $RUNS/stage1
 done; done
@@ -157,7 +159,8 @@ for MK in "12 1" "12 $(kv 12)" "16 $(kv 16)" "24 $(kv 24)"; do set -- $MK; [ -n 
 done
 kill %1
 $PY $E0/e0_f.py summarize --dir $RUNS/stage1               # final -> f_results.json (audits exit_status.log too)
-cat $RUNS/stage1/exit_status.log; grep -c "terminate called\|Fatal Python error" $RUNS/stage1/console.log  # count must be 0
+cat $RUNS/stage1/exit_status.log; grep -c "terminate called\|Fatal Python error\|Traceback" $RUNS/stage1/console.log  # count must be 0
+ls $RUNS/stage1/edge_fit_*.json | wc -l                    # must be 12
 ```
 
 **Gates G-F and G-UB1.** These can run on the pod or locally after copying `$RUNS/stage1`.
@@ -171,7 +174,7 @@ Read the outcome in this order:
 
 | Condition | Outcome |
 |---|---|
-| `valid` false (a `split-fit` raised a non-memory exception, or a Stage-1 child exited with an unexpected status, e.g. SIGABRT) | **INVALID**: fix the harness defect, re-run all of Stage 1. Not an F result |
+| `valid` false (a `split-fit` raised a non-memory exception, a Stage-1 child exited with an unexpected status, e.g. SIGABRT or an edge-fit traceback, an edge-fit record is missing, or a vLLM server died after serving or left processes behind) | **INVALID**: fix the harness defect, re-run all of Stage 1. Not an F result |
 | `F_pass_static` false (no class has a U-max; (1,1) does not fit 24 GB) | **STOP**: F fails, SPLIT removed |
 | `gate_ub1.json` decision `INCOMPLETE` | measure the missing edge-segment profile, re-run the gate |
 | `gate_ub1.json` decision `STOP` (no bound cell reaches Δ ≥ 3.0 pt) | **STOP**: R fails by bound, SPLIT removed |

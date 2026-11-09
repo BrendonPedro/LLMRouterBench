@@ -27,6 +27,7 @@ import os
 import random
 import re
 import shutil
+import signal
 import socket
 import subprocess
 import sys
@@ -550,9 +551,9 @@ def t_f_classify():
     for m, k in ((12, 3), (16, 5), (24, 9)):
         (tmp / f"umax_c{m}.json").write_text(json.dumps({"u_max": [k, k]}))
     (tmp / "split_fit_c12_k1.json").write_text(json.dumps({"pass": True, "exit_status": 0}))
-    (tmp / "edge_fit_Qwen3-8B-AWQ_c12.json").write_text(json.dumps({"pass": True}))
-    (tmp / "edge_fit_Qwen3-14B-AWQ_c16.json").write_text(json.dumps({"pass": False, "fail_kind": "engine"}))
-    (tmp / "edge_fit_Qwen3-32B-AWQ_c12.json").write_text(json.dumps({"pass": False, "fail_kind": "engine"}))
+    _edge_records(tmp, {"Qwen3-8B-AWQ_c12": {"pass": True, "attempts": [_att()]},
+                        "Qwen3-14B-AWQ_c16": {"pass": False, "fail_kind": "engine", "attempts": [_att()]},
+                        "Qwen3-32B-AWQ_c12": {"pass": False, "fail_kind": "engine", "attempts": [_att()]}})
     (tmp / "exit_status.log").write_text("rc=0 python e0_f.py split-umax --class 12\n")
     with contextlib.redirect_stdout(io.StringIO()):
         F.summarize(argparse.Namespace(dir=str(tmp)))
@@ -645,6 +646,22 @@ assert F._stop_echo(th, port, mid)
 assert [t for t in threading.enumerate() if t is not threading.main_thread()] == []
 sys.exit(0)
 """
+
+
+_CLEAN_SERVER = {"exited_on_its_own": False, "stopped_by": "SIGTERM", "exit_status": -15, "signal": "SIGTERM",
+                 "stray_pids": [], "group_clear": True}
+
+
+def _att(**kw):
+    return {"attempt": 0, "server": dict(_CLEAN_SERVER), **kw}
+
+
+def _edge_records(d, records):
+    """All 12 edge-fit records summarize expects; `records` maps "<model>_c<M>" to a record, the rest fail on memory."""
+    for m in S.MEMORY_CLASSES:
+        for model in S.EDGE_MODELS:
+            rec = records.get(f"{model}_c{m}", {"pass": False, "fail_kind": "memory", "attempts": [_att()]})
+            (d / f"edge_fit_{model}_c{m}.json").write_text(json.dumps(rec))
 
 
 def _bf16(*shape):
@@ -746,7 +763,7 @@ def t_f_exit_detect():
         (s1 / f"umax_c{m}.json").write_text(json.dumps({"u_max": [k, k]}))
     (s1 / "split_fit_c12_k1.json").write_text(json.dumps({"pass": True, "exit_status": 0}))
     (s1 / "split_fit_c12_k4.json").write_text(json.dumps({"pass": False, "exit_status": 3, "error_kind": "memory"}))
-    (s1 / "edge_fit_Qwen3-8B-AWQ_c12.json").write_text(json.dumps({"pass": True, "attempts": [{"profile_rc": 0}]}))
+    _edge_records(s1, {"Qwen3-8B-AWQ_c12": {"pass": True, "attempts": [_att(profile_rc=0)]}})
     log = s1 / "exit_status.log"
     ok_log = ("rc=0 /venv/python e0_f.py split-umax --class 12\nrc=0 /venv/python e0_f.py edge-fit --class 12\n"
               "rc=1 /venv/python e0_latency.py run-split --k 3\n")
@@ -766,15 +783,244 @@ def t_f_exit_detect():
         r = summ()
         assert not r["valid"] and len(r["harness_defects"]) == 1 and "exit_status.log" in r["harness_defects"][0], r
     log.write_text(ok_log)
-    (s1 / "edge_fit_Qwen3-8B-AWQ_c12.json").write_text(json.dumps({"pass": True, "attempts": [{"profile_rc": -6}]}))
+    g = s1 / "edge_fit_Qwen3-8B-AWQ_c12.json"
+    g.write_text(json.dumps({"pass": True, "attempts": [_att(profile_rc=-6)]}))
     assert summ()["harness_defects"] == ["edge_fit_Qwen3-8B-AWQ_c12.json: profile exit status -6"]
-    (s1 / "edge_fit_Qwen3-8B-AWQ_c12.json").write_text(json.dumps({"pass": True, "attempts": [{"profile_rc": 0}]}))
+    # H2: a pre-fix edge-fit record (no server exit record), a harness attempt, a missing competitor record
+    g.write_text(json.dumps({"pass": True, "attempts": [{"attempt": 0, "profile_rc": 0}]}))
+    assert summ()["harness_defects"] == ["edge_fit_Qwen3-8B-AWQ_c12.json: attempt 0 has no server exit record"]
+    g.write_text(json.dumps({"pass": True, "attempts": [_att(profile_rc=0, error_kind="harness",
+                                                             harness_error="processes left")]}))
+    assert summ()["harness_defects"] == ["edge_fit_Qwen3-8B-AWQ_c12.json: attempt 0: processes left"]
+    g.unlink()
+    assert summ()["harness_defects"] == ["edge_fit_Qwen3-8B-AWQ_c12.json missing"]
+    g.write_text(json.dumps({"pass": True, "attempts": [_att(profile_rc=0)]}))
+    assert summ()["valid"]
     bad = {"split_fit_c16_k5.json": {"pass": True}, "split_fit_c16_k6.json": {"pass": True, "exit_status": -6},
            "split_fit_c24_k9.json": {"pass": False, "exit_status": 0}}
     for name, body in bad.items():
         (s1 / name).write_text(json.dumps(body))
     r = summ()
     assert not r["valid"] and r["harness_defects"] == sorted(bad), r["harness_defects"]
+    shutil.rmtree(tmp, ignore_errors=True)
+
+
+# Regression for the second Stage-1 run (INVALID, 2026-11-09; HARNESS_FIXES.md H2): Qwen3-14B-AWQ and Qwen3-8B
+# at 12 GB exited at start-up ("No available memory for the cache blocks"), `_wait_ready` reaped the server, and
+# the cleanup's killpg() on the now-empty process group raised ProcessLookupError, so no record was written.
+# A stand-in for `vllm serve`; the mode comes from $E0_FAKE_VLLM.
+_FAKE_VLLM = r"""
+import http.server, json, os, resource, signal, sys, threading, time
+resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+mode, port = os.environ["E0_FAKE_VLLM"], int(sys.argv[sys.argv.index("--port") + 1])
+print("INFO 11-09 07:50:09 [api_server.py:1044] args: Namespace(...)", flush=True)
+
+def engine_core(ignore_term=False):      # a second process in the server's group, like vLLM's engine core
+    pid = os.fork()
+    if pid == 0:
+        if ignore_term:
+            signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        time.sleep(600)
+        os._exit(0)
+    with open(os.environ["E0_FAKE_PIDS"], "a") as f:
+        f.write(f"{pid}\n")
+
+if mode == "kv":     # the Stage-1 failure: the engine's ValueError, then a longer front-end traceback
+    print("ERROR 11-09 07:52:44 [core.py:396] ValueError: No available memory for the cache blocks. Try increasing "
+          "`gpu_memory_utilization` when initializing the engine.")
+    print("Traceback (most recent call last):\n" + '  File "/venv/vllm/x.py", line 1, in f\n    g()\n' * 60
+          + "RuntimeError: Engine core initialization failed. See root cause above.", flush=True)
+    sys.exit(1)
+if mode == "import":
+    print("ImportError: libcuda.so.1: cannot open shared object file", flush=True)
+    sys.exit(1)
+if mode == "segv":
+    os.kill(os.getpid(), signal.SIGSEGV)
+if mode == "orphan":                    # the front end dies, its engine core is left running
+    engine_core()
+    print("RuntimeError: Engine core initialization failed. See root cause above.", flush=True)
+    sys.exit(1)
+
+class H(http.server.BaseHTTPRequestHandler):
+    def log_message(self, *a):
+        pass
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b'{"data": []}')
+    def do_POST(self):
+        body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+        n_in, n = len(body["prompt"]), body["max_tokens"]
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.end_headers()
+        for i in range(1, n + 1):
+            ev = {"choices": [{"text": "x", "finish_reason": "length" if i == n else None}],
+                  "usage": {"prompt_tokens": n_in, "completion_tokens": i, "total_tokens": n_in + i}}
+            self.wfile.write(f"data: {json.dumps(ev)}\n\n".encode())
+        self.wfile.write(b"data: [DONE]\n\n")
+        self.wfile.flush()
+        if mode == "serve_exit":        # dies on its own after serving
+            os._exit(0)
+
+engine_core(ignore_term=mode == "serve_stray")
+if mode == "serve_ignore":
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+http.server.ThreadingHTTPServer(("127.0.0.1", port), H).serve_forever()
+"""
+
+
+class _FakeNVMLFit:
+    available = True
+
+    def used_bytes(self):
+        return 0
+
+    def total_bytes(self):
+        return 24 * 2 ** 30
+
+    def power_w(self):
+        return 0.0
+
+    def sm_clock_mhz(self):
+        return 0
+
+    def name(self):
+        return "fake"
+
+
+def _gone(pid):
+    try:
+        with open(f"/proc/{pid}/stat") as f:
+            return f.read().rpartition(")")[2].split()[0] in ("Z", "X")
+    except OSError:
+        return True
+
+
+@check("f", "vLLM server cleanup (H2): a server that already exited (and was reaped) is not signalled and keeps "
+            "its own status; a running one is terminated (SIGTERM, else SIGKILL); a signal death is recorded; "
+            "orphaned group members are killed; no stray process remains")
+def t_f_server_stop():
+    import e0_f as F
+    py = [sys.executable, "-c"]
+
+    def start(src):
+        return subprocess.Popen(py + [src], preexec_fn=os.setsid, stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL)
+
+    def reaped(proc):                 # what _wait_ready does: poll() until the exit is seen (and reaped)
+        t_end = time.time() + 10
+        while proc.poll() is None and time.time() < t_end:
+            time.sleep(0.05)
+        assert proc.returncode is not None
+    # 1. already exited and reaped: the Stage-1 state. The pre-fix cleanup raised here (positive control).
+    p = start("import sys; sys.exit(1)")
+    reaped(p)
+    try:
+        os.killpg(p.pid, signal.SIGTERM)
+        raise AssertionError("killpg on an exited, reaped server did not raise")
+    except ProcessLookupError:
+        pass
+    s = F.stop_server(p)
+    assert s == {"exited_on_its_own": True, "stopped_by": None, "exit_status": 1, "stray_pids": [],
+                 "group_clear": True}, s
+    # 2. still running: terminated normally
+    p = start("import time; time.sleep(600)")
+    time.sleep(0.3)
+    s = F.stop_server(p)
+    assert s == {"exited_on_its_own": False, "stopped_by": "SIGTERM", "exit_status": -15, "signal": "SIGTERM",
+                 "stray_pids": [], "group_clear": True}, s
+    # 3. ignores SIGTERM: escalated to SIGKILL
+    p = start("import signal, time; signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(600)")
+    time.sleep(0.3)
+    s = F.stop_server(p, timeout_s=1)
+    assert s["stopped_by"] == "SIGKILL" and s["exit_status"] == -9 and s["group_clear"], s
+    # 4. died on a signal by itself: the status is kept, not replaced by ours
+    p = start("import os, resource, signal; resource.setrlimit(resource.RLIMIT_CORE, (0, 0)); "
+              "os.kill(os.getpid(), signal.SIGSEGV)")
+    reaped(p)
+    s = F.stop_server(p)
+    assert s["exited_on_its_own"] and s["exit_status"] == -11 and s["signal"] == "SIGSEGV" and s["group_clear"], s
+    # 5. the leader exited on its own and left a group member running: it is found and killed
+    p = start("import os, sys, time\nif os.fork() == 0:\n    time.sleep(600)\nsys.exit(1)")
+    reaped(p)
+    time.sleep(0.2)
+    assert F._group_alive(p.pid), "fixture: the orphan should still be alive"
+    s = F.stop_server(p)
+    assert s["exited_on_its_own"] and s["exit_status"] == 1 and len(s["stray_pids"]) == 1 and s["group_clear"], s
+    assert _gone(s["stray_pids"][0]) and F._group_alive(p.pid) == []
+
+
+@check("f", "edge-fit with a stand-in vLLM (H2): a start-up KV-capacity exit is a memory FAIL with the record "
+            "written and exit 0; an engine error or a signal death is an engine FAIL with the status recorded; a "
+            "running server PASSes and is terminated; a server that dies after serving, or a group member that "
+            "survives SIGTERM, is a harness defect (exit non-zero); no stray process remains")
+def t_f_edge_server():
+    import e0_f as F
+    tmp = Path(tempfile.mkdtemp(prefix="e0edge_"))
+    fake = tmp / "vllm"
+    fake.write_text(f"#!{sys.executable}\n" + _FAKE_VLLM)
+    fake.chmod(0o755)
+    pids = tmp / "pids"
+    saved = (F.I.NVML, F.GROUP_GRACE_S)
+    F.I.NVML, F.GROUP_GRACE_S = _FakeNVMLFit, 2
+    os.environ["E0_FAKE_PIDS"] = str(pids)
+
+    def fit(mode):
+        os.environ["E0_FAKE_VLLM"] = mode
+        out = tmp / mode
+        ns = argparse.Namespace(model="Qwen3-8B-AWQ", mem_class=12, vllm_bin=str(fake), out_dir=str(out),
+                                profile_out=None, workload=str(S.E0_DIR / "frozen" / "workload.json"))
+        code = 0
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                F.edge_fit(ns)
+        except SystemExit as e:
+            code = e.code
+        rec = json.loads((out / "edge_fit_Qwen3-8B-AWQ_c12.json").read_text())
+        assert len(rec["attempts"]) == 1, (mode, rec["attempts"])
+        return rec, rec["attempts"][0], rec["attempts"][0]["server"], code
+    try:
+        rec, at, s, code = fit("kv")
+        assert code == 0 and not rec["pass"] and rec["fail_kind"] == "memory" and "error_kind" not in at, at
+        assert s["exited_on_its_own"] and s["exit_status"] == 1 and s["group_clear"], s
+        assert "No available memory" in "\n".join(s["exceptions"]) and "server exit status 1" in at["error"]
+        # the pre-fix classification text (the log tail) misses the engine's error
+        assert F.failure_kind("server did not start: " + Path(at["log"]).read_text()[-2000:]) == "other"
+        for mode, sig in (("import", None), ("segv", "SIGSEGV"), ("orphan", None)):
+            rec, at, s, code = fit(mode)
+            assert code == 0 and rec["fail_kind"] == "engine" and "error_kind" not in at, (mode, at)
+            assert s["exited_on_its_own"] and s["group_clear"] and s.get("signal") == sig, (mode, s)
+            assert (s["exit_status"] == -11) if sig else (s["exit_status"] == 1), (mode, s)
+            assert not sig or "(SIGSEGV)" in at["error"], at["error"]
+            assert len(s["stray_pids"]) == (mode == "orphan"), (mode, s)
+        rec, at, s, code = fit("serve")
+        assert code == 0 and rec["pass"] and at["depth_ok"] and "error" not in at, at
+        assert s["stopped_by"] == "SIGTERM" and not s["exited_on_its_own"] and s["group_clear"], s
+        stop = F.stop_server             # the S5 profile would run here: give the server time to die first
+        F.stop_server = lambda proc: (time.sleep(1), stop(proc))[1]
+        try:
+            rec, at, s, code = fit("serve_exit")
+        finally:
+            F.stop_server = stop
+        assert code and "HARNESS DEFECT" in code and at["error_kind"] == "harness", (code, at)
+        assert s["exited_on_its_own"] and s["exit_status"] == 0 and "after serving" in at["harness_error"], at
+        rec, at, s, code = fit("serve_stray")    # SIGTERM to the group; the engine core ignores it
+        assert code == 0 and rec["pass"] and len(s["stray_pids"]) == 1 and s["group_clear"], s
+        saved_ga = F._group_alive
+        F._group_alive = lambda pgid: [4194304]  # a group member that cannot be killed
+        try:
+            rec, at, s, code = fit("import")
+        finally:
+            F._group_alive = saved_ga
+        assert code and "HARNESS DEFECT" in code and not s["group_clear"], (code, s)
+        assert "processes left" in at["harness_error"], at
+        left = [int(x) for x in pids.read_text().split()]
+        assert len(left) == 4 and all(_gone(x) for x in left), left     # orphan, serve, serve_exit, serve_stray
+    finally:
+        F.I.NVML, F.GROUP_GRACE_S = saved
+        for k in ("E0_FAKE_VLLM", "E0_FAKE_PIDS"):
+            os.environ.pop(k, None)
     shutil.rmtree(tmp, ignore_errors=True)
 
 
