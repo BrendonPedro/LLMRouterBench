@@ -81,8 +81,14 @@ pip install -U uv
 cd /workspace
 GIT_LFS_SKIP_SMUDGE=1 git clone --branch deployment-e0-split-prep https://github.com/BrendonPedro/LLMRouterBench.git
 git -C /workspace/LLMRouterBench fetch --tags
-git -C /workspace/LLMRouterBench checkout e0-prereg-v1     # the frozen pre-registration (PREREG §10)
-git -C /workspace/LLMRouterBench describe --tags --exact-match   # must print e0-prereg-v1
+# The harness commit after the first (INVALID) Stage 1 (HARNESS_FIXES.md). The tag e0-prereg-v1 stays the
+# pre-data pre-registration; the run uses the descendant commit that fixes the harness defect.
+git -C /workspace/LLMRouterBench checkout deployment-e0-split-prep
+git -C /workspace/LLMRouterBench rev-parse HEAD             # must equal the commit named for the re-run
+git -C /workspace/LLMRouterBench merge-base --is-ancestor e0-prereg-v1 HEAD && echo "descends from e0-prereg-v1"
+( cd /workspace/LLMRouterBench/diagnostics/deployment_e0 && git diff --quiet e0-prereg-v1 HEAD -- PREREG.md frozen \
+    e0_spec.py e0_memory.py e0_instrument.py e0_r.py e0_q.py e0_latency.py split_runtime.py \
+  && echo "protocol, measurement and runtime code identical to e0-prereg-v1" )   # must print; else stop
 
 uv venv /workspace/venv-e0 --python 3.12
 uv pip install --python /workspace/venv-e0/bin/python "torch==2.6.0" --index-url https://download.pytorch.org/whl/cu124
@@ -125,24 +131,33 @@ $HF download Qwen/Qwen3-32B --revision $Q32 --local-dir $MODELS/Qwen3-32B \
 $HF download Qwen/Qwen3-8B --revision $Q8 --local-dir $MODELS/Qwen3-8B
 $PY $E0/e0_selftest.py --only spec s1 template runtime f latency r --tokenizer-dir $MODELS/Qwen3-32B \
     --report $RUNS/selftest_edge.json                     # must be 0 FAIL
+[ -n "$(ls -A $RUNS/stage1)" ] && mv $RUNS/stage1 $RUNS/stage1_INVALID_$(date -u +%Y%m%dT%H%M) && mkdir $RUNS/stage1
+ls -A $RUNS/stage1                                        # must print nothing: Stage 1 always starts from scratch
 
-# F: U-max search per class (fresh process per attempt) + U-min at 12 GB
-for M in 12 16 24; do $PY $E0/e0_f.py split-umax --model-dir $MODELS/Qwen3-32B --class $M --out-dir $RUNS/stage1; done
-$PY $E0/e0_f.py split-fit --model-dir $MODELS/Qwen3-32B --class 12 --k 1 --out $RUNS/stage1/split_fit_c12_k1.json
+# every Stage-1 command runs through st: its exit status goes to exit_status.log, which summarize audits
+# (HARNESS_FIXES.md H1); the console, including any faulthandler stack dump, goes to console.log
+st() { "$@" 2> >(tee -a $RUNS/stage1/console.log >&2); local rc=$?; echo "rc=$rc $*" >> $RUNS/stage1/exit_status.log; return $rc; }
+
+# F: U-max search per class (fresh process per attempt) + U-min at 12 GB; each attempt is a child process
+# whose exit status is recorded in its split_fit_*.json (0 with PASS, 3 with FAIL; anything else = defect)
+for M in 12 16 24; do st $PY $E0/e0_f.py split-umax --model-dir $MODELS/Qwen3-32B --class $M --out-dir $RUNS/stage1; done
+st $PY $E0/e0_f.py split-attempt --model-dir $MODELS/Qwen3-32B --class 12 --k 1 --out-dir $RUNS/stage1
 
 # EDGE competitors: measured fit for all 4 models x 3 classes; S5 latency profile when the fit passes
 for M in 12 16 24; do for m in Qwen3-8B-AWQ Qwen3-14B-AWQ Qwen3-8B Qwen3-32B-AWQ; do
-  $PY $E0/e0_f.py edge-fit --model $m --class $M --vllm-bin $VLLM --out-dir $RUNS/stage1 --profile-out $RUNS/stage1
+  st $PY $E0/e0_f.py edge-fit --model $m --class $M --vllm-bin $VLLM --out-dir $RUNS/stage1 --profile-out $RUNS/stage1
 done; done
-$PY $E0/e0_f.py summarize --dir $RUNS/stage1               # -> f_results.json, edge_fit.json
+$PY $E0/e0_f.py summarize --dir $RUNS/stage1               # provisional: kv() below reads its u_max
 
 # edge-segment compute profiles under each class cap, against a loopback echo stub
 $PY $E0/split_runtime.py serve --echo --host 127.0.0.1 --port 29501 > $RUNS/stage1/echo.log 2>&1 &
 for MK in "12 1" "12 $(kv 12)" "16 $(kv 16)" "24 $(kv 24)"; do set -- $MK; [ -n "$2" ] || continue
-  $PY $E0/e0_latency.py run-split --model-dir $MODELS/Qwen3-32B --server 127.0.0.1:29501 --k $2 --j $2 \
+  st $PY $E0/e0_latency.py run-split --model-dir $MODELS/Qwen3-32B --server 127.0.0.1:29501 --k $2 --j $2 \
       --cap-class $1 --with-depth 1 --out-dir $RUNS/stage1
 done
 kill %1
+$PY $E0/e0_f.py summarize --dir $RUNS/stage1               # final -> f_results.json (audits exit_status.log too)
+cat $RUNS/stage1/exit_status.log; grep -c "terminate called\|Fatal Python error" $RUNS/stage1/console.log  # count must be 0
 ```
 
 **Gates G-F and G-UB1.** These can run on the pod or locally after copying `$RUNS/stage1`.
@@ -156,7 +171,7 @@ Read the outcome in this order:
 
 | Condition | Outcome |
 |---|---|
-| `valid` false (a `split-fit` raised a non-memory exception) | **INVALID**: fix the harness defect, re-run all of Stage 1. Not an F result |
+| `valid` false (a `split-fit` raised a non-memory exception, or a Stage-1 child exited with an unexpected status, e.g. SIGABRT) | **INVALID**: fix the harness defect, re-run all of Stage 1. Not an F result |
 | `F_pass_static` false (no class has a U-max; (1,1) does not fit 24 GB) | **STOP**: F fails, SPLIT removed |
 | `gate_ub1.json` decision `INCOMPLETE` | measure the missing edge-segment profile, re-run the gate |
 | `gate_ub1.json` decision `STOP` (no bound cell reaches Δ ≥ 3.0 pt) | **STOP**: R fails by bound, SPLIT removed |

@@ -1,4 +1,4 @@
-# E0 local validation (CPU only, 2026-11-08; re-run after the pre-hardware audit, PREREG §10.1)
+# E0 local validation (CPU only; 2026-11-08, re-run after the pre-hardware audit (PREREG §10.1) and on 2026-11-09 after harness fix H1)
 
 **Host:** the WSL box (Ryzen 5 8500G, 9 GB RAM, **no CUDA**).
 
@@ -20,7 +20,7 @@ numpy 2.2.6 (`requirements-e0.txt`).
 - Qwen3-32B tokenizer and index at revision `9216db57`; `tokenizer.json` sha256 `aeb13307…dae4`.
 - Qwen3-0.6B at revision `c1899de2`; `model.safetensors` sha256 `f47f7117…874b`.
 
-**Result: 37 PASS, 0 FAIL, 0 SKIP (603 s)**, run on the final audited code (tag `e0-prereg-v1`). Before the audit: 33 PASS, 0 FAIL, 0 SKIP (455 s) on commit `3600904`. The 4 new checks cover the audit corrections (PREREG §10.1). Log: `results_local/selftest.log`. JSON with the environment: `results_local/selftest_report.json`.
+**Result: 39 PASS, 0 FAIL, 0 SKIP (413 s)** after harness fix H1 (`HARNESS_FIXES.md`). The 2 new checks cover clean process exit and exit-status auditing. The log's one `terminate called without an active exception` line comes from the deliberate positive control in the exit-status check. On the tag `e0-prereg-v1`: 37 PASS, 0 FAIL, 0 SKIP (603 s). Before the audit: 33 PASS, 0 FAIL, 0 SKIP (455 s) on commit `3600904`. The 4 new checks cover the audit corrections (PREREG §10.1). Log: `results_local/selftest.log`. JSON with the environment: `results_local/selftest_report.json`.
 
 ## What was validated
 
@@ -49,6 +49,8 @@ numpy 2.2.6 (`requirements-e0.txt`).
 | f | failure classes: CUDA OOM, cuBLAS allocation and vLLM KV-capacity texts count as memory; anything else as harness/engine; `summarize` marks Stage 1 invalid on a harness defect and blocks a class whose desk-eligible competitor failed for an engine reason | PASS |
 | f | the NVML sampler (fake device): peak minus baseline, trapezoid energy | PASS |
 | f | `split-fit --cpu-dry` CLI: load, 17,664-token chunked prefill, 256 decode tokens, final context = L_F, JSON record | PASS |
+| f | **clean exit (H1):** split-fit (CPU dry) joins its echo thread, leaves no live thread and exits 0 with no libstdc++ terminate (3 runs, one through the exit-status wrapper); the echo thread also stops when no client connected; split-fit's thread layout and exit sequence at Stage-1 wire scale (hidden 5,120, 2,048-token chunks) exits 0 in 5 of 5 runs | PASS |
+| f | **exit-status audit (H1):** a child that writes a PASS record and then aborts through the real daemon-thread/torch mechanism (SIGABRT, −6) is a harness defect; so are a wrong exit code and a missing record; split-umax stops at a defective record; summarize marks Stage 1 invalid for records without an exit status, for a signal-killed profile client and for non-zero logged edge-fit / run-split statuses | PASS |
 | latency | request plans (2 warm-ups + 30, or 36 with depth probes), seeded order, every cell scheduled once | PASS |
 | latency | netem command generation and `tc -s qdisc` state parsing (both directions, delay = RTT/2, rate) | PASS |
 | latency | SPLIT cell runner over TCP on the **real frozen workload** (incl. the 17,664-token depth probes) with app shaping: 38 complete records, 256 tokens each, per-step components, the server cache ends at L_F − 1; resume skips completed requests | PASS |
@@ -63,6 +65,13 @@ numpy 2.2.6 (`requirements-e0.txt`).
 | r | R CLIs on synthetic stage directories: `gate-ub1`, `gate-ub2`, `fit`, `r` (120 cells), `decide` | PASS |
 | r | decision table: Q / F / R / errors map to the E0 §8 consequences; the §8.5 trigger gives PENDING once (never at n = 400, never with Q/F failing, not at Δ < 3); a 24 GB-only pass gives PENDING (§8.4 a); a 12 GB pass is labelled EMULATED | PASS |
 | docs | every `e0_*.py <subcommand>` named in `RUNBOOK.md` exists | PASS |
+
+## Defect found by Stage 1 run 1 (RTX 3090, 2026-11-09; INVALID)
+
+Passing `split-fit` children aborted at exit (`terminate called without an active exception`), and `split-umax`
+did not check exit statuses. Root cause, CPU reproduction (old shutdown 7/20 aborts, fixed 0/20) and the fix are
+in `HARNESS_FIXES.md` H1. The local suite had missed it: the tiny test model's activations are small, so the echo
+thread's teardown was too fast to race with interpreter shutdown, and no check looked at a child's exit status.
 
 ## Defects found and fixed by the self-test (before any hardware)
 

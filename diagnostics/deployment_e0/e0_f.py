@@ -3,6 +3,7 @@
 Subcommands (edge host; the GPU must be exclusive)
   split-fit   one capped attempt: edge slice U(k, k) + KV for L_F, depth prompt (L_F-256 tokens,
               chunked prefill) + 256 decode tokens against an in-process echo segment
+  split-attempt  one split-fit attempt as a child process, its exit status recorded (U-min at 12 GB)
   split-umax  the frozen U-max(M) search: fresh process per attempt, start at the prediction,
               step up while PASS, down while FAIL; U-max(M) = largest passing symmetric k
   edge-fit    EDGE competitor fit under the same budget: vLLM with gpu_memory_utilization = budget/total,
@@ -12,9 +13,16 @@ Subcommands (edge host; the GPU must be exclusive)
 
 PASS for an attempt: no exception (OOM, cache overflow, transport) AND device-view peak <= budget AND
 allocator-view peak (non-torch overhead + max reserved) <= budget.
+
+Clean exit (HARNESS_FIXES.md H1): every split-fit attempt runs as a child of `split-umax` / `split-attempt`,
+which records the child's exit status in the attempt record. Exit 0 must go with pass = true and exit 3 with
+pass = false; anything else (a signal such as SIGABRT, a missing record) is a harness defect, so the attempt is
+not F evidence and Stage 1 is INVALID (PREREG §5.6). split-fit itself joins its echo-server thread before it
+exits and records any thread still alive.
 """
 
 import argparse
+import faulthandler
 import json
 import os
 import signal
@@ -70,7 +78,29 @@ class _DryNVML:
         return "cpu-dry"
 
 
+def _stop_echo(thread, port, mid, timeout_s=30):
+    """Shut the in-process echo server down and join its thread (HARNESS_FIXES.md H1).
+
+    A daemon thread that is still inside a torch call when the interpreter finalises makes CPython 3.12 call
+    pthread_exit() through a noexcept pybind11 frame: libstdc++ prints "terminate called without an active
+    exception" and the process aborts after the record is written. The thread therefore has to be finished,
+    not abandoned. Closing the client ends handle(); a throwaway connection unblocks accept() if the client
+    never connected. Returns True iff the thread has ended."""
+    if thread is None:
+        return True
+    if mid is not None:
+        mid.close()
+    if thread.is_alive() and mid is None:
+        try:
+            socket.create_connection(("127.0.0.1", port), timeout=5).close()
+        except OSError:
+            pass
+    thread.join(timeout_s)
+    return not thread.is_alive()
+
+
 def split_fit(a):
+    faulthandler.enable(all_threads=True)   # a fatal signal dumps every thread's Python stack to stderr
     nv = _DryNVML() if a.cpu_dry else I.NVML()
     if not nv.available:
         sys.exit(f"NVML unavailable: {getattr(nv, 'error', '')}")
@@ -87,7 +117,7 @@ def split_fit(a):
     sampler = I.Sampler(nv, S.MEM_SAMPLE_S, baseline)
     sampler.start()
     phase = "cap"
-    srv = None
+    srv = srv_thread = mid = port = None
     try:
         rec["cap"] = {} if a.cpu_dry else I.apply_cap(torch, a.device, budget, nv, baseline)
         phase = "load"
@@ -96,8 +126,9 @@ def split_fit(a):
         rec["weights_mib"] = sl.param_bytes / MIB
         port = _free_port()
         srv = R.SegmentServer(None, "echo", S.L_F, echo=True)
-        threading.Thread(target=srv.serve_forever, args=("127.0.0.1", port), kwargs={"once": True},
-                         daemon=True).start()
+        srv_thread = threading.Thread(target=srv.serve_forever, args=("127.0.0.1", port),
+                                      kwargs={"once": True}, daemon=True, name="echo-server")
+        srv_thread.start()
         time.sleep(0.3)
         mid = R.RemoteMiddle("127.0.0.1", port, R.hello_for(sl, "echo", a.k, a.k, S.L_F), a.device,
                              sl.cfg.hidden_size)
@@ -125,6 +156,7 @@ def split_fit(a):
         rec["decode"] = dict(astats(), nvml=sampler.summary(t1, t2), seconds=t2 - t1)
         rec["final_context"] = pos
         mid.close()
+        mid = None
         phase = "done"
     except Exception as e:
         rec["error"] = f"{type(e).__name__}: {e}"
@@ -136,6 +168,14 @@ def split_fit(a):
         except Exception:
             pass
     rec["nvml_total"] = sampler.stop()
+    # after the last memory sample: the shutdown below cannot change any measurement
+    echo_joined = _stop_echo(srv_thread, port, mid)
+    live = [t.name for t in threading.enumerate() if t is not threading.main_thread()]
+    rec["shutdown"] = {"echo_thread_joined": echo_joined, "live_threads": live}
+    if (not echo_joined or live) and phase == "done":
+        rec["error"] = f"HarnessError: threads alive at exit: {live}"
+        rec["error_phase"] = phase = "shutdown"
+        rec["error_kind"] = "harness"
     nontorch = rec.get("cap", {}).get("nontorch_mib", 0)
     reserved = max(rec.get(p, {}).get("reserved_peak_mib", 0) for p in ("after_load", "prefill", "decode"))
     rec["peak_device_view_mib"] = rec["nvml_total"].get("peak_used_mib")
@@ -148,8 +188,30 @@ def split_fit(a):
                        rec["peak_device_view_mib"] <= budget and rec["peak_allocator_view_mib"] <= budget)
     I.write_json(a.out, rec)
     print(json.dumps({k: rec.get(k) for k in ("class", "k", "pass", "error", "peak_device_view_mib",
-                                                "peak_allocator_view_mib", "budget_mib")}))
+                                                "peak_allocator_view_mib", "budget_mib")}), flush=True)
     sys.exit(0 if rec["pass"] else 3)
+
+
+def run_attempt(cmd, f, mem_class, k):
+    """Run one split-fit child and record its exit status in its record (HARNESS_FIXES.md H1). Exit 0 must
+    go with pass = true and exit 3 with pass = false. Anything else, or no record, is a harness defect: the
+    record keeps what the child measured, but error_kind = "harness" makes Stage 1 INVALID (PREREG §5.6)."""
+    rc = subprocess.run(cmd).returncode
+    rec = json.loads(f.read_text()) if f.exists() else {
+        "kind": "split-fit", "class": mem_class, "k": k, "j": k, "pass": False,
+        "error": "HarnessError: the child wrote no record"}
+    rec["exit_status"] = rc
+    expected = 0 if rec.get("pass") else 3
+    if rc != expected or not f.exists():
+        rec["error_kind"] = "harness"
+        rec["harness_error"] = (f"child exit status {rc} (expected {expected} for pass={rec.get('pass')})"
+                                + ("" if rc >= 0 else f", signal {signal.Signals(-rc).name}"))
+    I.write_json(f, rec)
+    return rec
+
+
+class HarnessDefect(RuntimeError):
+    pass
 
 
 def umax_search(k0, attempt, k_max=31):
@@ -175,17 +237,38 @@ def split_umax(a):
 
     def attempt(k):
         f = out / f"split_fit_c{a.mem_class}_k{k}.json"
-        if not f.exists():
-            cmd = [sys.executable, __file__, "split-fit", "--model-dir", a.model_dir, "--class", str(a.mem_class),
-                   "--k", str(k), "--device", a.device, "--out", str(f), "--workload", a.workload]
-            subprocess.run(cmd)
-        results[k] = json.loads(f.read_text())["pass"] if f.exists() else False
+        rec = json.loads(f.read_text()) if f.exists() else run_attempt(split_fit_cmd(a, k, f), f, a.mem_class, k)
+        if rec.get("error_kind") == "harness" or "exit_status" not in rec:
+            raise HarnessDefect(f"{f.name}: {rec.get('harness_error') or rec.get('error') or 'no exit status'}")
+        results[k] = rec["pass"]
         return results[k]
 
-    umax = umax_search(k0, attempt)
+    try:
+        umax = umax_search(k0, attempt)
+    except HarnessDefect as e:   # Stage 1 is INVALID; further attempts would not be F evidence
+        s = {"class": a.mem_class, "predicted_k": k0, "attempts": results, "u_max": None, "harness_defect": str(e)}
+        I.write_json(out / f"umax_c{a.mem_class}.json", s)
+        print(json.dumps(s))
+        sys.exit(f"HARNESS DEFECT: {e} -> Stage 1 INVALID (PREREG §5.6)")
     s = {"class": a.mem_class, "predicted_k": k0, "attempts": results, "u_max": [umax, umax] if umax else None}
     I.write_json(out / f"umax_c{a.mem_class}.json", s)
     print(json.dumps(s))
+
+
+def split_fit_cmd(a, k, f):
+    return [sys.executable, __file__, "split-fit", "--model-dir", a.model_dir, "--class", str(a.mem_class),
+            "--k", str(k), "--device", a.device, "--out", str(f), "--workload", a.workload]
+
+
+def split_attempt(a):
+    """One split-fit attempt as a child with its exit status recorded (the U-min run at 12 GB, k = 1)."""
+    f = Path(a.out_dir) / f"split_fit_c{a.mem_class}_k{a.k}.json"
+    if f.exists():
+        sys.exit(f"{f} exists; Stage 1 re-runs start from an empty directory")
+    rec = run_attempt(split_fit_cmd(a, a.k, f), f, a.mem_class, a.k)
+    print(json.dumps({k: rec.get(k) for k in ("class", "k", "pass", "exit_status", "error_kind")}))
+    if rec.get("error_kind") == "harness":
+        sys.exit(f"HARNESS DEFECT: {rec.get('harness_error') or rec.get('error')} -> Stage 1 INVALID (PREREG §5.6)")
 
 
 def _wait_ready(base, proc, timeout_s=1200):
@@ -299,9 +382,28 @@ def summarize(a):
             if g.exists() and json.loads(g.read_text())["pass"]:
                 eligible[str(m)].append(model)
     umin = d / "split_fit_c12_k1.json"
-    # PREREG §5.6: a non-memory exception in any split-fit attempt invalidates Stage 1 (fix, re-run all of it)
-    defects = sorted(g.name for g in d.glob("split_fit_c*_k*.json")
-                     if json.loads(g.read_text()).get("error_kind") == "harness")
+    # PREREG §5.6: a non-memory exception in any split-fit attempt invalidates Stage 1 (fix, re-run all of it).
+    # HARNESS_FIXES.md H1: so does an attempt whose exit status was not recorded or did not match its verdict,
+    # and a U-max search stopped by a harness defect.
+    def defective(rec):
+        return rec.get("error_kind") == "harness" or rec.get("exit_status") != (0 if rec.get("pass") else 3)
+    defects = sorted(g.name for g in d.glob("split_fit_c*_k*.json") if defective(json.loads(g.read_text())))
+    defects += sorted(g.name for g in d.glob("umax_c*.json") if json.loads(g.read_text()).get("harness_defect"))
+    # The other Stage-1 children: exit 1 from a latency client means failed requests (the F error rule, in the
+    # records); any other non-zero status, e.g. a signal, is a harness defect. RUNBOOK §3 logs each status.
+    for g in sorted(d.glob("edge_fit_*_c*.json")):
+        for at in json.loads(g.read_text()).get("attempts", []):
+            if at.get("profile_rc") not in (None, 0, 1):
+                defects.append(f"{g.name}: profile exit status {at['profile_rc']}")
+    log = d / "exit_status.log"
+    if log.exists():
+        for line in log.read_text().splitlines():
+            rc, _, cmd = line.partition(" ")
+            allowed = (0, 1) if " run-split " in f" {cmd} " else (0,)
+            if int(rc.removeprefix("rc=")) not in allowed:
+                defects.append(f"exit_status.log: {line}")
+    else:
+        defects.append("exit_status.log missing (RUNBOOK §3 runs every Stage-1 command through st)")
     # PREREG §8.4 (b): a desk-eligible EDGE competitor that failed its fit for a non-memory reason blocks every
     # SPLIT pass at that class (the competitor set would be incomplete)
     engine = {}
@@ -334,6 +436,13 @@ def main(argv=None):
     f.add_argument("--workload", default=wl)
     f.add_argument("--expect-32b", type=lambda s: s != "0", default=True)
     f.add_argument("--cpu-dry", action="store_true", help="local code-path check only (no NVML, no cap)")
+    t = sub.add_parser("split-attempt", help="one split-fit child with its exit status recorded")
+    t.add_argument("--model-dir", required=True)
+    t.add_argument("--class", dest="mem_class", type=int, choices=S.MEMORY_CLASSES, required=True)
+    t.add_argument("--k", type=int, required=True)
+    t.add_argument("--device", default="cuda:0")
+    t.add_argument("--out-dir", required=True)
+    t.add_argument("--workload", default=wl)
     u = sub.add_parser("split-umax")
     u.add_argument("--model-dir", required=True)
     u.add_argument("--class", dest="mem_class", type=int, choices=S.MEMORY_CLASSES, required=True)
@@ -350,7 +459,8 @@ def main(argv=None):
     s = sub.add_parser("summarize")
     s.add_argument("--dir", required=True)
     a = ap.parse_args(argv)
-    {"split-fit": split_fit, "split-umax": split_umax, "edge-fit": edge_fit, "summarize": summarize}[a.cmd](a)
+    {"split-fit": split_fit, "split-attempt": split_attempt, "split-umax": split_umax, "edge-fit": edge_fit,
+     "summarize": summarize}[a.cmd](a)
 
 
 if __name__ == "__main__":

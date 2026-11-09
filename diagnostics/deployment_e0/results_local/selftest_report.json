@@ -1,7 +1,7 @@
 {
- "utc": "2026-11-08T14:07:36Z",
+ "utc": "2026-11-09T04:13:37Z",
  "counts": {
-  "PASS": 37,
+  "PASS": 39,
   "FAIL": 0,
   "SKIP": 0
  },
@@ -17,7 +17,7 @@
    "group": "spec",
    "check": "L_F covers every S1 prompt + 16,384 tokens; budgets; U-max prediction = desk check",
    "status": "PASS",
-   "seconds": 0.2,
+   "seconds": 0.0,
    "detail": ""
   },
   {
@@ -38,7 +38,7 @@
    "group": "s1",
    "check": "the pre-declared 400-query extension sample is pinned, contains the 200, and re-draws identically",
    "status": "PASS",
-   "seconds": 6.2,
+   "seconds": 2.5,
    "detail": ""
   },
   {
@@ -52,42 +52,42 @@
    "group": "template",
    "check": "pinned tokenizer + chat template reproduce S1 prompt_tokens for 200 x 2 modes",
    "status": "PASS",
-   "seconds": 3.0,
+   "seconds": 1.2,
    "detail": ""
   },
   {
    "group": "template",
    "check": "frozen workload rebuilds to the pinned ids hash; frozen Q2 keys reproduce",
    "status": "PASS",
-   "seconds": 0.5,
+   "seconds": 0.3,
    "detail": ""
   },
   {
    "group": "runtime",
    "check": "teacher-forced split == HF forward, bitwise (bf16 local+TCP, fp32 local; U-min, (2,3), (3,3)); wire refuses non-bf16",
    "status": "PASS",
-   "seconds": 4.1,
+   "seconds": 2.0,
    "detail": ""
   },
   {
    "group": "runtime",
    "check": "greedy split decoding == HF generate (chunked prefill 7 / 16 / unchunked, TCP)",
    "status": "PASS",
-   "seconds": 2.8,
+   "seconds": 2.5,
    "detail": ""
   },
   {
    "group": "runtime",
    "check": "wire carries exactly n x hidden x 2 bytes + header each way; server cache tracks positions",
    "status": "PASS",
-   "seconds": 0.2,
+   "seconds": 0.1,
    "detail": ""
   },
   {
    "group": "runtime",
    "check": "failure paths: wrong position, illegal split, version mismatch, cache overflow, peer drop",
    "status": "PASS",
-   "seconds": 0.2,
+   "seconds": 0.1,
    "detail": ""
   },
   {
@@ -108,14 +108,14 @@
    "group": "real",
    "check": "Qwen3-0.6B real weights: TCP split U(2,3) bitwise == HF; greedy == HF generate (chat prompt)",
    "status": "PASS",
-   "seconds": 39.9,
+   "seconds": 28.2,
    "detail": ""
   },
   {
    "group": "real",
    "check": "Q pipeline CLIs end to end on Qwen3-0.6B (cont-gen, ref, cmp hf/split, q2-ref/run, rules)",
    "status": "PASS",
-   "seconds": 267.7,
+   "seconds": 113.2,
    "detail": ""
   },
   {
@@ -150,7 +150,7 @@
    "group": "f",
    "check": "failure classes: memory vs harness/engine; summarize marks invalid Stage 1 and blocked classes",
    "status": "PASS",
-   "seconds": 0.1,
+   "seconds": 0.0,
    "detail": ""
   },
   {
@@ -164,7 +164,21 @@
    "group": "f",
    "check": "split-fit CLI, CPU dry run: load, depth prefill (17,664 tok, chunked), 256 decode, JSON record",
    "status": "PASS",
-   "seconds": 19.9,
+   "seconds": 13.2,
+   "detail": ""
+  },
+  {
+   "group": "f",
+   "check": "clean exit: split-fit (CPU dry) joins its echo thread, leaves no live thread and exits 0 without a libstdc++ terminate (3 runs; the parent records exit status 0); the echo thread also stops when no client connected; split-fit's exit sequence at Stage-1 wire scale exits 0 in 5 of 5 runs",
+   "status": "PASS",
+   "seconds": 46.1,
+   "detail": ""
+  },
+  {
+   "group": "f",
+   "check": "exit-status audit: a child that aborts after writing a PASS record (the real daemon-thread/torch mechanism), a wrong exit code or a missing record is a harness defect; split-umax stops; summarize marks Stage 1 invalid for records without an exit status and for logged edge-fit/run-split statuses",
+   "status": "PASS",
+   "seconds": 2.2,
    "detail": ""
   },
   {
@@ -185,14 +199,14 @@
    "group": "latency",
    "check": "SPLIT cell runner over TCP writes complete per-token/per-step records (tiny model, workload)",
    "status": "PASS",
-   "seconds": 247.9,
+   "seconds": 192.0,
    "detail": ""
   },
   {
    "group": "latency",
    "check": "linkcheck over the split protocol against a local echo stub",
    "status": "PASS",
-   "seconds": 0.3,
+   "seconds": 0.2,
    "detail": ""
   },
   {
@@ -220,35 +234,35 @@
    "group": "r",
    "check": "grid: SPLIT strictly better on-time passes; competitor faster at short D wins; open fails",
    "status": "PASS",
-   "seconds": 0.2,
+   "seconds": 4.0,
    "detail": ""
   },
   {
    "group": "r",
    "check": "upper-bound gate dominates the true delta in every cell and replicate (monotonicity)",
    "status": "PASS",
-   "seconds": 0.1,
+   "seconds": 0.0,
    "detail": ""
   },
   {
    "group": "r",
    "check": "upper-bound STOP rule: never STOP while a cell could pass or trigger \u00a78.5; INCOMPLETE; open bound",
    "status": "PASS",
-   "seconds": 0.2,
+   "seconds": 0.1,
    "detail": ""
   },
   {
    "group": "r",
    "check": "additive model recovers synthetic coefficients; held-out validation passes, fails at +20%",
    "status": "PASS",
-   "seconds": 1.2,
+   "seconds": 0.5,
    "detail": ""
   },
   {
    "group": "r",
    "check": "R CLIs on synthetic stage dirs: gate-ub1, gate-ub2, fit, r, decide",
    "status": "PASS",
-   "seconds": 6.4,
+   "seconds": 2.6,
    "detail": ""
   },
   {
@@ -267,7 +281,7 @@
   }
  ],
  "env": {
-  "utc": "2026-11-08T14:07:36Z",
+  "utc": "2026-11-09T04:13:37Z",
   "host": "DESKTOP-7QU46KG",
   "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
   "python": "3.12.3",
@@ -275,9 +289,9 @@
   "nvidia_topo": "",
   "mig": "",
   "cpu": "CPU(s):                               4\nModel name:                           AMD Ryzen 5 8500G w/ Radeon 740M Graphics",
-  "mem": "total        used        free      shared  buff/cache   available\nMem:               9           6           0           0           2           3",
+  "mem": "total        used        free      shared  buff/cache   available\nMem:               9           5           1           0           3           4",
   "pip_freeze": [],
-  "git": "360090481845880d60f1bff2aadf611258e7297b",
+  "git": "85faaf68c5f21bf98bf480b944f90b484d7881db",
   "git_dirty": true,
   "tc": "tc utility, iproute2-6.1.0, libbpf 1.3.0",
   "net_admin": "no-sudo",

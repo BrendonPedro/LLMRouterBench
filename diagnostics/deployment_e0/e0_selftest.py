@@ -549,10 +549,11 @@ def t_f_classify():
     tmp = Path(tempfile.mkdtemp(prefix="e0sum_"))
     for m, k in ((12, 3), (16, 5), (24, 9)):
         (tmp / f"umax_c{m}.json").write_text(json.dumps({"u_max": [k, k]}))
-    (tmp / "split_fit_c12_k1.json").write_text(json.dumps({"pass": True}))
+    (tmp / "split_fit_c12_k1.json").write_text(json.dumps({"pass": True, "exit_status": 0}))
     (tmp / "edge_fit_Qwen3-8B-AWQ_c12.json").write_text(json.dumps({"pass": True}))
     (tmp / "edge_fit_Qwen3-14B-AWQ_c16.json").write_text(json.dumps({"pass": False, "fail_kind": "engine"}))
     (tmp / "edge_fit_Qwen3-32B-AWQ_c12.json").write_text(json.dumps({"pass": False, "fail_kind": "engine"}))
+    (tmp / "exit_status.log").write_text("rc=0 python e0_f.py split-umax --class 12\n")
     with contextlib.redirect_stdout(io.StringIO()):
         F.summarize(argparse.Namespace(dir=str(tmp)))
     r = json.loads((tmp / "f_results.json").read_text())
@@ -602,6 +603,179 @@ def t_f_dry():
     rec = json.loads(out.read_text())
     assert r.returncode == 0 and rec["pass"] and rec["dry"], (r.stderr[-800:], rec.get("error"))
     assert rec["final_context"] == S.L_F and rec["kv_mib"] > 0 and rec["weights_mib"] > 0
+
+
+# Regression for the first Stage-1 run (INVALID, 2026-11-09; HARNESS_FIXES.md H1): passing split-fit children
+# printed "terminate called without an active exception" and aborted after writing their record, and
+# split-umax ignored the exit status.
+_ABORT_CHILD = r"""
+import json, sys, threading, time, torch
+json.dump({"kind": "split-fit", "class": 12, "k": 3, "pass": True}, open(sys.argv[1], "w"))
+def busy():                      # a daemon thread inside a torch op while the interpreter finalises
+    a = torch.randn(256, 256)
+    while True:
+        a = (a @ a).tanh()
+threading.Thread(target=busy, daemon=True).start()
+time.sleep(0.3)
+sys.exit(0)
+"""
+
+
+# split-fit's thread layout and exit sequence at Stage-1 wire scale (hidden 5,120, 2,048-token prefill chunks):
+# with the pre-fix shutdown (no join) this aborted 7 of 20 runs on CPU (HARNESS_FIXES.md H1)
+_SCALE_CHILD = r"""
+import sys, threading, time
+sys.path.insert(0, sys.argv[1])
+import torch, e0_f as F, split_runtime as R
+port = F._free_port()
+srv = R.SegmentServer(None, "echo", 17920, echo=True)
+th = threading.Thread(target=srv.serve_forever, args=("127.0.0.1", port), kwargs={"once": True}, daemon=True)
+th.start()
+time.sleep(0.3)
+hello = {"model_id": "echo", "config_hash": "x", "software": R.software_identity(), "k": 1, "j": 1, "n_layers": 64,
+         "hidden": 5120, "max_len": 17920, "wire_dtype": "bfloat16"}
+mid = R.RemoteMiddle("127.0.0.1", port, hello, "cpu", 5120)
+x = torch.randn(1, 2048, 5120, dtype=torch.bfloat16)
+for c in range(2):
+    mid.forward(x, c * 2048, True)
+h = x[:, -1:]
+for i in range(16):
+    h = mid.forward(h, 4096 + i, True)
+assert F._stop_echo(th, port, mid)
+assert [t for t in threading.enumerate() if t is not threading.main_thread()] == []
+sys.exit(0)
+"""
+
+
+def _bf16(*shape):
+    import torch
+    return torch.randn(*shape, dtype=torch.bfloat16)
+
+
+@check("f", "clean exit: split-fit (CPU dry) joins its echo thread, leaves no live thread and exits 0 without a "
+            "libstdc++ terminate (3 runs; the parent records exit status 0); the echo thread also stops when no "
+            "client connected; split-fit's exit sequence at Stage-1 wire scale exits 0 in 5 of 5 runs")
+def t_f_exit_clean():
+    import e0_f as F
+    import split_runtime as R
+    d = tiny_dir("bfloat16", vocab=151936, layers=6)
+    tmp = Path(tempfile.mkdtemp(prefix="e0exit_"))
+    for i in range(3):
+        out = tmp / f"fit{i}.json"
+        cmd = [sys.executable, str(HERE / "e0_f.py"), "split-fit", "--model-dir", str(d), "--class", "12",
+               "--k", "2", "--device", "cpu", "--out", str(out), "--expect-32b", "0", "--cpu-dry"]
+        if i < 2:
+            r = subprocess.run(cmd, capture_output=True, text=True)
+            rec = json.loads(out.read_text())
+            assert r.returncode == 0 and "terminate called" not in r.stderr, (r.returncode, r.stderr[-800:])
+        else:            # through the parent wrapper used by split-umax / split-attempt
+            with contextlib.redirect_stdout(io.StringIO()):
+                rec = F.run_attempt(cmd, out, 12, 2)
+            assert rec["exit_status"] == 0 and "error_kind" not in rec, rec
+        assert rec["pass"] and rec["shutdown"] == {"echo_thread_joined": True, "live_threads": []}, rec.get("shutdown")
+    for connect in (True, False):
+        port = F._free_port()
+        srv = R.SegmentServer(None, "echo", S.L_F, echo=True)
+        th = threading.Thread(target=srv.serve_forever, args=("127.0.0.1", port), kwargs={"once": True},
+                              daemon=True)
+        with contextlib.redirect_stdout(io.StringIO()):
+            th.start()
+            time.sleep(0.3)
+        mid = None
+        if connect:      # a 2048-token chunk: the echo buffers reach their Stage-1 size (2 x 20 MiB)
+            hello = {"model_id": "echo", "config_hash": "x", "software": R.software_identity(), "k": 1, "j": 1,
+                     "n_layers": 64, "hidden": 5120, "max_len": S.L_F, "wire_dtype": "bfloat16"}
+            mid = R.RemoteMiddle("127.0.0.1", port, hello, "cpu", 5120)
+            mid.forward(_bf16(1, S.PREFILL_CHUNK, 5120), 0, True)
+        assert F._stop_echo(th, port, mid, timeout_s=10) and not th.is_alive(), connect
+    script = tmp / "scale_child.py"
+    script.write_text(_SCALE_CHILD)
+    for i in range(5):
+        r = subprocess.run([sys.executable, str(script), str(HERE)], capture_output=True, text=True)
+        assert r.returncode == 0 and "terminate called" not in r.stderr, (i, r.returncode, r.stderr[-800:])
+    shutil.rmtree(tmp, ignore_errors=True)
+
+
+@check("f", "exit-status audit: a child that aborts after writing a PASS record (the real daemon-thread/torch "
+            "mechanism), a wrong exit code or a missing record is a harness defect; split-umax stops; summarize "
+            "marks Stage 1 invalid for records without an exit status and for logged edge-fit/run-split statuses")
+def t_f_exit_detect():
+    import e0_f as F
+    tmp = Path(tempfile.mkdtemp(prefix="e0exitd_"))
+    script = tmp / "abort_child.py"
+    script.write_text(_ABORT_CHILD)
+    f = tmp / "split_fit_c12_k3.json"
+    for _ in range(3):   # positive control: the Stage-1 signature (SIGABRT after the PASS record is on disk)
+        f.unlink(missing_ok=True)
+        rec = F.run_attempt([sys.executable, str(script), str(f)], f, 12, 3)
+        if rec["exit_status"] != 0:
+            break
+    assert rec["pass"] and rec["exit_status"] == -6 and rec["error_kind"] == "harness", rec
+    assert "SIGABRT" in rec["harness_error"] and json.loads(f.read_text())["error_kind"] == "harness", rec
+
+    def child(body, code):
+        g = tmp / "split_fit_c16_k5.json"
+        g.unlink(missing_ok=True)
+        src = tmp / "child.py"
+        src.write_text("import json, sys\n" + (f"json.dump({body!r}, open(sys.argv[1], 'w'))\n" if body else "")
+                       + f"sys.exit({code})\n")
+        return F.run_attempt([sys.executable, str(src), str(g)], g, 16, 5)
+    r = child({"pass": False, "error_kind": "memory"}, 3)
+    assert r["exit_status"] == 3 and r["error_kind"] == "memory" and "harness_error" not in r, r
+    r = child({"pass": True}, 0)
+    assert r["exit_status"] == 0 and "error_kind" not in r, r
+    for body, code in (({"pass": True}, 3), ({"pass": False, "error_kind": "memory"}, 0), (None, 1)):
+        r = child(body, code)
+        assert r["error_kind"] == "harness" and r["exit_status"] == code and (body or not r["pass"]), (body, code, r)
+    # split-umax stops at a defective record (here a pre-fix record: no exit status)
+    for g in tmp.glob("split_fit_*.json"):
+        g.unlink()
+    (tmp / "split_fit_c12_k3.json").write_text(json.dumps({"pass": True}))
+    ns = argparse.Namespace(mem_class=12, out_dir=str(tmp), model_dir="unused", device="cpu", workload="unused")
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            F.split_umax(ns)
+        raise AssertionError("split-umax did not stop on a harness defect")
+    except SystemExit as e:
+        assert "HARNESS DEFECT" in str(e.code), e.code
+    assert json.loads((tmp / "umax_c12.json").read_text())["harness_defect"]
+    # summarize: a missing exit status or one that contradicts the verdict invalidates Stage 1
+    s1 = tmp / "stage1"
+    s1.mkdir()
+    for m, k in ((12, 3), (16, 5), (24, 9)):
+        (s1 / f"umax_c{m}.json").write_text(json.dumps({"u_max": [k, k]}))
+    (s1 / "split_fit_c12_k1.json").write_text(json.dumps({"pass": True, "exit_status": 0}))
+    (s1 / "split_fit_c12_k4.json").write_text(json.dumps({"pass": False, "exit_status": 3, "error_kind": "memory"}))
+    (s1 / "edge_fit_Qwen3-8B-AWQ_c12.json").write_text(json.dumps({"pass": True, "attempts": [{"profile_rc": 0}]}))
+    log = s1 / "exit_status.log"
+    ok_log = ("rc=0 /venv/python e0_f.py split-umax --class 12\nrc=0 /venv/python e0_f.py edge-fit --class 12\n"
+              "rc=1 /venv/python e0_latency.py run-split --k 3\n")
+    log.write_text(ok_log)
+
+    def summ():
+        with contextlib.redirect_stdout(io.StringIO()):
+            F.summarize(argparse.Namespace(dir=str(s1)))
+        return json.loads((s1 / "f_results.json").read_text())
+    assert summ()["valid"]
+    # the other Stage-1 children: a signal death of run-split / edge-fit, a missing log, a killed profile client
+    for text in (ok_log + "rc=134 /venv/python e0_latency.py run-split --k 9\n",
+                 ok_log + "rc=1 /venv/python e0_f.py edge-fit --class 16\n", None):
+        log.unlink(missing_ok=True)
+        if text:
+            log.write_text(text)
+        r = summ()
+        assert not r["valid"] and len(r["harness_defects"]) == 1 and "exit_status.log" in r["harness_defects"][0], r
+    log.write_text(ok_log)
+    (s1 / "edge_fit_Qwen3-8B-AWQ_c12.json").write_text(json.dumps({"pass": True, "attempts": [{"profile_rc": -6}]}))
+    assert summ()["harness_defects"] == ["edge_fit_Qwen3-8B-AWQ_c12.json: profile exit status -6"]
+    (s1 / "edge_fit_Qwen3-8B-AWQ_c12.json").write_text(json.dumps({"pass": True, "attempts": [{"profile_rc": 0}]}))
+    bad = {"split_fit_c16_k5.json": {"pass": True}, "split_fit_c16_k6.json": {"pass": True, "exit_status": -6},
+           "split_fit_c24_k9.json": {"pass": False, "exit_status": 0}}
+    for name, body in bad.items():
+        (s1 / name).write_text(json.dumps(body))
+    r = summ()
+    assert not r["valid"] and r["harness_defects"] == sorted(bad), r["harness_defects"]
+    shutil.rmtree(tmp, ignore_errors=True)
 
 
 # --------------------------------------------------------------------------- #
@@ -1027,7 +1201,8 @@ def t_docs():
             names |= {x.strip().strip('"') for x in group.split(",") if x.strip()}
         subs[f] = names
     bad = []
-    for f, sub in re.findall(r"(e0_[a-z]+\.py|split_runtime\.py) ([a-z][a-z0-9-]+)", text):
+    # a following file name (e.g. a git pathspec list "e0_spec.py e0_memory.py") is not a subcommand
+    for f, sub in re.findall(r"(e0_[a-z]+\.py|split_runtime\.py) ([a-z][a-z0-9-]+)(?![\w.])", text):
         if sub not in subs[f] and not sub.startswith("-"):
             bad.append((f, sub))
     assert not bad, bad
