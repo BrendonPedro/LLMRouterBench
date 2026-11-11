@@ -1,0 +1,67 @@
+{
+ "any_cell": {
+  "f_for_delta_ge_0": 1.0,
+  "f_for_delta_ge_3": 0.829669394513985,
+  "f_for_ci_lo_gt_0": 0.688766182181098,
+  "f_for_full_pass": 0.688766182181098,
+  "f_for_pass_nonstrict_ci_ge_0": 0.7053939454772262,
+  "f_for_delta_ge_3_speedup": 1.2052993717886793,
+  "f_for_delta_ge_3_server_step_ms_k3_raw": 55.49516715946536,
+  "f_for_delta_ge_3_server_step_ms_k3_discounted": 49.94565044351882,
+  "f_for_full_pass_speedup": 1.4518715144133907,
+  "f_for_full_pass_server_step_ms_k3_raw": 46.07039221486253,
+  "f_for_full_pass_server_step_ms_k3_discounted": 41.463352993376276
+ },
+ "12GB_D60": {
+  "f_for_delta_ge_0": 1.0,
+  "f_for_delta_ge_3": 0.829669394513985,
+  "f_for_ci_lo_gt_0": 0.688766182181098,
+  "f_for_full_pass": 0.688766182181098,
+  "f_for_pass_nonstrict_ci_ge_0": 0.7053939454772262,
+  "f_for_delta_ge_3_speedup": 1.2052993717886793,
+  "f_for_delta_ge_3_server_step_ms_k3_raw": 55.49516715946536,
+  "f_for_delta_ge_3_server_step_ms_k3_discounted": 49.94565044351882,
+  "f_for_full_pass_speedup": 1.4518715144133907,
+  "f_for_full_pass_server_step_ms_k3_raw": 46.07039221486253,
+  "f_for_full_pass_server_step_ms_k3_discounted": 41.463352993376276
+ },
+ "16GB_D60": {
+  "f_for_delta_ge_0": 1.0,
+  "f_for_delta_ge_3": 0.814016814045317,
+  "f_for_ci_lo_gt_0": 0.6602092626271769,
+  "f_for_full_pass": 0.6602092626271769,
+  "f_for_pass_nonstrict_ci_ge_0": 0.6754479739065573,
+  "f_for_delta_ge_3_speedup": 1.22847585301147,
+  "f_for_delta_ge_3_server_step_ms_k3_raw": 54.44819281603479,
+  "f_for_delta_ge_3_server_step_ms_k3_discounted": 49.00337353443132,
+  "f_for_full_pass_speedup": 1.514671266532509,
+  "f_for_full_pass_server_step_ms_k3_raw": 44.16026869496024,
+  "f_for_full_pass_server_step_ms_k3_discounted": 39.744241825464215
+ },
+ "12GB_D600": {
+  "f_for_delta_ge_0": 0.8737340953111925,
+  "f_for_delta_ge_3": 0.734418902949983,
+  "f_for_ci_lo_gt_0": 0.6606399424163101,
+  "f_for_full_pass": 0.6606399424163101,
+  "f_for_pass_nonstrict_ci_ge_0": 0.6724068292560332,
+  "f_for_delta_ge_3_speedup": 1.361620726241171,
+  "f_for_delta_ge_3_server_step_ms_k3_raw": 49.124024646173055,
+  "f_for_delta_ge_3_server_step_ms_k3_discounted": 44.21162218155575,
+  "f_for_full_pass_speedup": 1.5136838325918813,
+  "f_for_full_pass_server_step_ms_k3_raw": 44.189076129642274,
+  "f_for_full_pass_server_step_ms_k3_discounted": 39.77016851667805
+ },
+ "16GB_D600": {
+  "f_for_delta_ge_0": 0.8336711792753704,
+  "f_for_delta_ge_3": 0.6786364511926877,
+  "f_for_ci_lo_gt_0": 0.5958005722568487,
+  "f_for_full_pass": 0.5958005722568487,
+  "f_for_pass_nonstrict_ci_ge_0": 0.6094195112536909,
+  "f_for_delta_ge_3_speedup": 1.473543011493891,
+  "f_for_delta_ge_3_server_step_ms_k3_raw": 45.39283182972677,
+  "f_for_delta_ge_3_server_step_ms_k3_discounted": 40.85354864675409,
+  "f_for_full_pass_speedup": 1.6784139636054287,
+  "f_for_full_pass_server_step_ms_k3_raw": 39.85208152756755,
+  "f_for_full_pass_server_step_ms_k3_discounted": 35.866873374810794
+ }
+}

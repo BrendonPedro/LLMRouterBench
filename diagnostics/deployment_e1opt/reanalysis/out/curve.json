@@ -1,0 +1,1916 @@
+[
+ {
+  "f": 1.0,
+  "server_step_ms_k3": 66.88829011461134,
+  "server_step_ms_k5": 61.31982845505058,
+  "best_delta_pt": 0.5000000000000004,
+  "best_ci_lo": -4.750000000000004,
+  "best_cell": [
+   12,
+   60,
+   "SPLIT|nonthinking",
+   "EDGE:Qwen3-8B-AWQ|thinking"
+  ],
+  "n_pass": 0,
+  "n_ge3": 0,
+  "cells": {
+   "12GB/D30": [
+    -17.0,
+    -23.0,
+    "SPLIT|nonthinking",
+    0.255,
+    0.425
+   ],
+   "12GB/D60": [
+    0.5,
+    -4.75,
+    "SPLIT|nonthinking",
+    0.46,
+    0.455
+   ],
+   "12GB/D120": [
+    -2.0,
+    -7.5,
+    "SPLIT|nonthinking",
+    0.5575,
+    0.5775
+   ],
+   "12GB/D300": [
+    -5.0,
+    -10.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.63
+   ],
+   "12GB/D600": [
+    -1.75,
+    -6.5,
+    "SPLIT|thinking",
+    0.6125,
+    0.63
+   ],
+   "16GB/D30": [
+    -17.0,
+    -23.0,
+    "SPLIT|nonthinking",
+    0.255,
+    0.425
+   ],
+   "16GB/D60": [
+    0.5,
+    -4.75,
+    "SPLIT|nonthinking",
+    0.46,
+    0.455
+   ],
+   "16GB/D120": [
+    -2.25,
+    -7.75,
+    "SPLIT|nonthinking",
+    0.555,
+    0.5775
+   ],
+   "16GB/D300": [
+    -5.0,
+    -10.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.63
+   ],
+   "16GB/D600": [
+    -2.75,
+    -7.5,
+    "SPLIT|thinking",
+    0.6025,
+    0.63
+   ]
+  }
+ },
+ {
+  "f": 0.9,
+  "server_step_ms_k3": 60.199461103150206,
+  "server_step_ms_k5": 55.187845609545526,
+  "best_delta_pt": 2.2499999999999964,
+  "best_ci_lo": -3.2499999999999973,
+  "best_cell": [
+   12,
+   60,
+   "SPLIT|nonthinking",
+   "EDGE:Qwen3-8B-AWQ|thinking"
+  ],
+  "n_pass": 0,
+  "n_ge3": 0,
+  "cells": {
+   "12GB/D30": [
+    -14.75,
+    -20.75,
+    "SPLIT|nonthinking",
+    0.2775,
+    0.425
+   ],
+   "12GB/D60": [
+    2.25,
+    -3.25,
+    "SPLIT|nonthinking",
+    0.4775,
+    0.455
+   ],
+   "12GB/D120": [
+    -1.75,
+    -7.25,
+    "SPLIT|nonthinking",
+    0.56,
+    0.5775
+   ],
+   "12GB/D300": [
+    -5.0,
+    -10.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.63
+   ],
+   "12GB/D600": [
+    -0.25,
+    -5.25,
+    "SPLIT|thinking",
+    0.6275,
+    0.63
+   ],
+   "16GB/D30": [
+    -15.25,
+    -21.25,
+    "SPLIT|nonthinking",
+    0.2725,
+    0.425
+   ],
+   "16GB/D60": [
+    2.25,
+    -3.25,
+    "SPLIT|nonthinking",
+    0.4775,
+    0.455
+   ],
+   "16GB/D120": [
+    -1.75,
+    -7.25,
+    "SPLIT|nonthinking",
+    0.56,
+    0.5775
+   ],
+   "16GB/D300": [
+    -5.0,
+    -10.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.63
+   ],
+   "16GB/D600": [
+    -0.75,
+    -5.75,
+    "SPLIT|thinking",
+    0.6225,
+    0.63
+   ]
+  }
+ },
+ {
+  "f": 0.83,
+  "server_step_ms_k3": 55.517280795127405,
+  "server_step_ms_k5": 50.89545761769198,
+  "best_delta_pt": 2.9999999999999973,
+  "best_ci_lo": -2.4999999999999964,
+  "best_cell": [
+   12,
+   60,
+   "SPLIT|nonthinking",
+   "EDGE:Qwen3-8B-AWQ|thinking"
+  ],
+  "n_pass": 0,
+  "n_ge3": 0,
+  "cells": {
+   "12GB/D30": [
+    -13.25,
+    -19.25,
+    "SPLIT|nonthinking",
+    0.2925,
+    0.425
+   ],
+   "12GB/D60": [
+    3.0,
+    -2.5,
+    "SPLIT|nonthinking",
+    0.485,
+    0.455
+   ],
+   "12GB/D120": [
+    -1.5,
+    -7.0,
+    "SPLIT|nonthinking",
+    0.5625,
+    0.5775
+   ],
+   "12GB/D300": [
+    -5.0,
+    -10.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.63
+   ],
+   "12GB/D600": [
+    0.75,
+    -4.25,
+    "SPLIT|thinking",
+    0.6375,
+    0.63
+   ],
+   "16GB/D30": [
+    -13.5,
+    -19.5,
+    "SPLIT|nonthinking",
+    0.29,
+    0.425
+   ],
+   "16GB/D60": [
+    2.75,
+    -2.75,
+    "SPLIT|nonthinking",
+    0.4825,
+    0.455
+   ],
+   "16GB/D120": [
+    -1.5,
+    -7.0,
+    "SPLIT|nonthinking",
+    0.5625,
+    0.5775
+   ],
+   "16GB/D300": [
+    -5.0,
+    -10.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.63
+   ],
+   "16GB/D600": [
+    0.25,
+    -4.75,
+    "SPLIT|thinking",
+    0.6325,
+    0.63
+   ]
+  }
+ },
+ {
+  "f": 0.8,
+  "server_step_ms_k3": 53.510632091689075,
+  "server_step_ms_k5": 49.05586276404047,
+  "best_delta_pt": 3.4999999999999973,
+  "best_ci_lo": -1.9999999999999962,
+  "best_cell": [
+   12,
+   60,
+   "SPLIT|nonthinking",
+   "EDGE:Qwen3-8B-AWQ|thinking"
+  ],
+  "n_pass": 0,
+  "n_ge3": 2,
+  "cells": {
+   "12GB/D30": [
+    -11.25,
+    -17.0,
+    "SPLIT|nonthinking",
+    0.3125,
+    0.425
+   ],
+   "12GB/D60": [
+    3.5,
+    -2.0,
+    "SPLIT|nonthinking",
+    0.49,
+    0.455
+   ],
+   "12GB/D120": [
+    -1.25,
+    -6.75,
+    "SPLIT|nonthinking",
+    0.565,
+    0.5775
+   ],
+   "12GB/D300": [
+    -5.0,
+    -10.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.63
+   ],
+   "12GB/D600": [
+    1.0,
+    -4.0,
+    "SPLIT|thinking",
+    0.64,
+    0.63
+   ],
+   "16GB/D30": [
+    -13.0,
+    -19.0,
+    "SPLIT|nonthinking",
+    0.295,
+    0.425
+   ],
+   "16GB/D60": [
+    3.5,
+    -2.0,
+    "SPLIT|nonthinking",
+    0.49,
+    0.455
+   ],
+   "16GB/D120": [
+    -1.25,
+    -6.75,
+    "SPLIT|nonthinking",
+    0.565,
+    0.5775
+   ],
+   "16GB/D300": [
+    -5.0,
+    -10.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.63
+   ],
+   "16GB/D600": [
+    0.5,
+    -4.5,
+    "SPLIT|thinking",
+    0.635,
+    0.63
+   ]
+  }
+ },
+ {
+  "f": 0.75,
+  "server_step_ms_k3": 50.166217585958506,
+  "server_step_ms_k5": 45.98987134128794,
+  "best_delta_pt": 4.499999999999998,
+  "best_ci_lo": -0.7500000000000007,
+  "best_cell": [
+   12,
+   60,
+   "SPLIT|nonthinking",
+   "EDGE:Qwen3-8B-AWQ|thinking"
+  ],
+  "n_pass": 0,
+  "n_ge3": 2,
+  "cells": {
+   "12GB/D30": [
+    -9.5,
+    -15.25,
+    "SPLIT|nonthinking",
+    0.33,
+    0.425
+   ],
+   "12GB/D60": [
+    4.5,
+    -0.75,
+    "SPLIT|nonthinking",
+    0.5,
+    0.455
+   ],
+   "12GB/D120": [
+    -0.75,
+    -6.25,
+    "SPLIT|nonthinking",
+    0.57,
+    0.5775
+   ],
+   "12GB/D300": [
+    -5.0,
+    -10.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.63
+   ],
+   "12GB/D600": [
+    2.5,
+    -2.5,
+    "SPLIT|thinking",
+    0.655,
+    0.63
+   ],
+   "16GB/D30": [
+    -10.25,
+    -16.0,
+    "SPLIT|nonthinking",
+    0.3225,
+    0.425
+   ],
+   "16GB/D60": [
+    4.0,
+    -1.25,
+    "SPLIT|nonthinking",
+    0.495,
+    0.455
+   ],
+   "16GB/D120": [
+    -0.75,
+    -6.25,
+    "SPLIT|nonthinking",
+    0.57,
+    0.5775
+   ],
+   "16GB/D300": [
+    -5.0,
+    -10.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.63
+   ],
+   "16GB/D600": [
+    1.0,
+    -4.0,
+    "SPLIT|thinking",
+    0.64,
+    0.63
+   ]
+  }
+ },
+ {
+  "f": 0.705,
+  "server_step_ms_k3": 47.15624453080099,
+  "server_step_ms_k5": 43.23047906081066,
+  "best_delta_pt": 5.249999999999994,
+  "best_ci_lo": 0.0,
+  "best_cell": [
+   12,
+   60,
+   "SPLIT|nonthinking",
+   "EDGE:Qwen3-8B-AWQ|thinking"
+  ],
+  "n_pass": 0,
+  "n_ge3": 3,
+  "cells": {
+   "12GB/D30": [
+    -7.0,
+    -13.0,
+    "SPLIT|nonthinking",
+    0.355,
+    0.425
+   ],
+   "12GB/D60": [
+    5.25,
+    0.0,
+    "SPLIT|nonthinking",
+    0.5075,
+    0.455
+   ],
+   "12GB/D120": [
+    -0.5,
+    -6.0,
+    "SPLIT|nonthinking",
+    0.5725,
+    0.5775
+   ],
+   "12GB/D300": [
+    -5.0,
+    -10.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.63
+   ],
+   "12GB/D600": [
+    4.0,
+    -0.75,
+    "SPLIT|thinking",
+    0.67,
+    0.63
+   ],
+   "16GB/D30": [
+    -8.0,
+    -13.75,
+    "SPLIT|nonthinking",
+    0.345,
+    0.425
+   ],
+   "16GB/D60": [
+    4.5,
+    -0.75,
+    "SPLIT|nonthinking",
+    0.5,
+    0.455
+   ],
+   "16GB/D120": [
+    -0.75,
+    -6.25,
+    "SPLIT|nonthinking",
+    0.57,
+    0.5775
+   ],
+   "16GB/D300": [
+    -5.0,
+    -10.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.63
+   ],
+   "16GB/D600": [
+    2.0,
+    -2.756,
+    "SPLIT|thinking",
+    0.65,
+    0.63
+   ]
+  }
+ },
+ {
+  "f": 0.7,
+  "server_step_ms_k3": 46.82180308022793,
+  "server_step_ms_k5": 42.923879918535405,
+  "best_delta_pt": 5.249999999999994,
+  "best_ci_lo": 0.0,
+  "best_cell": [
+   12,
+   60,
+   "SPLIT|nonthinking",
+   "EDGE:Qwen3-8B-AWQ|thinking"
+  ],
+  "n_pass": 0,
+  "n_ge3": 3,
+  "cells": {
+   "12GB/D30": [
+    -6.75,
+    -12.5,
+    "SPLIT|nonthinking",
+    0.3575,
+    0.425
+   ],
+   "12GB/D60": [
+    5.25,
+    0.0,
+    "SPLIT|nonthinking",
+    0.5075,
+    0.455
+   ],
+   "12GB/D120": [
+    -0.5,
+    -6.0,
+    "SPLIT|nonthinking",
+    0.5725,
+    0.5775
+   ],
+   "12GB/D300": [
+    -5.0,
+    -10.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.63
+   ],
+   "12GB/D600": [
+    4.0,
+    -0.75,
+    "SPLIT|thinking",
+    0.67,
+    0.63
+   ],
+   "16GB/D30": [
+    -7.75,
+    -13.75,
+    "SPLIT|nonthinking",
+    0.3475,
+    0.425
+   ],
+   "16GB/D60": [
+    4.5,
+    -0.75,
+    "SPLIT|nonthinking",
+    0.5,
+    0.455
+   ],
+   "16GB/D120": [
+    -0.5,
+    -6.0,
+    "SPLIT|nonthinking",
+    0.5725,
+    0.5775
+   ],
+   "16GB/D300": [
+    -5.0,
+    -10.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.63
+   ],
+   "16GB/D600": [
+    2.5,
+    -2.5,
+    "SPLIT|thinking",
+    0.655,
+    0.63
+   ]
+  }
+ },
+ {
+  "f": 0.69,
+  "server_step_ms_k3": 46.15292017908182,
+  "server_step_ms_k5": 42.3106816339849,
+  "best_delta_pt": 5.249999999999994,
+  "best_ci_lo": 0.0,
+  "best_cell": [
+   12,
+   60,
+   "SPLIT|nonthinking",
+   "EDGE:Qwen3-8B-AWQ|thinking"
+  ],
+  "n_pass": 0,
+  "n_ge3": 3,
+  "cells": {
+   "12GB/D30": [
+    -6.0,
+    -11.75,
+    "SPLIT|nonthinking",
+    0.365,
+    0.425
+   ],
+   "12GB/D60": [
+    5.25,
+    0.0,
+    "SPLIT|nonthinking",
+    0.5075,
+    0.455
+   ],
+   "12GB/D120": [
+    -0.25,
+    -5.75,
+    "SPLIT|nonthinking",
+    0.575,
+    0.5775
+   ],
+   "12GB/D300": [
+    -5.0,
+    -10.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.63
+   ],
+   "12GB/D600": [
+    4.25,
+    -0.5,
+    "SPLIT|thinking",
+    0.6725,
+    0.63
+   ],
+   "16GB/D30": [
+    -7.25,
+    -13.0,
+    "SPLIT|nonthinking",
+    0.3525,
+    0.425
+   ],
+   "16GB/D60": [
+    4.75,
+    -0.5,
+    "SPLIT|nonthinking",
+    0.5025,
+    0.455
+   ],
+   "16GB/D120": [
+    -0.5,
+    -6.0,
+    "SPLIT|nonthinking",
+    0.5725,
+    0.5775
+   ],
+   "16GB/D300": [
+    -5.0,
+    -10.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.63
+   ],
+   "16GB/D600": [
+    2.5,
+    -2.5,
+    "SPLIT|thinking",
+    0.655,
+    0.63
+   ]
+  }
+ },
+ {
+  "f": 0.689,
+  "server_step_ms_k3": 46.086031888967206,
+  "server_step_ms_k5": 42.24936180552985,
+  "best_delta_pt": 5.249999999999994,
+  "best_ci_lo": 0.0,
+  "best_cell": [
+   12,
+   60,
+   "SPLIT|nonthinking",
+   "EDGE:Qwen3-8B-AWQ|thinking"
+  ],
+  "n_pass": 0,
+  "n_ge3": 3,
+  "cells": {
+   "12GB/D30": [
+    -6.0,
+    -11.75,
+    "SPLIT|nonthinking",
+    0.365,
+    0.425
+   ],
+   "12GB/D60": [
+    5.25,
+    0.0,
+    "SPLIT|nonthinking",
+    0.5075,
+    0.455
+   ],
+   "12GB/D120": [
+    -0.25,
+    -5.75,
+    "SPLIT|nonthinking",
+    0.575,
+    0.5775
+   ],
+   "12GB/D300": [
+    -5.0,
+    -10.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.63
+   ],
+   "12GB/D600": [
+    4.25,
+    -0.5,
+    "SPLIT|thinking",
+    0.6725,
+    0.63
+   ],
+   "16GB/D30": [
+    -7.0,
+    -13.0,
+    "SPLIT|nonthinking",
+    0.355,
+    0.425
+   ],
+   "16GB/D60": [
+    4.75,
+    -0.5,
+    "SPLIT|nonthinking",
+    0.5025,
+    0.455
+   ],
+   "16GB/D120": [
+    -0.5,
+    -6.0,
+    "SPLIT|nonthinking",
+    0.5725,
+    0.5775
+   ],
+   "16GB/D300": [
+    -5.0,
+    -10.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.63
+   ],
+   "16GB/D600": [
+    2.5,
+    -2.5,
+    "SPLIT|thinking",
+    0.655,
+    0.63
+   ]
+  }
+ },
+ {
+  "f": 0.688,
+  "server_step_ms_k3": 46.019143598852594,
+  "server_step_ms_k5": 42.188041977074796,
+  "best_delta_pt": 5.499999999999999,
+  "best_ci_lo": 0.24999999999999467,
+  "best_cell": [
+   12,
+   60,
+   "SPLIT|nonthinking",
+   "EDGE:Qwen3-8B-AWQ|thinking"
+  ],
+  "n_pass": 1,
+  "n_ge3": 3,
+  "cells": {
+   "12GB/D30": [
+    -6.0,
+    -11.75,
+    "SPLIT|nonthinking",
+    0.365,
+    0.425
+   ],
+   "12GB/D60": [
+    5.5,
+    0.25,
+    "SPLIT|nonthinking",
+    0.51,
+    0.455
+   ],
+   "12GB/D120": [
+    -0.25,
+    -5.75,
+    "SPLIT|nonthinking",
+    0.575,
+    0.5775
+   ],
+   "12GB/D300": [
+    -5.0,
+    -10.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.63
+   ],
+   "12GB/D600": [
+    4.25,
+    -0.5,
+    "SPLIT|thinking",
+    0.6725,
+    0.63
+   ],
+   "16GB/D30": [
+    -7.0,
+    -13.0,
+    "SPLIT|nonthinking",
+    0.355,
+    0.425
+   ],
+   "16GB/D60": [
+    4.75,
+    -0.5,
+    "SPLIT|nonthinking",
+    0.5025,
+    0.455
+   ],
+   "16GB/D120": [
+    -0.5,
+    -6.0,
+    "SPLIT|nonthinking",
+    0.5725,
+    0.5775
+   ],
+   "16GB/D300": [
+    -5.0,
+    -10.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.63
+   ],
+   "16GB/D600": [
+    2.5,
+    -2.5,
+    "SPLIT|thinking",
+    0.655,
+    0.63
+   ]
+  }
+ },
+ {
+  "f": 0.6,
+  "server_step_ms_k3": 40.1329740687668,
+  "server_step_ms_k5": 36.79189707303035,
+  "best_delta_pt": 7.749999999999996,
+  "best_ci_lo": 2.2499999999999964,
+  "best_cell": [
+   12,
+   60,
+   "SPLIT|nonthinking",
+   "EDGE:Qwen3-8B-AWQ|thinking"
+  ],
+  "n_pass": 3,
+  "n_ge3": 4,
+  "cells": {
+   "12GB/D30": [
+    -1.25,
+    -7.0,
+    "SPLIT|nonthinking",
+    0.4125,
+    0.425
+   ],
+   "12GB/D60": [
+    7.75,
+    2.25,
+    "SPLIT|nonthinking",
+    0.5325,
+    0.455
+   ],
+   "12GB/D120": [
+    -0.25,
+    -5.75,
+    "SPLIT|nonthinking",
+    0.575,
+    0.5775
+   ],
+   "12GB/D300": [
+    -5.0,
+    -10.5,
+    "SPLIT|nonthinking",
+    0.58,
+    0.63
+   ],
+   "12GB/D600": [
+    6.25,
+    1.75,
+    "SPLIT|thinking",
+    0.6925,
+    0.63
+   ],
+   "16GB/D30": [
+    -3.25,
+    -9.0,
+    "SPLIT|nonthinking",
+    0.3925,
+    0.425
+   ],
+   "16GB/D60": [
+    6.5,
+    1.25,
+    "SPLIT|nonthinking",
+    0.52,
+    0.455
+   ],
+   "16GB/D120": [
+    -0.25,
+    -5.75,
+    "SPLIT|nonthinking",
+    0.575,
+    0.5775
+   ],
+   "16GB/D300": [
+    -5.0,
+    -10.5,
+    "SPLIT|nonthinking",
+    0.58,
+    0.63
+   ],
+   "16GB/D600": [
+    4.5,
+    0.0,
+    "SPLIT|thinking",
+    0.675,
+    0.63
+   ]
+  }
+ },
+ {
+  "f": 0.5,
+  "server_step_ms_k3": 33.44414505730567,
+  "server_step_ms_k5": 30.65991422752529,
+  "best_delta_pt": 9.500000000000004,
+  "best_ci_lo": 3.9999999999999982,
+  "best_cell": [
+   12,
+   60,
+   "SPLIT|nonthinking",
+   "EDGE:Qwen3-8B-AWQ|thinking"
+  ],
+  "n_pass": 4,
+  "n_ge3": 4,
+  "cells": {
+   "12GB/D30": [
+    1.0,
+    -4.5,
+    "SPLIT|nonthinking",
+    0.435,
+    0.425
+   ],
+   "12GB/D60": [
+    9.5,
+    4.0,
+    "SPLIT|nonthinking",
+    0.55,
+    0.455
+   ],
+   "12GB/D120": [
+    0.25,
+    -5.25,
+    "SPLIT|nonthinking",
+    0.58,
+    0.5775
+   ],
+   "12GB/D300": [
+    -5.0,
+    -9.5,
+    "SPLIT|nonthinking",
+    0.58,
+    0.63
+   ],
+   "12GB/D600": [
+    7.25,
+    2.75,
+    "SPLIT|thinking",
+    0.7025,
+    0.63
+   ],
+   "16GB/D30": [
+    0.75,
+    -4.75,
+    "SPLIT|nonthinking",
+    0.4325,
+    0.425
+   ],
+   "16GB/D60": [
+    8.75,
+    3.25,
+    "SPLIT|nonthinking",
+    0.5425,
+    0.455
+   ],
+   "16GB/D120": [
+    0.0,
+    -5.5,
+    "SPLIT|nonthinking",
+    0.5775,
+    0.5775
+   ],
+   "16GB/D300": [
+    -5.0,
+    -10.25,
+    "SPLIT|nonthinking",
+    0.58,
+    0.63
+   ],
+   "16GB/D600": [
+    6.5,
+    2.0,
+    "SPLIT|thinking",
+    0.695,
+    0.63
+   ]
+  }
+ },
+ {
+  "f": 0.45,
+  "server_step_ms_k3": 30.099730551575103,
+  "server_step_ms_k5": 27.593922804772763,
+  "best_delta_pt": 9.749999999999998,
+  "best_ci_lo": 4.249999999999998,
+  "best_cell": [
+   12,
+   60,
+   "SPLIT|nonthinking",
+   "EDGE:Qwen3-8B-AWQ|thinking"
+  ],
+  "n_pass": 4,
+  "n_ge3": 5,
+  "cells": {
+   "12GB/D30": [
+    3.0,
+    -2.5,
+    "SPLIT|nonthinking",
+    0.455,
+    0.425
+   ],
+   "12GB/D60": [
+    9.75,
+    4.25,
+    "SPLIT|nonthinking",
+    0.5525,
+    0.455
+   ],
+   "12GB/D120": [
+    0.25,
+    -5.25,
+    "SPLIT|nonthinking",
+    0.58,
+    0.5775
+   ],
+   "12GB/D300": [
+    -4.25,
+    -8.5,
+    "SPLIT|thinking",
+    0.5875,
+    0.63
+   ],
+   "12GB/D600": [
+    8.75,
+    4.25,
+    "SPLIT|thinking",
+    0.7175,
+    0.63
+   ],
+   "16GB/D30": [
+    1.0,
+    -4.5,
+    "SPLIT|nonthinking",
+    0.435,
+    0.425
+   ],
+   "16GB/D60": [
+    9.5,
+    4.0,
+    "SPLIT|nonthinking",
+    0.55,
+    0.455
+   ],
+   "16GB/D120": [
+    0.25,
+    -5.25,
+    "SPLIT|nonthinking",
+    0.58,
+    0.5775
+   ],
+   "16GB/D300": [
+    -5.0,
+    -9.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.63
+   ],
+   "16GB/D600": [
+    7.0,
+    2.5,
+    "SPLIT|thinking",
+    0.7,
+    0.63
+   ]
+  }
+ },
+ {
+  "f": 0.4,
+  "server_step_ms_k3": 26.755316045844538,
+  "server_step_ms_k5": 24.527931382020235,
+  "best_delta_pt": 10.250000000000004,
+  "best_ci_lo": 5.500000000000005,
+  "best_cell": [
+   12,
+   600,
+   "SPLIT|thinking",
+   "EDGE:Qwen3-8B-AWQ|thinking"
+  ],
+  "n_pass": 4,
+  "n_ge3": 6,
+  "cells": {
+   "12GB/D30": [
+    4.0,
+    -1.5,
+    "SPLIT|nonthinking",
+    0.465,
+    0.425
+   ],
+   "12GB/D60": [
+    10.25,
+    4.75,
+    "SPLIT|nonthinking",
+    0.5575,
+    0.455
+   ],
+   "12GB/D120": [
+    0.25,
+    -5.25,
+    "SPLIT|nonthinking",
+    0.58,
+    0.5775
+   ],
+   "12GB/D300": [
+    -2.25,
+    -7.0,
+    "SPLIT|thinking",
+    0.6075,
+    0.63
+   ],
+   "12GB/D600": [
+    10.25,
+    5.5,
+    "SPLIT|thinking",
+    0.7325,
+    0.63
+   ],
+   "16GB/D30": [
+    3.0,
+    -2.5,
+    "SPLIT|nonthinking",
+    0.455,
+    0.425
+   ],
+   "16GB/D60": [
+    9.5,
+    4.0,
+    "SPLIT|nonthinking",
+    0.55,
+    0.455
+   ],
+   "16GB/D120": [
+    0.25,
+    -5.25,
+    "SPLIT|nonthinking",
+    0.58,
+    0.5775
+   ],
+   "16GB/D300": [
+    -4.75,
+    -8.75,
+    "SPLIT|thinking",
+    0.5825,
+    0.63
+   ],
+   "16GB/D600": [
+    8.0,
+    3.5,
+    "SPLIT|thinking",
+    0.71,
+    0.63
+   ]
+  }
+ },
+ {
+  "f": 0.35,
+  "server_step_ms_k3": 23.410901540113965,
+  "server_step_ms_k5": 21.461939959267703,
+  "best_delta_pt": 10.999999999999998,
+  "best_ci_lo": 6.25,
+  "best_cell": [
+   12,
+   600,
+   "SPLIT|thinking",
+   "EDGE:Qwen3-8B-AWQ|thinking"
+  ],
+  "n_pass": 4,
+  "n_ge3": 6,
+  "cells": {
+   "12GB/D30": [
+    5.25,
+    -0.5,
+    "SPLIT|nonthinking",
+    0.4775,
+    0.425
+   ],
+   "12GB/D60": [
+    10.5,
+    5.0,
+    "SPLIT|nonthinking",
+    0.56,
+    0.455
+   ],
+   "12GB/D120": [
+    0.25,
+    -5.25,
+    "SPLIT|nonthinking",
+    0.58,
+    0.5775
+   ],
+   "12GB/D300": [
+    -0.75,
+    -5.75,
+    "SPLIT|thinking",
+    0.6225,
+    0.63
+   ],
+   "12GB/D600": [
+    11.0,
+    6.25,
+    "SPLIT|thinking",
+    0.74,
+    0.63
+   ],
+   "16GB/D30": [
+    3.75,
+    -1.75,
+    "SPLIT|nonthinking",
+    0.4625,
+    0.425
+   ],
+   "16GB/D60": [
+    10.25,
+    4.75,
+    "SPLIT|nonthinking",
+    0.5575,
+    0.455
+   ],
+   "16GB/D120": [
+    0.25,
+    -5.25,
+    "SPLIT|nonthinking",
+    0.58,
+    0.5775
+   ],
+   "16GB/D300": [
+    -3.25,
+    -7.75,
+    "SPLIT|thinking",
+    0.5975,
+    0.63
+   ],
+   "16GB/D600": [
+    8.75,
+    4.25,
+    "SPLIT|thinking",
+    0.7175,
+    0.63
+   ]
+  }
+ },
+ {
+  "f": 0.3,
+  "server_step_ms_k3": 20.0664870343834,
+  "server_step_ms_k5": 18.395948536515174,
+  "best_delta_pt": 11.750000000000005,
+  "best_ci_lo": 7.250000000000001,
+  "best_cell": [
+   12,
+   600,
+   "SPLIT|thinking",
+   "EDGE:Qwen3-8B-AWQ|thinking"
+  ],
+  "n_pass": 5,
+  "n_ge3": 6,
+  "cells": {
+   "12GB/D30": [
+    6.75,
+    1.25,
+    "SPLIT|nonthinking",
+    0.4925,
+    0.425
+   ],
+   "12GB/D60": [
+    11.25,
+    5.75,
+    "SPLIT|nonthinking",
+    0.5675,
+    0.455
+   ],
+   "12GB/D120": [
+    0.25,
+    -5.25,
+    "SPLIT|nonthinking",
+    0.58,
+    0.5775
+   ],
+   "12GB/D300": [
+    0.75,
+    -4.25,
+    "SPLIT|thinking",
+    0.6375,
+    0.63
+   ],
+   "12GB/D600": [
+    11.75,
+    7.25,
+    "SPLIT|thinking",
+    0.7475,
+    0.63
+   ],
+   "16GB/D30": [
+    5.25,
+    -0.5,
+    "SPLIT|nonthinking",
+    0.4775,
+    0.425
+   ],
+   "16GB/D60": [
+    10.5,
+    5.0,
+    "SPLIT|nonthinking",
+    0.56,
+    0.455
+   ],
+   "16GB/D120": [
+    0.25,
+    -5.25,
+    "SPLIT|nonthinking",
+    0.58,
+    0.5775
+   ],
+   "16GB/D300": [
+    -1.5,
+    -6.25,
+    "SPLIT|thinking",
+    0.615,
+    0.63
+   ],
+   "16GB/D600": [
+    10.0,
+    5.25,
+    "SPLIT|thinking",
+    0.73,
+    0.63
+   ]
+  }
+ },
+ {
+  "f": 0.25,
+  "server_step_ms_k3": 16.722072528652834,
+  "server_step_ms_k5": 15.329957113762646,
+  "best_delta_pt": 11.999999999999995,
+  "best_ci_lo": 6.49375,
+  "best_cell": [
+   12,
+   60,
+   "SPLIT|nonthinking",
+   "EDGE:Qwen3-8B-AWQ|thinking"
+  ],
+  "n_pass": 6,
+  "n_ge3": 7,
+  "cells": {
+   "12GB/D30": [
+    8.75,
+    3.5,
+    "SPLIT|nonthinking",
+    0.5125,
+    0.425
+   ],
+   "12GB/D60": [
+    12.0,
+    6.494,
+    "SPLIT|nonthinking",
+    0.575,
+    0.455
+   ],
+   "12GB/D120": [
+    0.25,
+    -5.25,
+    "SPLIT|nonthinking",
+    0.58,
+    0.5775
+   ],
+   "12GB/D300": [
+    3.75,
+    -1.0,
+    "SPLIT|thinking",
+    0.6675,
+    0.63
+   ],
+   "12GB/D600": [
+    11.75,
+    7.25,
+    "SPLIT|thinking",
+    0.7475,
+    0.63
+   ],
+   "16GB/D30": [
+    6.5,
+    1.0,
+    "SPLIT|nonthinking",
+    0.49,
+    0.425
+   ],
+   "16GB/D60": [
+    11.0,
+    5.5,
+    "SPLIT|nonthinking",
+    0.565,
+    0.455
+   ],
+   "16GB/D120": [
+    0.25,
+    -5.25,
+    "SPLIT|nonthinking",
+    0.58,
+    0.5775
+   ],
+   "16GB/D300": [
+    -0.25,
+    -5.25,
+    "SPLIT|thinking",
+    0.6275,
+    0.63
+   ],
+   "16GB/D600": [
+    10.75,
+    6.0,
+    "SPLIT|thinking",
+    0.7375,
+    0.63
+   ]
+  }
+ },
+ {
+  "f": 0.2,
+  "server_step_ms_k3": 13.377658022922269,
+  "server_step_ms_k5": 12.263965691010117,
+  "best_delta_pt": 11.999999999999995,
+  "best_ci_lo": 6.49375,
+  "best_cell": [
+   12,
+   60,
+   "SPLIT|nonthinking",
+   "EDGE:Qwen3-8B-AWQ|thinking"
+  ],
+  "n_pass": 7,
+  "n_ge3": 7,
+  "cells": {
+   "12GB/D30": [
+    11.0,
+    5.75,
+    "SPLIT|nonthinking",
+    0.535,
+    0.425
+   ],
+   "12GB/D60": [
+    12.0,
+    6.494,
+    "SPLIT|nonthinking",
+    0.575,
+    0.455
+   ],
+   "12GB/D120": [
+    0.25,
+    -5.25,
+    "SPLIT|nonthinking",
+    0.58,
+    0.5775
+   ],
+   "12GB/D300": [
+    6.0,
+    1.25,
+    "SPLIT|thinking",
+    0.69,
+    0.63
+   ],
+   "12GB/D600": [
+    11.75,
+    7.25,
+    "SPLIT|thinking",
+    0.7475,
+    0.63
+   ],
+   "16GB/D30": [
+    7.75,
+    2.25,
+    "SPLIT|nonthinking",
+    0.5025,
+    0.425
+   ],
+   "16GB/D60": [
+    11.75,
+    6.25,
+    "SPLIT|nonthinking",
+    0.5725,
+    0.455
+   ],
+   "16GB/D120": [
+    0.25,
+    -5.25,
+    "SPLIT|nonthinking",
+    0.58,
+    0.5775
+   ],
+   "16GB/D300": [
+    1.0,
+    -4.0,
+    "SPLIT|thinking",
+    0.64,
+    0.63
+   ],
+   "16GB/D600": [
+    11.75,
+    7.25,
+    "SPLIT|thinking",
+    0.7475,
+    0.63
+   ]
+  }
+ },
+ {
+  "f": 0.15,
+  "server_step_ms_k3": 10.0332435171917,
+  "server_step_ms_k5": 9.197974268257587,
+  "best_delta_pt": 12.500000000000005,
+  "best_ci_lo": 7.250000000000001,
+  "best_cell": [
+   12,
+   30,
+   "SPLIT|nonthinking",
+   "EDGE:Qwen3-8B-AWQ|nonthinking"
+  ],
+  "n_pass": 7,
+  "n_ge3": 8,
+  "cells": {
+   "12GB/D30": [
+    12.5,
+    7.25,
+    "SPLIT|nonthinking",
+    0.55,
+    0.425
+   ],
+   "12GB/D60": [
+    12.5,
+    6.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.455
+   ],
+   "12GB/D120": [
+    0.25,
+    -5.25,
+    "SPLIT|nonthinking",
+    0.58,
+    0.5775
+   ],
+   "12GB/D300": [
+    7.0,
+    2.5,
+    "SPLIT|thinking",
+    0.7,
+    0.63
+   ],
+   "12GB/D600": [
+    11.75,
+    7.25,
+    "SPLIT|thinking",
+    0.7475,
+    0.63
+   ],
+   "16GB/D30": [
+    10.0,
+    4.75,
+    "SPLIT|nonthinking",
+    0.525,
+    0.425
+   ],
+   "16GB/D60": [
+    12.0,
+    6.494,
+    "SPLIT|nonthinking",
+    0.575,
+    0.455
+   ],
+   "16GB/D120": [
+    0.25,
+    -5.25,
+    "SPLIT|nonthinking",
+    0.58,
+    0.5775
+   ],
+   "16GB/D300": [
+    3.75,
+    -1.0,
+    "SPLIT|thinking",
+    0.6675,
+    0.63
+   ],
+   "16GB/D600": [
+    11.75,
+    7.25,
+    "SPLIT|thinking",
+    0.7475,
+    0.63
+   ]
+  }
+ },
+ {
+  "f": 0.1,
+  "server_step_ms_k3": 6.688829011461134,
+  "server_step_ms_k5": 6.131982845505059,
+  "best_delta_pt": 13.500000000000007,
+  "best_ci_lo": 8.250000000000002,
+  "best_cell": [
+   12,
+   30,
+   "SPLIT|nonthinking",
+   "EDGE:Qwen3-8B-AWQ|nonthinking"
+  ],
+  "n_pass": 8,
+  "n_ge3": 8,
+  "cells": {
+   "12GB/D30": [
+    13.5,
+    8.25,
+    "SPLIT|nonthinking",
+    0.56,
+    0.425
+   ],
+   "12GB/D60": [
+    12.5,
+    6.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.455
+   ],
+   "12GB/D120": [
+    0.25,
+    -4.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.5775
+   ],
+   "12GB/D300": [
+    8.75,
+    4.25,
+    "SPLIT|thinking",
+    0.7175,
+    0.63
+   ],
+   "12GB/D600": [
+    11.75,
+    7.25,
+    "SPLIT|thinking",
+    0.7475,
+    0.63
+   ],
+   "16GB/D30": [
+    11.75,
+    6.5,
+    "SPLIT|nonthinking",
+    0.5425,
+    0.425
+   ],
+   "16GB/D60": [
+    12.25,
+    6.5,
+    "SPLIT|nonthinking",
+    0.5775,
+    0.455
+   ],
+   "16GB/D120": [
+    0.25,
+    -5.25,
+    "SPLIT|nonthinking",
+    0.58,
+    0.5775
+   ],
+   "16GB/D300": [
+    5.75,
+    1.0,
+    "SPLIT|thinking",
+    0.6875,
+    0.63
+   ],
+   "16GB/D600": [
+    11.75,
+    7.25,
+    "SPLIT|thinking",
+    0.7475,
+    0.63
+   ]
+  }
+ },
+ {
+  "f": 0.05,
+  "server_step_ms_k3": 3.344414505730567,
+  "server_step_ms_k5": 3.0659914227525293,
+  "best_delta_pt": 14.499999999999996,
+  "best_ci_lo": 9.249999999999996,
+  "best_cell": [
+   12,
+   30,
+   "SPLIT|nonthinking",
+   "EDGE:Qwen3-8B-AWQ|nonthinking"
+  ],
+  "n_pass": 8,
+  "n_ge3": 8,
+  "cells": {
+   "12GB/D30": [
+    14.5,
+    9.25,
+    "SPLIT|nonthinking",
+    0.57,
+    0.425
+   ],
+   "12GB/D60": [
+    12.5,
+    6.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.455
+   ],
+   "12GB/D120": [
+    1.5,
+    -2.5,
+    "SPLIT|thinking",
+    0.5925,
+    0.5775
+   ],
+   "12GB/D300": [
+    11.25,
+    6.5,
+    "SPLIT|thinking",
+    0.7425,
+    0.63
+   ],
+   "12GB/D600": [
+    11.75,
+    7.25,
+    "SPLIT|thinking",
+    0.7475,
+    0.63
+   ],
+   "16GB/D30": [
+    12.5,
+    7.25,
+    "SPLIT|nonthinking",
+    0.55,
+    0.425
+   ],
+   "16GB/D60": [
+    12.5,
+    6.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.455
+   ],
+   "16GB/D120": [
+    0.25,
+    -5.25,
+    "SPLIT|nonthinking",
+    0.58,
+    0.5775
+   ],
+   "16GB/D300": [
+    6.75,
+    2.25,
+    "SPLIT|thinking",
+    0.6975,
+    0.63
+   ],
+   "16GB/D600": [
+    11.75,
+    7.25,
+    "SPLIT|thinking",
+    0.7475,
+    0.63
+   ]
+  }
+ },
+ {
+  "f": 0.0,
+  "server_step_ms_k3": 0.0,
+  "server_step_ms_k5": 0.0,
+  "best_delta_pt": 15.250000000000002,
+  "best_ci_lo": 9.999999999999998,
+  "best_cell": [
+   12,
+   30,
+   "SPLIT|nonthinking",
+   "EDGE:Qwen3-8B-AWQ|nonthinking"
+  ],
+  "n_pass": 9,
+  "n_ge3": 9,
+  "cells": {
+   "12GB/D30": [
+    15.25,
+    10.0,
+    "SPLIT|nonthinking",
+    0.5775,
+    0.425
+   ],
+   "12GB/D60": [
+    12.5,
+    6.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.455
+   ],
+   "12GB/D120": [
+    5.75,
+    1.25,
+    "SPLIT|thinking",
+    0.635,
+    0.5775
+   ],
+   "12GB/D300": [
+    11.75,
+    7.25,
+    "SPLIT|thinking",
+    0.7475,
+    0.63
+   ],
+   "12GB/D600": [
+    11.75,
+    7.25,
+    "SPLIT|thinking",
+    0.7475,
+    0.63
+   ],
+   "16GB/D30": [
+    13.5,
+    8.25,
+    "SPLIT|nonthinking",
+    0.56,
+    0.425
+   ],
+   "16GB/D60": [
+    12.5,
+    6.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.455
+   ],
+   "16GB/D120": [
+    0.25,
+    -4.75,
+    "SPLIT|nonthinking",
+    0.58,
+    0.5775
+   ],
+   "16GB/D300": [
+    8.25,
+    3.5,
+    "SPLIT|thinking",
+    0.7125,
+    0.63
+   ],
+   "16GB/D600": [
+    11.75,
+    7.25,
+    "SPLIT|thinking",
+    0.7475,
+    0.63
+   ]
+  }
+ }
+]

@@ -1,0 +1,249 @@
+{
+ "rows": [
+  {
+   "gpu": "GB10 / DGX Spark (public spec)",
+   "bw_GBps": 273.0,
+   "eff": 1.0,
+   "server_step_ms_k3": 207.18464093772891,
+   "best_delta": -5.0,
+   "ci_lo": -10.75,
+   "full_pass": false
+  },
+  {
+   "gpu": "GB10 / DGX Spark (public spec)",
+   "bw_GBps": 273.0,
+   "eff": 0.7,
+   "server_step_ms_k3": 295.97805848246986,
+   "best_delta": -6.0,
+   "ci_lo": -11.75,
+   "full_pass": false
+  },
+  {
+   "gpu": "GB10 / DGX Spark (public spec)",
+   "bw_GBps": 273.0,
+   "eff": 0.5,
+   "server_step_ms_k3": 414.36928187545783,
+   "best_delta": -8.0,
+   "ci_lo": -13.75,
+   "full_pass": false
+  },
+  {
+   "gpu": "RTX 4090",
+   "bw_GBps": 1008.0,
+   "eff": 1.0,
+   "server_step_ms_k3": 56.11250692063492,
+   "best_delta": 2.25,
+   "ci_lo": -3.25,
+   "full_pass": false
+  },
+  {
+   "gpu": "RTX 4090",
+   "bw_GBps": 1008.0,
+   "eff": 0.7,
+   "server_step_ms_k3": 80.1607241723356,
+   "best_delta": -3.5,
+   "ci_lo": -9.0,
+   "full_pass": false
+  },
+  {
+   "gpu": "RTX 4090",
+   "bw_GBps": 1008.0,
+   "eff": 0.5,
+   "server_step_ms_k3": 112.22501384126984,
+   "best_delta": -5.0,
+   "ci_lo": -10.75,
+   "full_pass": false
+  },
+  {
+   "gpu": "RTX 3090",
+   "bw_GBps": 936.0,
+   "eff": 1.0,
+   "server_step_ms_k3": 60.428853606837606,
+   "best_delta": 0.5,
+   "ci_lo": -4.75,
+   "full_pass": false
+  },
+  {
+   "gpu": "RTX 3090",
+   "bw_GBps": 936.0,
+   "eff": 0.7,
+   "server_step_ms_k3": 86.32693372405373,
+   "best_delta": -5.0,
+   "ci_lo": -10.75,
+   "full_pass": false
+  },
+  {
+   "gpu": "RTX 3090",
+   "bw_GBps": 936.0,
+   "eff": 0.5,
+   "server_step_ms_k3": 120.85770721367521,
+   "best_delta": -5.0,
+   "ci_lo": -10.75,
+   "full_pass": false
+  },
+  {
+   "gpu": "RTX 6000 Ada",
+   "bw_GBps": 960.0,
+   "eff": 1.0,
+   "server_step_ms_k3": 58.91813226666667,
+   "best_delta": 1.5,
+   "ci_lo": -4.0,
+   "full_pass": false
+  },
+  {
+   "gpu": "RTX 6000 Ada",
+   "bw_GBps": 960.0,
+   "eff": 0.7,
+   "server_step_ms_k3": 84.16876038095238,
+   "best_delta": -4.25,
+   "ci_lo": -9.75,
+   "full_pass": false
+  },
+  {
+   "gpu": "RTX 6000 Ada",
+   "bw_GBps": 960.0,
+   "eff": 0.5,
+   "server_step_ms_k3": 117.83626453333333,
+   "best_delta": -5.0,
+   "ci_lo": -10.75,
+   "full_pass": false
+  },
+  {
+   "gpu": "RTX PRO 6000 Blackwell",
+   "bw_GBps": 1792.0,
+   "eff": 1.0,
+   "server_step_ms_k3": 31.563285142857147,
+   "best_delta": 9.0,
+   "ci_lo": 3.5,
+   "full_pass": true
+  },
+  {
+   "gpu": "RTX PRO 6000 Blackwell",
+   "bw_GBps": 1792.0,
+   "eff": 0.7,
+   "server_step_ms_k3": 45.090407346938775,
+   "best_delta": 4.5,
+   "ci_lo": -0.75,
+   "full_pass": false
+  },
+  {
+   "gpu": "RTX PRO 6000 Blackwell",
+   "bw_GBps": 1792.0,
+   "eff": 0.5,
+   "server_step_ms_k3": 63.126570285714294,
+   "best_delta": 0.25,
+   "ci_lo": -5.0,
+   "full_pass": false
+  },
+  {
+   "gpu": "A100 80GB SXM",
+   "bw_GBps": 2039.0,
+   "eff": 1.0,
+   "server_step_ms_k3": 27.739777820500244,
+   "best_delta": 9.5,
+   "ci_lo": 4.0,
+   "full_pass": true
+  },
+  {
+   "gpu": "A100 80GB SXM",
+   "bw_GBps": 2039.0,
+   "eff": 0.7,
+   "server_step_ms_k3": 39.62825402928606,
+   "best_delta": 6.5,
+   "ci_lo": 1.25,
+   "full_pass": true
+  },
+  {
+   "gpu": "A100 80GB SXM",
+   "bw_GBps": 2039.0,
+   "eff": 0.5,
+   "server_step_ms_k3": 55.47955564100049,
+   "best_delta": 2.25,
+   "ci_lo": -3.25,
+   "full_pass": false
+  },
+  {
+   "gpu": "H100 PCIe",
+   "bw_GBps": 2000.0,
+   "eff": 1.0,
+   "server_step_ms_k3": 28.280703488,
+   "best_delta": 9.5,
+   "ci_lo": 4.0,
+   "full_pass": true
+  },
+  {
+   "gpu": "H100 PCIe",
+   "bw_GBps": 2000.0,
+   "eff": 0.7,
+   "server_step_ms_k3": 40.40100498285714,
+   "best_delta": 6.0,
+   "ci_lo": 0.75,
+   "full_pass": true
+  },
+  {
+   "gpu": "H100 PCIe",
+   "bw_GBps": 2000.0,
+   "eff": 0.5,
+   "server_step_ms_k3": 56.561406976,
+   "best_delta": 2.25,
+   "ci_lo": -3.25,
+   "full_pass": false
+  },
+  {
+   "gpu": "H100 SXM",
+   "bw_GBps": 3350.0,
+   "eff": 1.0,
+   "server_step_ms_k3": 16.88400208238806,
+   "best_delta": 11.75,
+   "ci_lo": 7.25,
+   "full_pass": true
+  },
+  {
+   "gpu": "H100 SXM",
+   "bw_GBps": 3350.0,
+   "eff": 0.7,
+   "server_step_ms_k3": 24.120002974840084,
+   "best_delta": 10.25,
+   "ci_lo": 5.5,
+   "full_pass": true
+  },
+  {
+   "gpu": "H100 SXM",
+   "bw_GBps": 3350.0,
+   "eff": 0.5,
+   "server_step_ms_k3": 33.76800416477612,
+   "best_delta": 8.75,
+   "ci_lo": 3.25,
+   "full_pass": true
+  },
+  {
+   "gpu": "H200",
+   "bw_GBps": 4800.0,
+   "eff": 1.0,
+   "server_step_ms_k3": 11.783626453333333,
+   "best_delta": 12.25,
+   "ci_lo": 6.5,
+   "full_pass": true
+  },
+  {
+   "gpu": "H200",
+   "bw_GBps": 4800.0,
+   "eff": 0.7,
+   "server_step_ms_k3": 16.833752076190475,
+   "best_delta": 11.75,
+   "ci_lo": 7.25,
+   "full_pass": true
+  },
+  {
+   "gpu": "H200",
+   "bw_GBps": 4800.0,
+   "eff": 0.5,
+   "server_step_ms_k3": 23.567252906666667,
+   "best_delta": 10.5,
+   "ci_lo": 5.0,
+   "full_pass": true
+  }
+ ],
+ "min_eff_bw_delta3_GBps": 1126.6601390205321,
+ "min_eff_bw_fullpass_GBps": 1357.0570959709585
+}

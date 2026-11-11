@@ -1,0 +1,127 @@
+{
+ "gb10_bw_bound": {
+  "decision": "STOP: R fails by bound (no bound cell reaches delta >= 3.0 pt; SPLIT removed)",
+  "best": {
+   "M": 16,
+   "D_s": 600,
+   "split_best": "SPLIT|nonthinking",
+   "delta_pt": -5.000000000000004,
+   "ci95": [
+    -10.750000000000004,
+    0.7500000000000062
+   ]
+  },
+  "cells": [
+   {
+    "M": 12,
+    "D_s": 30,
+    "delta_pt": -32.49999999999999,
+    "ci95": [
+     -38.5,
+     -26.5
+    ],
+    "split_best": "SPLIT|nonthinking",
+    "comp_best": "EDGE:Qwen3-8B-AWQ|nonthinking"
+   },
+   {
+    "M": 12,
+    "D_s": 60,
+    "delta_pt": -26.5,
+    "ci95": [
+     -32.99999999999999,
+     -20.5
+    ],
+    "split_best": "SPLIT|nonthinking",
+    "comp_best": "EDGE:Qwen3-8B-AWQ|thinking"
+   },
+   {
+    "M": 12,
+    "D_s": 120,
+    "delta_pt": -23.000000000000004,
+    "ci95": [
+     -29.25,
+     -17.0
+    ],
+    "split_best": "SPLIT|nonthinking",
+    "comp_best": "EDGE:Qwen3-8B-AWQ|thinking"
+   },
+   {
+    "M": 12,
+    "D_s": 300,
+    "delta_pt": -8.750000000000002,
+    "ci95": [
+     -14.749999999999996,
+     -2.9999999999999916
+    ],
+    "split_best": "SPLIT|nonthinking",
+    "comp_best": "EDGE:Qwen3-8B-AWQ|thinking"
+   },
+   {
+    "M": 12,
+    "D_s": 600,
+    "delta_pt": -5.249999999999999,
+    "ci95": [
+     -10.999999999999998,
+     0.5000000000000004
+    ],
+    "split_best": "SPLIT|nonthinking",
+    "comp_best": "EDGE:Qwen3-8B-AWQ|thinking"
+   },
+   {
+    "M": 16,
+    "D_s": 30,
+    "delta_pt": -32.0,
+    "ci95": [
+     -38.0,
+     -26.0
+    ],
+    "split_best": "SPLIT|nonthinking",
+    "comp_best": "EDGE:Qwen3-8B-AWQ|nonthinking"
+   },
+   {
+    "M": 16,
+    "D_s": 60,
+    "delta_pt": -26.25,
+    "ci95": [
+     -32.75,
+     -20.25
+    ],
+    "split_best": "SPLIT|nonthinking",
+    "comp_best": "EDGE:Qwen3-8B-AWQ|thinking"
+   },
+   {
+    "M": 16,
+    "D_s": 120,
+    "delta_pt": -21.250000000000004,
+    "ci95": [
+     -27.250000000000004,
+     -15.250000000000002
+    ],
+    "split_best": "SPLIT|nonthinking",
+    "comp_best": "EDGE:Qwen3-8B-AWQ|thinking"
+   },
+   {
+    "M": 16,
+    "D_s": 300,
+    "delta_pt": -7.9999999999999964,
+    "ci95": [
+     -13.750000000000007,
+     -2.2499999999999964
+    ],
+    "split_best": "SPLIT|nonthinking",
+    "comp_best": "EDGE:Qwen3-8B-AWQ|thinking"
+   },
+   {
+    "M": 16,
+    "D_s": 600,
+    "delta_pt": -5.000000000000004,
+    "ci95": [
+     -10.750000000000004,
+     0.7500000000000062
+    ],
+    "split_best": "SPLIT|nonthinking",
+    "comp_best": "EDGE:Qwen3-8B-AWQ|thinking"
+   }
+  ]
+ }
+}
