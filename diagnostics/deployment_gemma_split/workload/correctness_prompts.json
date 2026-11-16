@@ -1,0 +1,235 @@
+{
+ "gen_tokens": 1024,
+ "ignore_eos": false,
+ "items": [
+  {
+   "dataset": "gpqa",
+   "id": "nat-00",
+   "key": "gpqa:36",
+   "prompt": "Answer the following multiple choice question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Think step by step before answering.\n\nObservations of structures located at a distance of about 2.1 gigaparsecs (2.1 Gpc) are being carried out. The detected absorption line energy equivalent is about 3.9 micro electron volts (3.9 * 10^-6 eV).\n\nWhat is most likely to be observed with this absorption line in the Milky Way?\n\nA) Warm molecular interstellar medium.\nB) Cold atomic interstellar medium.\nC) Cold molecular interstellar medium.\nD) Warm atomic interstellar medium.",
+   "prompt_sha256": "cec40988dd41ed9d3b5d1f8065dde7363ee7db12a4a48b0030de46528a4bf59d"
+  },
+  {
+   "dataset": "gpqa",
+   "id": "nat-01",
+   "key": "gpqa:164",
+   "prompt": "Answer the following multiple choice question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Think step by step before answering.\n\nAstronomers are studying two binary star systems: system_1 and system_2. Observations reveal that both systems exhibit eclipses with periods of 2 years and 1 year, respectively, for system_1 and system_2. These periods are calculated as the time between two consecutive primary eclipses. Further spectroscopic observations indicate that in system_1, the two stars display sinusoidal variations of radial velocities with amplitudes of 10 km/s and 5 km/s. In system_2, the amplitudes of the RV sinusoidal variations are 15 km/s and 10 km/s. By what factor is system_1 more massive than system_2? Consider the mass of a system to be the sum of the masses of its two stars.\n\nA) ~ 0.4\nB) ~ 0.6\nC) ~ 1.2\nD) ~ 0.7",
+   "prompt_sha256": "8efbff8e7d50a4cf8c3eae559784cdcfe5598a9c7df87f9e33cb8f763ab59c95"
+  },
+  {
+   "dataset": "gpqa",
+   "id": "nat-02",
+   "key": "gpqa:93",
+   "prompt": "Answer the following multiple choice question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Think step by step before answering.\n\n\"Scientist aims to run quantitative polymerase chain reaction (qPCR) on some samples. He first wants to make a calibration curve so he took positive control with known copy numbers and run qPCR on serially diluted positive control three technical replicates. The efficiency of qPCR was 100%. The R2 was 1, and the slope was -3.3. His results were as follows:\nAt the concentration of 100000 copies per µl, ct of triplicate results were 33.9, 34.2, 34.5.\nAt the concentration of 10000 copies per µl, ct of triplicate results were 30.6, 30.9, 31.2.\nAt the concentration of 1000 copies per µl, ct of triplicate results were 27.3, 27.6, 27.9.\nAt the concentration of 100 copies per µl, ct of triplicate results were 24, 24.3, 24.6.\nAt the concentration of 10 copies per µl, ct of triplicate results were 20.7, 21, 21.3\nWhich of the following explains the discrepancies in his results?\n\n\n\nA) qPCR cannot be used for the quantification of nucleic acid in samples\nB) Ct values are not in agreement with the amount of target nucleic acid in samples\nC) Ten-fold dilution is more than 3.3 cycles\nD) The deviation is more than 0.3 between technical replicates",
+   "prompt_sha256": "9619c569c44df9ea0b07248e3ad06cf2fb50d82dcfbc45aece9c290d24d83c2d"
+  },
+  {
+   "dataset": "gpqa",
+   "id": "nat-03",
+   "key": "gpqa:45",
+   "prompt": "Answer the following multiple choice question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Think step by step before answering.\n\nFour identical spin-1/2 particles are placed in a one-dimensional infinite potential well of length L. Calculate the energies of the ground state, first excited state, and second excited state of the system in terms of energy  E.\n(Here E= pi^2 \\hbar^2 /2mL^2 )\n\nA) 30E, 39E, 50E\nB) 4E, 10E, 50E\nC) 4E, 10E, 15E\nD) 10E, 15E, 18E",
+   "prompt_sha256": "5d8938398e499e8a70df86bcf53c1ddbd1f2fed7664e77795d5552edfe7d7699"
+  },
+  {
+   "dataset": "gpqa",
+   "id": "nat-04",
+   "key": "gpqa:114",
+   "prompt": "Answer the following multiple choice question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Think step by step before answering.\n\nSelect the suitable reagents for the following mentioned reactions.\nbutan-2-one + NaCN + A ---> 2-hydroxy-2-methylbutanenitrile\n2-(4-benzylphenyl)-2-hydroxybutanenitrile + B (H2O) ---> 2-(4-benzylphenyl)-2-hydroxybutanoic acid\n\nA) A = H3O+, B = HCl\nB) A = H3O+, B = CH3COOH\nC) A = NaHSO3, B = HCl\nD) A = NaHSO3, B = CH3COOH",
+   "prompt_sha256": "58bee8d09895f249c24b06ae4669f4f136e77558884e27edfd796f18f3995ac7"
+  },
+  {
+   "dataset": "gpqa",
+   "id": "nat-05",
+   "key": "gpqa:75",
+   "prompt": "Answer the following multiple choice question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Think step by step before answering.\n\nYou want to study the role of the GADD45G protein in a mouse model. You are highly interested in whether the IL-2-induced protein has a role in the SARS-CoV-2 infection. You decide to create a transgenic mouse model with the inducible overexpression of the coding sequence for the GADD45G gene. You can use it to affinity-purify the protein and identify the protein partners that bind to GADD45G after you infect the mice with the virus. For that purpose, you will modify the gene's coding sequence by introducing the sequence for a single influenza hemagglutinin antigenic determinant that will be at the N-terminus of your recombinant protein. You genetically engineer the plasmid and, aided by Lipofectamine®, transfect it into the Chinese hamster ovary cells. You select the antibiotic-resistant cell colonies to test the expression level of your construct. Once you begin, you observe that you are unable to overexpress your protein as you expected. In the series of tests you undertake to identify the cause, you realize that the sequence of the plus strand of your construct reads:\n\n\n5'ATGTACCCATACGATGTTCCAGATTACGCCAAATGACTCTGGAAGAAGTCCGCGGCCAGGACACAGTTCCGGAAAGCACAGCCAGGATGCAGGGTGCCGGGAAAGCGCTGCATGAGTTGCTGCTGTCGGCGCAGCGTCAGGGCTGCCTCACTGCCGGCGTCTACGAGTCAGCCAAAGTCTTGAACGTGGACCCCGACAATGTGACCTTCTGTGTGCTGGCTGCGGGTGAGGAGGACGAGGGCGACATCGCGCTGCAGATCCATTTTACGCTGATCCAGGCTTTCTGCTGCGAGAACGACATCGACATAGTGCGCGTGGGCGATGTGCAGCGGCTGGCGGCTATCGTGGGCGCCGGCGAGGAGGCGGGTGCGCCGGGCGACCTGCACTGCATCCTCATTTCGAACCCCAACGAGGACGCCTGGAAGGATCCCGCCTTGGAGAAGCTCAGCCTGTTTTGCGAGGAGAGCCGCAGCGTTAACGACTGGGTGCCCAGCATCACCCTCCCCGAGTGA3'\n\nYou annoyingly notice the reason.\n\nA) The sequence for the antigenic determinant has a missense mutation\nB) The ribosome terminated the translation early\nC) The lack of the linker sequence is triggering proteolysis of the nascent chain\nD) The tRNA for the UAA codon does not exist in the mouse",
+   "prompt_sha256": "09985fb3057e6b3de9797515ff31f3bd3270fc920ad80ec8fb51829fc0c24c01"
+  },
+  {
+   "dataset": "gpqa",
+   "id": "nat-06",
+   "key": "gpqa:155",
+   "prompt": "Answer the following multiple choice question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Think step by step before answering.\n\nImagine an operator $\\vec{P}$ of a system have components $P_x, P_y$ and $P_z$. The matrix form of the  operator $P_x$ has components in the first row as $(0, \\hbar/\\sqrt{2}, 0)$, that in the second row as $(\\hbar/\\sqrt{2}, 0, \\hbar/\\sqrt{2})$ and that in the third row as $(0,\\hbar/\\sqrt{2},0)$.  The matrix form of the  operator $P_y$ has components in the first row as $(0, -i \\hbar/\\sqrt{2}, 0)$, that in the second row as $(i \\hbar/\\sqrt{2}, 0, -i \\hbar/\\sqrt{2})$ and that in the third row as $(0,i \\hbar/\\sqrt{2},0)$. Similarly, matrix form of the  operator $P_z$ has components in the first row as $(\\hbar, 0, 0)$, that in the second row as $(0, 0, 0)$ and that in the third row as $(0,0, -\\hbar)$. The basis vectors here are the eigenvectors of $P_z$. The system is found in the eigenstate of $P_x$ corresponding to the eigenvalue $-\\hbar$. To be more specific, the explicit form of the state of the system is given by the column vector having elements $(-1/2, 1/\\sqrt{2}, -1/2)$. What is the uncertainty $\\Delta P_z $ of $P_z$\n\nA) \\sqrt{2}\\hbar\nB) \\hbar/\\sqrt{2}\nC) \\hbar/2\nD) \\hbar",
+   "prompt_sha256": "d56439be59d64387a9e6644bac2fc9f8f739203a6c3695541eea8a65c4931c0e"
+  },
+  {
+   "dataset": "gpqa",
+   "id": "nat-07",
+   "key": "gpqa:157",
+   "prompt": "Answer the following multiple choice question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Think step by step before answering.\n\nThere has been an outbreak of an viral infectious disease in your city. You have been asked to design a molecular diagnostic kit for quick detection of this retrovirus. How would you go about designing this kit?\n\nA) First you identify the virus using the information about the symptoms, provided by the affected patients. You then design a nested PCR kit based on the information for quick diagnosis.\nB) First you identify the virus by performing cDNA sequencing.  You then develop a real time PCR kit for quick and accurate diagnosis.\nC) First you identify the virus by performing DNA sequencing. You then develop a PCR kit for  quick and accurate diagnosis\nD) First you identify the IgG antibodies for the infection. You then develop an ELISA kit targeting IgG antibodies for quick \n and accurate diagnosis.",
+   "prompt_sha256": "6c4c77eb5804c7f2324222e5e6695fd84b1961ee10a984ac4ba439e2ed031439"
+  },
+  {
+   "dataset": "gpqa",
+   "id": "nat-08",
+   "key": "gpqa:134",
+   "prompt": "Answer the following multiple choice question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Think step by step before answering.\n\nCalculate the enthalpy of neutralization when 500 mL 0.2 M HCl, 300 mL 0.3 M H2SO4 and 200 mL 0.5 M Ba(OH)2 are mixed.\n\nA) -2.72 kcal\nB) -11.42 kcal\nC) -3.80 kcal\nD) -16.0 kJ",
+   "prompt_sha256": "300b9ffe3a1363f2d9ced6dc575222eb62cc556c58f3dabe23c2276b9a53cd28"
+  },
+  {
+   "dataset": "livecodebench",
+   "id": "nat-09",
+   "key": "livecodebench:572",
+   "prompt": "You are an expert Python programmer. You will be given a question (problem specification) and will generate a correct Python program that matches the specification and passes all tests.\n### Question:\nA magician has various spells.\nYou are given an array power, where each element represents the damage of a spell. Multiple spells can have the same damage value.\nIt is a known fact that if a magician decides to cast a spell with a damage of power[i], they cannot cast any spell with a damage of power[i] - 2, power[i] - 1, power[i] + 1, or power[i] + 2.\nEach spell can be cast only once.\nReturn the maximum possible total damage that a magician can cast.\n \nExample 1:\n\nInput: power = [1,1,3,4]\nOutput: 6\nExplanation:\nThe maximum possible damage of 6 is produced by casting spells 0, 1, 3 with damage 1, 1, 4.\n\nExample 2:\n\nInput: power = [7,1,6,6]\nOutput: 13\nExplanation:\nThe maximum possible damage of 13 is produced by casting spells 1, 2, 3 with damage 1, 6, 6.\n\n \nConstraints:\n\n1 <= power.length <= 10^5\n1 <= power[i] <= 10^9\n\n### Format: You will use the following starter code to write the solution to the problem and enclose your code within delimiters.\n```python\nclass Solution:\n    def maximumTotalDamage(self, power: List[int]) -> int:\n        \n```\n\n### Answer: (use the provided format with backticks)\n\n",
+   "prompt_sha256": "d9e7ba0b4fabca90d000c108db9c08e39f341c9d6c69509ee689dc5121734ac4"
+  },
+  {
+   "dataset": "livecodebench",
+   "id": "nat-10",
+   "key": "livecodebench:914",
+   "prompt": "You are an expert Python programmer. You will be given a question (problem specification) and will generate a correct Python program that matches the specification and passes all tests.\n### Question:\nThere are N dice.\r\nThe i-th die has K_i faces, with the numbers A_{i,1}, A_{i,2}, \\ldots, A_{i,K_i} written on them.\r\nWhen you roll this die, each face appears with probability \\frac{1}{K_i}.\nYou choose two dice from the N dice and roll them.\r\nDetermine the maximum probability that the two dice show the same number, when the dice are chosen optimally.\n\nInput\n\nThe input is given from Standard Input in the following format:\nN\r\nK_1 A_{1,1} A_{1,2} \\dots A_{1,K_1}\r\n\\vdots\r\nK_N A_{N,1} A_{N,2} \\dots A_{N,K_N}\n\nOutput\n\nPrint the answer.\r\nYour answer is considered correct if the absolute or relative error from the true solution does not exceed 10^{-8}.\n\nConstraints\n\n\n- 2 \\leq N \\leq 100\n- 1 \\leq K_i\n- K_1 + K_2 + \\dots + K_N \\leq 10^5\n- 1 \\leq A_{i,j} \\leq 10^5\n- All input values are integers.\n\nSample Input 1\n\n3\r\n3 1 2 3\r\n4 1 2 2 1\r\n6 1 2 3 4 5 6\n\nSample Output 1\n\n0.333333333333333\r\n\n\n- When choosing the 1st and 2nd dice, the probability that the outcomes are the same is \\frac{1}{3}.\n- When choosing the 1st and 3rd dice, the probability is \\frac{1}{6}.\n- When choosing the 2nd and 3rd dice, the probability is \\frac{1}{6}.\n\nTherefore, the maximum probability is \\frac{1}{3} = 0.3333333333\\ldots.\n\nSample Input 2\n\n3\r\n5 1 1 1 1 1\r\n4 2 2 2 2\r\n3 1 1 2\n\nSample Output 2\n\n0.666666666666667\n\n### Format: Read the inputs from stdin solve the problem and write the answer to stdout (do not directly test on the sample inputs). Enclose your code within delimiters as follows. Ensure that when the python program runs, it reads the inputs, runs the algorithm and writes output to STDOUT.\n```python\n# YOUR CODE HERE\n```\n\n### Answer: (use the provided format with backticks)\n\n",
+   "prompt_sha256": "b69f2d9723d669b3febbb7a3dc4b9c9ae03b7fdb7fb9a7da150bcc19d830f1c5"
+  },
+  {
+   "dataset": "livecodebench",
+   "id": "nat-11",
+   "key": "livecodebench:557",
+   "prompt": "You are an expert Python programmer. You will be given a question (problem specification) and will generate a correct Python program that matches the specification and passes all tests.\n### Question:\nThere are N+Q points A_1,\\dots,A_N,B_1,\\dots,B_Q on a number line, where point A_i has a coordinate a_i and point B_j has a coordinate b_j.\nFor each j=1,2,\\dots,Q, answer the following question:\n\n- Let X be the point among A_1,A_2,\\dots,A_N that is the k_j-th closest to point B_j. Find the distance between points X and B_j.\r\nMore formally, let d_i be the distance between points A_i and B_j. Sort (d_1,d_2,\\dots,d_N) in ascending order to get the sequence (d_1',d_2',\\dots,d_N'). Find d_{k_j}'.\n\nInput\n\nThe input is given from Standard Input in the following format:\nN Q\r\na_1 a_2 \\dots a_N\r\nb_1 k_1\r\nb_2 k_2\r\n\\vdots\r\nb_Q k_Q\n\nOutput\n\nPrint Q lines.\r\nThe l-th line (1 \\leq l \\leq Q) should contain the answer to the question for j=l as an integer.\n\nConstraints\n\n\n- 1 \\leq N, Q \\leq 10^5\n- -10^8 \\leq a_i, b_j \\leq 10^8\n- 1 \\leq k_j \\leq N\n- All input values are integers.\n\nSample Input 1\n\n4 3\r\n-3 -1 5 6\r\n-2 3\r\n2 1\r\n10 4\n\nSample Output 1\n\n7\r\n3\r\n13\r\n\nLet us explain the first query.\nThe distances from points A_1, A_2, A_3, A_4 to point B_1 are 1, 1, 7, 8, respectively, so the 3rd closest to point B_1 is point A_3.\r\nTherefore, print the distance between point A_3 and point B_1, which is 7.\n\nSample Input 2\n\n2 2\r\n0 0\r\n0 1\r\n0 2\n\nSample Output 2\n\n0\r\n0\r\n\nThere may be multiple points with the same coordinates.\n\nSample Input 3\n\n10 5\r\n-84 -60 -41 -100 8 -8 -52 -62 -61 -76\r\n-52 5\r\n14 4\r\n-2 6\r\n46 2\r\n26 7\n\nSample Output 3\n\n11\r\n66\r\n59\r\n54\r\n88\n\n### Format: Read the inputs from stdin solve the problem and write the answer to stdout (do not directly test on the sample inputs). Enclose your code within delimiters as follows. Ensure that when the python program runs, it reads the inputs, runs the algorithm and writes output to STDOUT.\n```python\n# YOUR CODE HERE\n```\n\n### Answer: (use the provided format with backticks)\n\n",
+   "prompt_sha256": "806faf79ff80eeafc03206202a97566268ffe3a5c73e3e3339aa073c66fcc643"
+  },
+  {
+   "dataset": "livecodebench",
+   "id": "nat-12",
+   "key": "livecodebench:268",
+   "prompt": "You are an expert Python programmer. You will be given a question (problem specification) and will generate a correct Python program that matches the specification and passes all tests.\n### Question:\nThere are H \\times W cookies in H rows and W columns.\nThe color of the cookie at the i-row from the top and j-th column from the left is represented by a lowercase English letter c_{i,j}.  \nWe will perform the following procedure.\n1. For each row, perform the following operation: if there are two or more cookies remaining in the row and they all have the same color, mark them.  \n2. For each column, perform the following operation: if there are two or more cookies remaining in the column and they all have the same color, mark them.  \n3. If there are any marked cookies, remove them all and return to 1; otherwise, terminate the procedure.\nFind the number of cookies remaining at the end of the procedure.\n\nInput\n\nThe input is given from Standard Input in the following format:\nH W\nc_{1,1}c_{1,2} \\ldots c_{1,W}\nc_{2,1}c_{2,2} \\ldots c_{2,W}\n\\vdots\nc_{H,1}c_{H,2} \\ldots c_{H,W}\n\nOutput\n\nPrint the answer.\n\nConstraints\n\n\n- 2 \\leq H, W \\leq 2000\n- c_{i,j} is a lowercase English letter.\n\nSample Input 1\n\n4 3\naaa\naaa\nabc\nabd\n\nSample Output 1\n\n2\n\nThe procedure is performed as follows.\n\n- 1. Mark the cookies in the first and second rows.\n- 2. Mark the cookies in the first column.\n- 3. Remove the marked cookies.\n\nAt this point, the cookies look like the following, where  . indicates a position where the cookie has been removed.\n...\n...\n.bc\n.bd\n\n\n- 1. Do nothing.\n- 2. Mark the cookies in the second column.\n- 3. Remove the marked cookies.\n\nAt this point, the cookies look like the following, where  . indicates a position where the cookie has been removed.\n...\n...\n..c\n..d\n\n\n- 1. Do nothing.\n- 2. Do nothing.\n- 3. No cookies are marked, so terminate the procedure.\n\nThe final number of cookies remaining is 2.\n\nSample Input 2\n\n2 5\naaaaa\nabcde\n\nSample Output 2\n\n4\n\nSample Input 3\n\n3 3\nooo\nooo\nooo\n\nSample Output 3\n\n0\n\n### Format: Read the inputs from stdin solve the problem and write the answer to stdout (do not directly test on the sample inputs). Enclose your code within delimiters as follows. Ensure that when the python program runs, it reads the inputs, runs the algorithm and writes output to STDOUT.\n```python\n# YOUR CODE HERE\n```\n\n### Answer: (use the provided format with backticks)\n\n",
+   "prompt_sha256": "2f4f4feadd2da9b405e2be3bad04d931786c1e044e5eeba6dd0abab2294df1dc"
+  },
+  {
+   "dataset": "livecodebench",
+   "id": "nat-13",
+   "key": "livecodebench:14",
+   "prompt": "You are an expert Python programmer. You will be given a question (problem specification) and will generate a correct Python program that matches the specification and passes all tests.\n### Question:\nYou are given a 0-indexed string s and a dictionary of words dictionary. You have to break s into one or more non-overlapping substrings such that each substring is present in dictionary. There may be some extra characters in s which are not present in any of the substrings.\nReturn the minimum number of extra characters left over if you break up s optimally.\n \nExample 1:\n\nInput: s = \"leetscode\", dictionary = [\"leet\",\"code\",\"leetcode\"]\nOutput: 1\nExplanation: We can break s in two substrings: \"leet\" from index 0 to 3 and \"code\" from index 5 to 8. There is only 1 unused character (at index 4), so we return 1.\n\n\nExample 2:\n\nInput: s = \"sayhelloworld\", dictionary = [\"hello\",\"world\"]\nOutput: 3\nExplanation: We can break s in two substrings: \"hello\" from index 3 to 7 and \"world\" from index 8 to 12. The characters at indices 0, 1, 2 are not used in any substring and thus are considered as extra characters. Hence, we return 3.\n\n \nConstraints:\n\n1 <= s.length <= 50\n1 <= dictionary.length <= 50\n1 <= dictionary[i].length <= 50\ndictionary[i] and s consists of only lowercase English letters\ndictionary contains distinct words\n\n### Format: You will use the following starter code to write the solution to the problem and enclose your code within delimiters.\n```python\nclass Solution:\n    def minExtraChar(self, s: str, dictionary: List[str]) -> int:\n        \n```\n\n### Answer: (use the provided format with backticks)\n\n",
+   "prompt_sha256": "1c8fde577159d28bd2a464626a0513ac5d9be853050cdf8ddc3a5f8351c3ba22"
+  },
+  {
+   "dataset": "livecodebench",
+   "id": "nat-14",
+   "key": "livecodebench:509",
+   "prompt": "You are an expert Python programmer. You will be given a question (problem specification) and will generate a correct Python program that matches the specification and passes all tests.\n### Question:\nA powerful array for an integer x is the shortest sorted array of powers of two that sum up to x. For example, the powerful array for 11 is [1, 2, 8].\nThe array big_nums is created by concatenating the powerful arrays for every positive integer i in ascending order: 1, 2, 3, and so forth. Thus, big_nums starts as [1, 2, 1, 2, 4, 1, 4, 2, 4, 1, 2, 4, 8, ...].\nYou are given a 2D integer matrix queries, where for queries[i] = [from_i, to_i, mod_i] you should calculate (big_nums[from_i] * big_nums[from_i + 1] * ... * big_nums[to_i]) % mod_i.\nReturn an integer array answer such that answer[i] is the answer to the i^th query.\n \nExample 1:\n\nInput: queries = [[1,3,7]]\nOutput: [4]\nExplanation:\nThere is one query.\nbig_nums[1..3] = [2,1,2]. The product of them is 4. The remainder of 4 under 7 is 4.\n\nExample 2:\n\nInput: queries = [[2,5,3],[7,7,4]]\nOutput: [2,2]\nExplanation:\nThere are two queries.\nFirst query: big_nums[2..5] = [1,2,4,1]. The product of them is 8. The remainder of 8 under 3 is 2.\nSecond query: big_nums[7] = 2. The remainder of 2 under 4 is 2.\n\n \nConstraints:\n\n1 <= queries.length <= 500\nqueries[i].length == 3\n0 <= queries[i][0] <= queries[i][1] <= 10^15\n1 <= queries[i][2] <= 10^5\n\n### Format: You will use the following starter code to write the solution to the problem and enclose your code within delimiters.\n```python\nclass Solution:\n    def findProductsOfElements(self, queries: List[List[int]]) -> List[int]:\n        \n```\n\n### Answer: (use the provided format with backticks)\n\n",
+   "prompt_sha256": "3ad43be7d23f2b1229125aa91afdd8a978bb3f4835916cc4971d063c62bf78c3"
+  },
+  {
+   "dataset": "livemathbench",
+   "id": "nat-15",
+   "key": "livemathbench:11",
+   "prompt": "Solve the following math problem step by step. The last line of your response should only contain your final answer inside a \\boxed{} command.\n\nGiven complex numbers $z, w$ such that $z + w = 2$, find the minimum possible value of $S = |z^2 - 2w| + |w^2 - 2z|$.\n\nRemember to put your final answer on the last line using the format \\boxed{$ANSWER} where $ANSWER is the answer to the problem.",
+   "prompt_sha256": "537f3be4d2319b7e29df3263efc403107a907978798287a2a4e583ff9cb2a720"
+  },
+  {
+   "dataset": "livemathbench",
+   "id": "nat-16",
+   "key": "livemathbench:93",
+   "prompt": "Solve the following math problem step by step. The last line of your response should only contain your final answer inside a \\boxed{} command.\n\nA dartboard is the region B in the coordinate plane consisting of points $(x, y)$ such that $|x| + |y| \\le 8$. A target $T$ is the region where $(x^2 + y^2 - 25)^2 \\le 49$. A dart is thrown and lands at a random point in $B$. The probability that the dart lands in $T$ can be expressed as $\\frac{m}{n} \\cdot \\pi$, where $m$ and $n$ are relatively prime positive integers. What is $m + n$?\n\nRemember to put your final answer on the last line using the format \\boxed{$ANSWER} where $ANSWER is the answer to the problem.",
+   "prompt_sha256": "e78c1a095523e9d3624c92cc7cd7789f9f539b1f2b65242964c0ec29accfcc2d"
+  },
+  {
+   "dataset": "livemathbench",
+   "id": "nat-17",
+   "key": "livemathbench:83",
+   "prompt": "Solve the following math problem step by step. The last line of your response should only contain your final answer inside a \\boxed{} command.\n\nWhat is the value of $\\tan^2 \\frac {\\pi}{16} \\cdot \\tan^2 \\frac {3\\pi}{16} + \\tan^2 \\frac {\\pi}{16} \\cdot \\tan^2 \\frac {5\\pi}{16}+\\tan^2 \\frac {3\\pi}{16} \\cdot \\tan^2 \\frac {7\\pi}{16}+\\tan^2 \\frac {5\\pi}{16} \\cdot \\tan^2 \\frac {7\\pi}{16}$?\n\nRemember to put your final answer on the last line using the format \\boxed{$ANSWER} where $ANSWER is the answer to the problem.",
+   "prompt_sha256": "36bff754c4f4c1a84addb2a9ac5f9dbbe65a7642cb8fa1a2d17cfceba4d8b5f1"
+  },
+  {
+   "dataset": "livemathbench",
+   "id": "nat-18",
+   "key": "livemathbench:49",
+   "prompt": "Solve the following math problem step by step. The last line of your response should only contain your final answer inside a \\boxed{} command.\n\nThe mode of the data $2,3,5,5,4$ is ?\n\nRemember to put your final answer on the last line using the format \\boxed{$ANSWER} where $ANSWER is the answer to the problem.",
+   "prompt_sha256": "da6aa0b3b253157c1439c4a0b0725c10fa0f9a4c7a9b3d6e26810be30e61bce5"
+  },
+  {
+   "dataset": "livemathbench",
+   "id": "nat-19",
+   "key": "livemathbench:115",
+   "prompt": "Solve the following math problem step by step. The last line of your response should only contain your final answer inside a \\boxed{} command.\n\nFor each positive integer $n$, let $k(n)$ be the number of ones in the binary representation of $2023 \\cdot n$. What is the minimum value of $k(n)$?\n\nRemember to put your final answer on the last line using the format \\boxed{$ANSWER} where $ANSWER is the answer to the problem.",
+   "prompt_sha256": "66317e309363d90b1d31674b78cf1f8af09c030dfcad4f83ff0b333e17fbd85b"
+  },
+  {
+   "dataset": "livemathbench",
+   "id": "nat-20",
+   "key": "livemathbench:44",
+   "prompt": "Solve the following math problem step by step. The last line of your response should only contain your final answer inside a \\boxed{} command.\n\nA badminton club arranges 6 male and 6 female players to participate in three doubles exhibition matches (one men's doubles, one women's doubles, and one mixed doubles). Each player participates in only one match. The total number of different arrangements is ?\n\nRemember to put your final answer on the last line using the format \\boxed{$ANSWER} where $ANSWER is the answer to the problem.",
+   "prompt_sha256": "5fec99d3fa029164adb39f61a8621a95b77c335d6f8306eab0ffbb52d223914e"
+  },
+  {
+   "dataset": "mmlupro",
+   "id": "nat-21",
+   "key": "mmlupro:11",
+   "prompt": "Answer the following engineering question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCDEFGHIJ.\n\nDetermine the drag force acting on a 10 ft × 100 ft smooth flatplate when it is pulled lengthwise on a still water surface witha velocity of 20 ft/s. Also calculate the drag force on the first10 ft length of the plate. For water \\rho = 62.4 lb/ft^3 ;ѵ = 1.08 × 10^-5 ft^2/s.\n\nA. 880lb_f for the whole plate and 124lb_f for the first 10 ft\nB. 680lb_f for the whole plate and 96lb_f for the first 10 ft\nC. 720lb_f for the whole plate and 102lb_f for the first 10 ft\nD. 800lb_f for the whole plate and 112lb_f for the first 10 ft\nE. 780lb_f for the whole plate and 110lb_f for the first 10 ft\nF. 640lb_f for the whole plate and 90lb_f for the first 10 ft\nG. 700lb_f for the whole plate and 100lb_f for the first 10 ft\nH. 820lb_f for the whole plate and 116lb_f for the first 10 ft\nI. 850lb_f for the whole plate and 120lb_f for the first 10 ft\nJ. 760lb_f for the whole plate and 106lb_f for the first 10 ft\n\nLet's think step by step.",
+   "prompt_sha256": "53825d0b8cfe22624d994f1f9cca2ba5c4baae366963862918c4ce8154647e17"
+  },
+  {
+   "dataset": "mmlupro",
+   "id": "nat-22",
+   "key": "mmlupro:519",
+   "prompt": "Answer the following chemistry question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCDEFGHIJ.\n\nOne curie is defined as the amount of material, which is equivalent to one gram of radium, that gives 3.7 × 10^10 nuclear disintegrations per second. The half-life of ^210At is 8.3 hr. How many grains of astatine (At) would equal one curie?\n\nA. 1.1 × 10^-6 g\nB. 4.2 × 10^-7 g\nC. 9.8 × 10^-7 g\nD. 7.71 × 10^-7 g\nE. 3.3 × 10^-7 g\nF. 5.5 × 10^-7 g\nG. 8.2 × 10^-7 g\nH. 7.0 × 10^-7 g\nI. 2.8 × 10^-6 g\nJ. 6.4 × 10^-7 g\n\nLet's think step by step.",
+   "prompt_sha256": "b658bfc00fd27fe8cbabfb4fa555d778cb9faef5f7103de1a65123ba6277bdc8"
+  },
+  {
+   "dataset": "mmlupro",
+   "id": "nat-23",
+   "key": "mmlupro:661",
+   "prompt": "Answer the following psychology question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCDEFGHIJ.\n\nThe primary research method used by developmental psychologists is\n\nA. psychoanalysis\nB. self-report inventories\nC. longitudinal research\nD. naturalistic observation\nE. experimental method\nF. experimentation\nG. correlational research\nH. survey research\nI. cross-sectional research\nJ. case study\n\nLet's think step by step.",
+   "prompt_sha256": "c1edb7448d620eacf2cedf2d4e8fff0206bb3607b524e3c0e4ac36ce1583aeff"
+  },
+  {
+   "dataset": "mmlupro",
+   "id": "nat-24",
+   "key": "mmlupro:843",
+   "prompt": "Answer the following psychology question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCDEFGHIJ.\n\nWith respect to the relationship between achievement and anxiety in schoolchildren, it appears that\n\nA. some anxiety normally facilitates learning, and only for a few learners is there a point beyond which anxiety impedes learning\nB. non-anxious children are better achievers than mildly anxious ones\nC. mildly anxious children are better achievers than more anxious ones\nD. there is no systematic relationship; anxiety measures are of no help in predicting achievement\nE. highly anxious children are better achievers than mildly anxious ones\nF. mildly anxious children are worse achievers than non-anxious ones\nG. the level of anxiety does not affect the achievement of children\nH. the relationship between anxiety and achievement is dependent on the subject being studied\nI. only non-anxious children can achieve better learning outcomes\nJ. highly anxious children are unable to achieve any learning outcomes\n\nLet's think step by step.",
+   "prompt_sha256": "41990a3924f50d16914a5ca987f5f31d8a1ee7427a2d153ec932803856490827"
+  },
+  {
+   "dataset": "mmlupro",
+   "id": "nat-25",
+   "key": "mmlupro:357",
+   "prompt": "Answer the following history question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCDEFGHIJ.\n\nAfter 400,000 years ago, hominid evolution is characterized by:\n\nA. the development of language and writing.\nB. slowly increased brain size and the first stone tools.\nC. a rapid increase in brain size.\nD. the transition from bipedalism to quadrupedalism.\nE. a decrease in stature and increase in brain size.\nF. bipedalism and relatively stable brain size.\nG. a slight decrease in average brain size.\nH. a rapid increase in body size.\nI. a rapid decrease in brain size.\nJ. the development of complex social structures and no change in brain size.\n\nLet's think step by step.",
+   "prompt_sha256": "2a73771c737854206ac97cc3ddd227c119723446f655b9483dd12b1db563da93"
+  },
+  {
+   "dataset": "mmlupro",
+   "id": "nat-26",
+   "key": "mmlupro:554",
+   "prompt": "Answer the following other question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCDEFGHIJ.\n\nAs of 2020, about what percentage of the world population practices open defecation?\n\nA. 4%\nB. 2%\nC. 11%\nD. 9%\nE. 15%\nF. 22%\nG. 5%\nH. 7%\nI. 18%\nJ. 13%\n\nLet's think step by step.",
+   "prompt_sha256": "31ce4db47012daae9c7187f9c56aa36a26748c9c1ad550450eae945125088bd8"
+  },
+  {
+   "dataset": "mmlupro",
+   "id": "nat-27",
+   "key": "mmlupro:313",
+   "prompt": "Answer the following other question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCDEFGHIJ.\n\nMass-society theory suggests that:\n\nA. the subordinate classes are dominated by the ideology of the ruling class\nB. the media serves as a platform for the masses to voice their opinions\nC. the media manipulate 'the masses' as vulnerable, passive consumers\nD. audiences make selective interpretations of media messages\nE. the content of the media is determined by market forces\nF. the media's sole purpose is to disseminate information impartially\nG. the masses manipulate the media through their consumption patterns\nH. the dominant classes are influenced by the ideologies of the subordinate class\nI. the media is independent of societal influences\nJ. the content of the media is solely determined by government censorship\n\nLet's think step by step.",
+   "prompt_sha256": "ad25d75373cb0b0af2f4a1ddc4e685fc9b32cd5b3bda838023061636ccc5d175"
+  },
+  {
+   "dataset": "mmlupro",
+   "id": "nat-28",
+   "key": "mmlupro:129",
+   "prompt": "Answer the following physics question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCDEFGHIJ.\n\nAssume a temperature of 300 K and find the wavelength of the photon necessary to cause an electron to jump from the valence to the conduction band in silicon in nm.\n\nA. 1300.0\nB. 1130.0\nC. 850.0\nD. 1020.0\nE. 950.0\nF. 1100.0\nG. 1600.0\nH. 1400.0\nI. 1250.0\nJ. 1200.0\n\nLet's think step by step.",
+   "prompt_sha256": "ca89ab811a490a1acbc82a647a31d5b427d42f8846ad3863a9c4977b9468fb7e"
+  },
+  {
+   "dataset": "mmlupro",
+   "id": "nat-29",
+   "key": "mmlupro:874",
+   "prompt": "Answer the following chemistry question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCDEFGHIJ.\n\nA 50 ml solution of sulfuric acid was found to contain 0.490 g of H_2SO_4. This solution was titrated against a sodium hydroxide solution of unknown concentration. 12.5 ml of the acid solution was required to neutralize 20.0 ml of the base. What is the concentration of the sodium hydroxide solution.\n\nA. 0.125 M\nB. 0.088 M\nC. 0.225 M\nD. 0.250 M\nE. 0.160 M\nF. 0.200 M\nG. 0.175 M\nH. 0.150 M\nI. 0.098 M\nJ. 0.300 M\n\nLet's think step by step.",
+   "prompt_sha256": "e99d5552cb7f1e505ffb45a512b1c749b156581e8372b79572838a6ea63ffd7f"
+  }
+ ],
+ "per_dataset": {
+  "gpqa": 9,
+  "livecodebench": 6,
+  "livemathbench": 6,
+  "mmlupro": 9
+ },
+ "schema": "gemma-split-workload-correctness/1",
+ "seed": "gemma-split:correctness:20261116",
+ "source": {
+  "fields_copied": [
+   "key",
+   "dataset",
+   "prompt",
+   "prompt_sha256"
+  ],
+  "file": "diagnostics/deployment_s1/sample_200.jsonl",
+  "note": "prompt texts only; no score, answer or model output is copied",
+  "sha256": "2c4df49360f997c3e35593030da40111c2826f068f03b1401284a394d9716955"
+ }
+}

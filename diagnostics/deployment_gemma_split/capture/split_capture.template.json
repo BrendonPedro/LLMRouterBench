@@ -1,0 +1,120 @@
+{
+ "schema": "gemma-split-capture/1",
+ "configuration_id": "FILL: short id of the selected Gemma configuration, e.g. brian-gemma4-e4b-<cut>",
+ "captured_utc": "FILL: 2026-MM-DDTHH:MM:SSZ",
+ "captured_by": "FILL: who filled this file",
+ "sources": [
+  {
+   "kind": "FILL: file | process | lab_answer | code_reading",
+   "ref": "FILL: path, PID, or lab_answers.md anchor",
+   "sha256": null
+  }
+ ],
+ "implementation": {
+  "name": "FILL",
+  "framework": "FILL: e.g. pytorch+transformers | vllm | llama.cpp | other (describe)",
+  "entry_points": {
+   "edge": "FILL: script or module the DGX Spark runs",
+   "server": "FILL: script or module the server runs"
+  },
+  "notes": ""
+ },
+ "model": {
+  "num_hidden_layers": "FILL: integer, must equal config.json",
+  "dtype_edge": "FILL: as loaded on the edge, e.g. bfloat16",
+  "dtype_server": "FILL: as loaded on the server",
+  "quantization": "FILL: none | describe",
+  "attn_implementation": null,
+  "checkpoint_note": "FILL only if the server directory is not named gemma-4-E4B-it: why it is the same checkpoint",
+  "max_context": null
+ },
+ "ownership": {
+  "edge": {
+   "layers": "FILL: [[start, end), ...] layer ranges",
+   "embed_tokens": "FILL: true | false",
+   "per_layer_embeddings": "FILL: true | false",
+   "final_norm": "FILL: true | false",
+   "lm_head": "FILL: true | false",
+   "sampling": "FILL: true | false",
+   "tokenizer": "FILL: true | false"
+  },
+  "server": {
+   "layers": "FILL: [[start, end), ...] layer ranges",
+   "embed_tokens": "FILL: true | false",
+   "per_layer_embeddings": "FILL: true | false",
+   "final_norm": "FILL: true | false",
+   "lm_head": "FILL: true | false",
+   "sampling": "FILL: true | false",
+   "tokenizer": "FILL: true | false"
+  },
+  "duplicated_parts_reason": {}
+ },
+ "boundary": [
+  {
+   "direction": "edge_to_server",
+   "name": "FILL e.g. hidden_states",
+   "dtype": "FILL",
+   "shape": "FILL e.g. [1, n, hidden_size]",
+   "when": "every_step"
+  },
+  {
+   "direction": "server_to_edge",
+   "name": "FILL e.g. next_token",
+   "dtype": "FILL",
+   "shape": "FILL e.g. [1]",
+   "when": "every_step"
+  }
+ ],
+ "kv_cache": {
+  "kv_cache_edge": "FILL: per-layer cache | none | other (describe)",
+  "kv_cache_server": "FILL",
+  "shared_kv_handling": "FILL if KV-sharing source and consumer layers are on different hosts: how the consumer gets the KV",
+  "prefix_caching": "FILL: none | describe"
+ },
+ "transport": {
+  "protocol": "FILL: tcp | http | grpc | zmq | other",
+  "serialization": "FILL",
+  "endpoint": "FILL: host:port or URL the edge uses to reach the server",
+  "compression": "none"
+ },
+ "generation": {
+  "sampling_location": "FILL: edge | server",
+  "default_sampling": {},
+  "greedy_supported": "FILL: true | false",
+  "streaming_supported": "FILL: true | false",
+  "ignore_eos_supported": "FILL: true | false"
+ },
+ "gpu_placement": {
+  "edge": {
+   "devices": [
+    "cuda:0"
+   ],
+   "uuids": [
+    "FILL: GPU-... from capture/edge/inventory.json"
+   ],
+   "CUDA_VISIBLE_DEVICES": null
+  },
+  "server": {
+   "devices": [
+    "cuda:0"
+   ],
+   "uuids": [
+    "FILL: GPU-... of each server GPU the deployment uses"
+   ],
+   "CUDA_VISIBLE_DEVICES": "FILL or null"
+  }
+ },
+ "launch": {
+  "server_command": "FILL (secrets redacted)",
+  "edge_command": "FILL (secrets redacted)",
+  "working_dirs": {
+   "edge": "FILL",
+   "server": "FILL"
+  },
+  "env_overrides": {}
+ },
+ "tuning_history": "FILL: was the split point or any setting chosen by measuring performance? when, on which hardware? (context only)",
+ "unknowns": [
+  "FILL: list every field still unknown; the list must be empty for Stage 0 to CONTINUE"
+ ]
+}

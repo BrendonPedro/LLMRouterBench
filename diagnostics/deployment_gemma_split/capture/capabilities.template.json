@@ -1,0 +1,9 @@
+{
+ "note": "Stage 0: every capability the deployment's code supports, declared from code reading and the implementer's written answers (LAB_QUESTIONS Q11) BEFORE any adapter is written or run. The adapter's ADAPTER_INFO must equal this declaration (gs_freeze). teacher_forced_logprobs is mandatory whenever the split path computes logits that can be reached without changing the computation; its absence needs a justification here.",
+ "capabilities": [
+  "FILL: from greedy_tokens, stream_tokens, boundary_audit, teacher_forced_logprobs, ignore_eos, segment_step, step_trace, unsplit_same_runtime, in_host_split"
+ ],
+ "missing_capability_justification": {},
+ "basis": "FILL: code reading (files, functions) and lab_answers.md anchors",
+ "declared_utc": "FILL: 2026-MM-DDTHH:MM:SSZ"
+}

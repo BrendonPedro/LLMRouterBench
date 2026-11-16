@@ -1,0 +1,16 @@
+{
+ "note": "One entry per Gemma split configuration found at Stage 0 (code defaults, launch scripts, running processes, the implementer's statement). Llama and other checkpoints are listed too and are excluded by the rule. Copy to candidates.json; selection: gs_bench.py select (PREREG §4.5).",
+ "candidates": [
+  {
+   "configuration_id": "FILL",
+   "model_dir_name": "gemma-4-E4B-it",
+   "edge_host": "FILL: hostname from capture/edge/inventory.json",
+   "server_host": "asus-ESC4000-E11",
+   "designated_by_implementer": false,
+   "designation_ref": null,
+   "running_at_capture": false,
+   "implementation_default": false,
+   "source": "FILL: where this configuration was found"
+  }
+ ]
+}
