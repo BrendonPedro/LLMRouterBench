@@ -94,6 +94,10 @@ OOM_DEVICE_PATTERNS = ("cuda out of memory", "outofmemoryerror", "cudaerrormemor
                        "cudnn_status_alloc_failed")
 OOM_HOST_PATTERNS = ("memoryerror", "cannot allocate memory", "std::bad_alloc")   # memory limit only on a unified-memory host
 FOREIGN_PROCESSES_ALLOWED = 0              # foreign compute processes on an experiment device at block start / end
+MONITOR_PERIOD_S = 1.0                     # foreign compute processes are also sampled at this period DURING a memory probe
+OCCUPIED_DEVICE_MAX_MIB = 1024             # device memory held by others before a probe loads anything (discrete GPU)
+OCCUPIED_HOST_MAX_FRAC = 0.10              # unified-memory host: memory held by other processes before the probe, / MemTotal
+REQUEST_STALL_S = 300                      # Stage 5: no token for this long aborts the block (a crash: repeated, capped)
 SERVE_STOP_GRACE_S = 15                    # after a stop signal the server record is written even if serve() does not return
 
 # --------------------------------------------------------------------------- #
@@ -101,15 +105,20 @@ SERVE_STOP_GRACE_S = 15                    # after a stop signal the server reco
 # Caps count earlier invalidations of the same part for the same cause. None = unlimited (nothing was measured).
 # A cause absent from the table is not repeatable (it needs a corrected capture and a new freeze record).
 # --------------------------------------------------------------------------- #
-REPEAT_CAPS = {"stage2": {"blocked": None, "confirm_infeasible": 1, "invalid": 2},
-               "stage3": {"exceptions": 2, "invalid": 2},
+REPEAT_CAPS = {"stage2": {"blocked": None, "companion": None, "confirm_infeasible": 2, "invalid": 2},
+               "stage3": {"exceptions": 2, "contention": 2, "invalid": 2},
                "stage4": {"invalid": 2},
                "stage5": {"drift": 1, "failed_requests": 2, "contention": 2, "invalid": 2}}
 # Caps count across the whole chain of freeze records, and a supersede counts as a repeat of the causes that justified
 # it (a new record never resets them). Stage 5 repeats the whole block sequence (no single block can be swapped for a
-# preferred attempt); its caps count repeat events per cause. A stale file (older than its part's last invalidation) is
-# never a repeat: the gate refuses to compute until the fresh file is synced.
-REPEAT_SCOPE = {"stage2": "part", "stage3": "part", "stage4": "part", "stage5": "sequence"}
+# preferred attempt); its caps count repeat events per cause. Stage 2 repeats both hosts together (the split probe is one
+# two-host observation: no record of one attempt is ever combined with the other host's record of another); caps count
+# per host part, and the host repeated only for that reason has cause `companion` (no cap). A stale file
+# (older than its part's last invalidation) is never a repeat: the gate refuses to compute until the fresh file is synced.
+REPEAT_SCOPE = {"stage2": "both", "stage3": "part", "stage4": "part", "stage5": "sequence"}
+# Total repeats per part (Stages 2-4) or per sequence (Stage 5) over ALL causes together (causes with cap None, where
+# nothing ran, excluded): mixing causes can never add up to more redraws than this.
+REPEAT_TOTAL = {"stage2": 3, "stage3": 2, "stage4": 2, "stage5": 2}
 # A new freeze record may follow an INVALID gate only for these causes (a capture fact to correct, or a possible
 # adapter defect); operational causes (contention, failed requests, drift, missing or stale files) are repeated in-run.
 SUPERSEDE_CAUSES = ("boundary", "workload_mismatch", "exceptions")

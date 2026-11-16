@@ -3,8 +3,11 @@
 Status: **DRAFT, NOT FROZEN.** Nothing has run on a lab machine; no model has been downloaded or executed on a GPU
 for this experiment. The protocol is frozen when the PI has reviewed this file and the code it names and tags the
 commit `gemma-split-prereg-v1`. Until that tag exists, no document may call GEMMA-SPLIT "pre-registered".
-Revision 2 incorporates four rounds of an independent audit (leakage, post-result changes, stop-rule gaps, coupling);
-every finding is addressed below and covered by a CPU test (§20); what software cannot prevent is stated in §21.
+Revision 2 incorporates four rounds of an independent audit (leakage, post-result changes, stop-rule gaps, coupling)
+and a final pre-tag audit with an independent review (configuration lock, total repeat caps, outputs bound to their
+logged run, contention during memory probes and correctness runs, comparator availability, timing, credentials,
+non-interference with the live deployment); every finding is addressed below and covered by a CPU test (§20); what
+software cannot prevent is stated in §21.
 
 ## 0. Relation to the other deployment experiments
 
@@ -96,6 +99,20 @@ processes. Environment variables of the families in `gs_inventory.ENV_PREFIXES` 
 **name** looks secret are replaced by `<redacted>`, and command lines, URLs and `pip freeze` are passed through
 `gs_common.redact_text`.
 
+**Credentials (all stages).** GEMMA-SPLIT never requires, records or commits a credential: no API key, token, password,
+private key or other secret may appear in `capture/` (including `lab_answers.md` and every `*.json`), `adapter/`,
+`runs/`, a freeze record, git history or the archive. If the deployment authenticates, the split capture's
+`authentication` section records only the mechanism, the NAMES of the environment variables / configuration fields that
+carry the credential, and whether it is supplied out of band (Q17); the adapter reads the value at run time from that
+variable and never writes, logs or returns it. `gs_common.secret_findings` (URLs with credentials, private-key blocks,
+Hugging Face / API / AWS tokens, authorization / API-key headers, credential command-line options, `sshpass -p`,
+secret-named assignments with credential-like values) is run
+over the split capture by `split-validate`, over `capture/` by the Stage-0 verdict (before commit A0), by
+`gs_bench.py scan-secrets` before every commit, over every file of `capture/` and `adapter/` by the freeze, and over
+every lab-data member (`capture/`, `adapter/`, `frozen/`, `runs/`, snapshot) by the archive; any finding blocks the step
+and names only the file, line and rule, never the value. Every string the harness writes into `runs/` (exception
+messages included) passes through `redact_text` first.
+
 ### 4.2 Model / checkpoint identity (`gs_bench.py checkpoint`)
 The identity of the model is the SHA-256 manifest (path, size, sha256 of every file; `.git/` and `.cache/` excluded)
 of the directory each host uses. A Hugging Face repository and revision are recorded when the directory reveals them
@@ -132,6 +149,17 @@ everything the adapter runs must lie under a captured, snapshotted source root (
 an adapter file that names a live source root. A later edit of the live deployment therefore cannot leak into a measurement (a child process
 that reads the live tree by itself is the remaining gap, §21).
 
+**Non-interference with the live deployment.** GEMMA-SPLIT never overwrites, restarts, stops, reconfigures, `chmod`s or
+writes into Brian's files, processes or configuration: capture is read-only, the snapshot is written outside his tree
+(refused inside it), and the experiment runs its OWN instance of his code from the snapshot, whose server half listens on
+`transport.experiment_endpoint` (same protocol and serialisation, a port his running deployment does not use) on the GPUs
+and in the windows the lab grants (Q12, Q18). If his running deployment occupies an experiment GPU, the stage waits
+(BLOCKED_CONTENTION); only Brian may stop his processes, and he does so himself, recorded with the date in
+`lab_answers.md`. The harness runs under the experiment's own account or with `HF_HOME`, `TORCH_HOME`,
+`TRITON_CACHE_DIR` and `XDG_CACHE_HOME` pointing to experiment-owned directories (part of the frozen execution
+environment, compared before every command), so that no cache is written into his home directory. The capture's git
+queries are read-only (`git --no-optional-locks`: not even the index of his repository is rewritten).
+
 ### 4.4 Split capture (`capture/split_capture.json`; template `capture/split_capture.template.json`)
 Filled by the operator from the code, the launch files, the running processes and Brian's dated written answers
 (`capture/LAB_QUESTIONS.md` -> `capture/lab_answers.md`); validated by `gs_bench.py split-validate`
@@ -140,14 +168,18 @@ points; layer count; dtype per host; quantisation; attention implementation; own
 token embedding, PLE, final norm, LM head, sampling, tokenizer; every tensor crossing the boundary per direction (name,
 dtype, shape, when); KV cache per host, shared-KV handling, prefix caching; transport, serialisation, endpoint; sampling
 location, greedy / streaming / ignore-EOS support; GPU placement with UUIDs and `CUDA_VISIBLE_DEVICES`; launch commands;
-tuning history (context only); unknowns. Every template value is a `FILL` placeholder, booleans included, so nothing can
+the experiment's own endpoint (`transport.experiment_endpoint`, §4.3; its port must differ from the live endpoint's,
+whatever the host is called and with a URL's default port counted, so the edge can never reach Brian's running server); authentication (mechanism, credential NAMES, supplied out of band: §4.1);
+tuning history (required; context only); unknowns. On the multi-GPU server, `gpu_placement.server.CUDA_VISIBLE_DEVICES`
+must pin the frozen GPU(s), so that the deployment can load on no other device (§8). Every template value is a `FILL` placeholder, booleans included, so nothing can
 be left at a default unexamined. Validation problems (each blocks Stage 0): any placeholder left; a non-boolean where a
 boolean is required; a layer owned by no host or by both; a host with no layer; a part with no owner; a part on both
 hosts without a recorded reason; a boundary without at least one tensor per direction; PLE in the config while the
 server owns layers but the boundary carries neither per-layer inputs nor token ids for a server-side PLE table;
 KV-sharing source and consumer layers on different hosts with no KV on the boundary and no `shared_kv_handling`; a
-missing dtype, device list, UUID per device, protocol, endpoint, generation flag or KV policy; greedy unsupported; any
-remaining unknown. Derived and recorded (`gs_split.derive`): topology (`prefix_edge_suffix_server`, `u_shape`,
+missing dtype, device list, UUID per device, protocol, endpoint, experiment endpoint, generation flag or KV policy; an
+authentication section that is not mechanism + names + a boolean; credential-like content anywhere in the capture;
+greedy unsupported; any remaining unknown. Derived and recorded (`gs_split.derive`): topology (`prefix_edge_suffix_server`, `u_shape`,
 `prefix_server_suffix_edge`, `other`), layer counts per host, whether token ids, per-layer inputs, KV entries or logits
 cross, whether generated tokens are visible to the server, whether the server holds the token-embedding table, and the
 list of **differences from the Qwen3 E1-OPT design** (§17). Differences are recorded, never corrected.
@@ -162,7 +194,13 @@ R2 the configuration of the deployment processes running at capture;
 R3 the implementation's default (launch defaults, no overrides);
 R4 the smallest configuration id in byte order.
 No measurement exists when the rule runs and none may be consulted; Brian is asked for the current configuration, not
-the best one. Earlier tuning by Brian (if any) is part of the existing system and is recorded (Q4), not repeated.
+the best one; a candidate that carries a measurement-like field (latency, throughput, memory, score, ...) is excluded.
+If Brian chose his configuration from his own speed or memory measurements, that is part of the existing system: it is
+recorded in `split_capture.json` (`tuning_history`) and `lab_answers.md` (Q4), never an input of the rule, and never
+repeated. GEMMA-SPLIT never chooses between configurations. `candidates.json` and `selected_config.json` are committed in
+commit A0 together with the capability declaration, before any adapter file exists, and never change afterwards (checked
+in git history), so nothing run through an adapter (`adapter-smoke`) can influence the choice; once the first freeze
+record exists the selected configuration can never change (§6.4).
 
 ### 4.6 Stage-0 verdicts (`gs_bench.py stage0`)
 CONTINUE iff all capture files exist (including `capabilities.json`, §5.3), roles are verified, both checkpoints and
@@ -182,7 +220,9 @@ timing run. `tests/doubles/gemma4_split_double.py` is a worked example (a test d
 ### 5.2 Scope
 Permitted: call the deployment's own code from the snapshot; use the generation path the captured launch commands use
 (another path only if that one cannot be driven, documented before the freeze); expose the contract; force greedy
-decoding and the frozen token ids. Forbidden: changing the checkpoint, dtype, layer ownership, cut, kernels, KV policy,
+decoding and the frozen token ids; listen on / connect to the experiment endpoint; read a credential from its named
+environment variable. Required: `make_adapter()` loads no weights and allocates no device memory (loading happens in
+`connect()` / `serve()`, inside the Stage-2 probes). Forbidden: changing the checkpoint, dtype, layer ownership, cut, kernels, KV policy,
 transport, serialisation or any computation; adding timers; caching across requests beyond the deployment's own.
 `tokens` should include the EOS id that stopped generation; the rules strip one trailing EOS from both sequences before
 comparing, so either convention is scored the same (§9.4).
@@ -250,7 +290,8 @@ tag commit; every decision file (`gs_spec.DECISION_FILES`: this PREREG, `gs_spec
 `path | fix commit | regression test | reason` in `frozen/HARNESS_FIXES.md`; HEAD equals the frozen commit or differs
 from it only under `frozen/`, `runs/`, `results/`; the record file is committed unchanged under its fixed name; no
 record-shaped file exists under another name; no tracked record or run output is missing and git history shows no
-deletion or rename of one (other than a move into `_invalidated/`); no bytecode or symlink exists in the directory; this
+deletion or rename of one (other than a move into `_invalidated/`) and no modification of one, in history or in the
+working tree (outputs, gates and records are written once; the exit-status and invalidation logs may only grow); no bytecode or symlink exists in the directory; this
 machine is the frozen host for the requested role, its python, torch, torch CUDA, transformers, accelerate,
 safetensors, tokenizers, flash-attn, vLLM and driver versions and its execution environment (`CUDA_VISIBLE_DEVICES`,
 allocator, thread, library-path, preload and Python-path variables: `gs_freeze.EXEC_ENV_*`) equal the frozen ones. The
@@ -273,6 +314,14 @@ new record;
 defect): both frozen hosts' exit-status logs, committed unchanged, show such a crash and no completed command of that
 stage, and the new record differs from the old one only in orchestration files and tests (not the adapter, not the
 capture).
+**What a new record may change** (`gs_freeze.lock_problems`; facts may be corrected, the choice may not): never the
+selected configuration id or its selection inputs (`candidates.json`, the selection result), the checkpoint manifests,
+the deployment's source manifests or the hosts; after an INVALID (b), the split capture only in its boundary section
+and only for a boundary cause, the workload token ids only for a workload mismatch, and neither the rest of the capture
+nor the environment (versions, execution variables); after an orchestration defect (c), nothing of `capture/`; only when
+the previous run produced nothing (a) may other capture facts and the environment be corrected. An environment change
+after outputs exist is restored, never answered by a new record; if it cannot be restored, the run cannot continue and
+is reported INCOMPLETE.
 A new record counts as one repeat of the causes that justified it (`supersedes.counts_as_repeat`: the INVALID gate's
 causes, or the crashed parts), and repeat caps count across the whole chain of records, so a new record never resets
 them. It lists every file that changed since the previous record (`supersedes.changed_files`); a changed adapter file
@@ -323,20 +372,49 @@ decision, stated here, not a change of the deployment's computation.
    runs greedy + one teacher-forced pass over the probe item.
 4. Recorded before and after each probe: `/proc/meminfo`, process RSS and peak RSS, the largest resident processes,
    `nvidia-smi` GPUs and compute processes, and per CUDA device the allocator peaks, the allocator OOM-event counter
-   and `cudaMemGetInfo`.
+   and `cudaMemGetInfo`; DURING the probe, foreign compute processes on the experiment devices are sampled every
+   `MONITOR_PERIOD_S` (1 s); before the probe loads anything, the memory others hold (`occupied_before`: device memory
+   used above `OCCUPIED_DEVICE_MAX_MIB` (1 GiB) on a discrete GPU, also catching processes `nvidia-smi` cannot list; on
+   the unified-memory DGX Spark, MemTotal - MemAvailable - own RSS above `OCCUPIED_HOST_MAX_FRAC` (10 %) of MemTotal).
 5. Status per record (`gs_rules.status_of`): BLOCKED_CONTENTION if a foreign compute process is on an experiment
    device at the start (nothing runs); FITS if the probe completed; INFEASIBLE if it failed with a device allocation
    failure (`gs_spec.OOM_DEVICE_PATTERNS`), with allocator OOM events in the process, or with a host allocation failure
-   (`OOM_HOST_PATTERNS`) on a unified-memory host (the DGX Spark), and no foreign process appeared; INVALID otherwise
-   (a host allocation failure on a discrete-GPU host, `/dev/shm` exhaustion, any other error, any failure while a
-   foreign process was present by the end). An edge failure that coincides with allocator OOM events in the server
-   process is the server's INFEASIBLE.
-6. Split status: INFEASIBLE > BLOCKED_CONTENTION > INVALID > FITS over the two hosts. Gate (`gs_gate.compute_stage2`):
-   the first INFEASIBLE (split or reference) is INFEASIBLE_UNCONFIRMED and is repeated once with fresh processes; a
-   confirmed split INFEASIBLE is **STOP_INFEASIBLE** (final): the infeasibility is recorded with every memory fact; the
-   configuration is not changed and no smaller variant is tried. A confirmed reference INFEASIBLE with a fitting split
-   is CONTINUE with `reference_feasible = false`, and Stage 3 is NOT_EVALUABLE. BLOCKED_CONTENTION may be retried
-   without limit (nothing ran); INVALID twice, then INCOMPLETE (final). CONTINUE if both split records FIT. A probe
+   (`OOM_HOST_PATTERNS`) on a unified-memory host (the DGX Spark), **and** the device was otherwise idle: no foreign
+   compute process at the start, during the probe or at the end, and no memory held by others before the probe; INVALID
+   otherwise (a host allocation failure on a discrete-GPU host, `/dev/shm` exhaustion, any other error, any failure
+   with a foreign process seen or memory held by others). An edge failure that coincides with allocator OOM events in
+   the server process is the server's INFEASIBLE under the same idleness conditions on both hosts. The device is the
+   frozen one (preflight checks `CUDA_VISIBLE_DEVICES` and every UUID before loading; the gate checks the recorded
+   devices) and the configuration is the frozen one (record, adapter, snapshot and checkpoint verified before loading).
+   An OOM caused by another user's job, by memory others hold, or in an invalid environment is never evidence of
+   infeasibility.
+6. Gate (`gs_gate.compute_stage2`) over three probes (the split, the reference on the edge, the reference on the server):
+   an allocation failure is INFEASIBLE_UNCONFIRMED and both hosts repeat with fresh processes (every Stage-2 repeat
+   covers both hosts, so no record of one attempt is ever combined with the other host's record of another; caps count
+   per host part, and the host repeated only for that reason has cause `companion`, no cap); it is
+   **confirmed** (the split's failing hosts decided by the same rule in every attempt: with both split records valid
+   the combined status, including a server failure derived from allocator OOM events; otherwise the one valid record's
+   own status) only when the SAME probe also failed to allocate in its most recent valid earlier observation (FITS or
+   INFEASIBLE; BLOCKED and INVALID attempts are skipped, so contention never resets a confirmation) that does not already
+   contain every run of the current one (an observation is identified by the runs that wrote its INFEASIBLE records; an
+   earlier observation made of the same runs is the same evidence, a kept record, and is skipped, so a record never
+   confirms itself); every attempt keeps its valid allocation failures, whatever else happened (a record on the wrong
+   devices or with a wrong provenance is never evidence), and an unconfirmed split failure never opens Stage 3. The
+   confirmation is checked in every attempt: a confirmed split INFEASIBLE is **STOP_INFEASIBLE** (final) even when the
+   other host's half crashed or was invalid in the same attempt (it never becomes a repeat or, at the cap, INCOMPLETE),
+   except that a gate needing a corrected record (§6.4; a Stage-1 workload mismatch, which is reported even when a half
+   crashed, and no allocation failure of such a run is evidence) is never overridden.
+   The infeasibility is recorded with every memory fact; the configuration is not changed and no smaller variant is
+   tried. A confirmed reference INFEASIBLE with a fitting split is CONTINUE with
+   `reference_feasible = false`, and Stage 3 is NOT_EVALUABLE. Failures not reproduced by the same probe within the caps
+   end INCOMPLETE (no feasibility claim). INVALID is counted per host part even when another part is BLOCKED (contention
+   elsewhere never hides an INVALID, and an INVALID host is capped during a confirmation too): twice, then INCOMPLETE
+   (final); BLOCKED_CONTENTION alone may be retried without limit (nothing ran). An edge split INVALID while the server's
+   split did not fit or serve to the end is the server's consequence: BLOCKED if the server was BLOCKED, otherwise not
+   charged to the edge (the server's own status is; the edge's reference is charged as usual; a server status is never
+   excused by the edge). A gate with a crash is computed only when every other
+   Stage-2 command of the attempt has run (both hosts repeat). Only the parts the gate lists are repeated, and
+   `invalidate` refuses a stored gate that does not follow from the raw files. CONTINUE if all probes FIT. A probe
    killed by the kernel's OOM killer (possible on the unified-memory DGX Spark) writes no record: it counts as a crash
    (repeated, then INCOMPLETE), never as INFEASIBLE; the kernel log entry for the pid in the run token is reported with
    it (for E4B on 128 GB this is not expected; §21). A record
@@ -388,10 +466,19 @@ deployment never sends, so its messages are recorded separately and not audited.
   unsplit reference does not fit (Stage 2).
 - **INVALID**: a missing item, a provenance or device mismatch, a timing field, incomplete teacher-forced coverage, a
   split run outside the serve window, a crashed run (§13.2), boundary content that differs from the frozen split
-  capture, or an exception in a split run. Every INVALID decision records `would_be`: the rules applied to the completed
+  capture, contention, or an exception in a split run. **Contention** (a foreign compute process on an experiment device
+  at the start, during or at the end of the split run on the edge, on the server from its start until the clock tolerance
+  (30 s) before the split run ended (never after the result exists, never when the server is stopped), or memory held
+  by others before the run) makes the attempt INVALID with cause
+  `contention` (repeated within the caps), and its exceptions never count toward FAIL; contention never erases a FAIL:
+  if the completed items already fail the generation rule (or, with every item completed, any rule), the verdict is
+  FAIL. Only
+  exceptions in the split runs count; the in-host pipeline is a diagnostic whose errors are reported and never affect
+  the verdict (§9.2). The split run's rule preview (the same rules over its own rows, computed on the edge, where R_server
+  and R_edge are local) is recorded in its `meta.json` and logged in its END line. Every INVALID decision records `would_be`: the rules applied to the completed
   items alone. The generation rule is monotone (more items can only add unexplained divergences or degenerate outputs),
   so when exceptions are the only problem and the completed items already fail it, the verdict is **FAIL**, not
-  INVALID. Exceptions may be repeated twice (supersedes included); a third attempt with exceptions is **FAIL** (final:
+  INVALID (contention is treated the same way). Exceptions may be repeated twice (supersedes included); a third attempt with exceptions is **FAIL** (final:
   the deployment is not runnable as captured). Other repeatable problems may be repeated twice, then the stage is
   INCOMPLETE (final). A boundary difference is not repeatable: the capture is corrected as a fact and a new record
   follows (§6.4). If Stage 2 confirmed that the reference does not fit, the gate is NOT_EVALUABLE without Stage-3
@@ -433,10 +520,34 @@ serving) always run the **reference runtime** of §9.1 (the gate checks the reco
 comparator does not depend on anything the deployment's authors declare. The deployment's own unsplit mode, when declared, adds the secondary runtime-matched
 blocks, which separate the cost of splitting from the choice of runtime.
 
+**When the comparator cannot be produced (fixed now; never substituted).** The primary comparator is `edge_only` in the
+reference runtime and nothing else: no other block (server_only, the native blocks) ever replaces it, before or after
+results are visible.
+- No full checkpoint identical to the server's is available on the DGX Spark (and no permitted copy, Q13): Stage 0 stops
+  (STOP_CHECKPOINT_MISMATCH) and the run is **INCOMPLETE** before any measurement.
+- The full checkpoint does not fit on the DGX Spark (a confirmed reference INFEASIBLE on the edge at Stage 2): the run
+  ends **NOT_EVALUABLE** (no hardware floor, no comparator; no correctness or efficiency claim).
+- The reference runtime cannot run the full model on the DGX Spark for another reason (unsupported, a persistent error):
+  Stage 2 is INVALID, repeated within the caps, then **INCOMPLETE** with the reason "the unsplit reference could not run".
+- `edge_only` (or another comparator block) fails requests in Stage 5: INVALID, repeated within the caps, then
+  **INCOMPLETE** ("a comparator block could not be produced"), never UNSTABLE (which is reserved for split blocks that
+  fail requests or drift) and never an efficiency category.
+- The deployment offers no unsplit mode of its own: the secondary runtime-matched blocks are absent and reported as such;
+  the primary endpoint is unaffected.
+
 ### 11.3 Timing and drift
-The host running the block takes `perf_counter_ns` at submission and when each token is available; no synchronisation
-is added. TTFT = first token - submission; TPOT = (last - first) / (n - 1), for n >= 2 (requests with n < 2 are
-counted, excluded from TPOT). Drift = |median TPOT split_B - median TPOT split_A| / median TPOT split_A over measured
+Each block is timed entirely on the one host that runs it, with its monotonic clock (`perf_counter_ns`) at submission
+and when each token is available there (for split blocks: on the edge, transport included); no synchronisation is added
+and no cross-host timestamp enters a latency. Per block: the same 44 prompts with the same frozen token ids (checked on
+each host by `verify-workload`; `tokens_sha256` per request), 2 warm-up + 20 measured prompts per group, warm-ups never
+analysed; greedy; 256 new tokens with ignore-EOS when declared, otherwise up to 256 stopping at EOS (the same policy for
+every block of the run). TTFT = first token - submission (prefill and the first decode step; the prompt is already
+tokenised; prompt identity comes from the frozen token ids, and `tokens_sha256` identifies the generated tokens for the
+agreement checks); TPOT = (last - first) / (n - 1), for n >= 2 (requests with n < 2 are counted, excluded from TPOT). Excluded:
+process start, model loading, connection set-up and warm-ups. A request that raises, or that ends before 256 tokens
+without stopping at EOS (with ignore-EOS: any count other than 256), is a failed request (warm-ups included); requests are
+never retried or dropped within a block. No token for `REQUEST_STALL_S` (300 s) aborts the block, which the gate then
+treats as a crash (§13.2). Drift = |median TPOT split_B - median TPOT split_A| / median TPOT split_A over measured
 prompts. Drift > 0.10 -> UNSTABLE; all blocks are invalidated and repeated once; a second excess is final UNSTABLE (no
 efficiency category).
 
@@ -468,7 +579,8 @@ outside its serve window, or a crashed run (§13.2) makes the stage INVALID; req
 never dropped. A Stage-5 repeat always covers **the whole block sequence**, so no single block can be swapped for a preferred
 attempt. Caps per cause over the record chain: failed requests twice (a third failure is final UNSTABLE), contention
 twice and other problems twice (then INCOMPLETE, final). The summary of every invalidated attempt (including the
-category it would have shown) is kept with it and listed in the outcome, so a repeat cannot hide a result.
+category it would have shown; for a crashed attempt, the partial ratio of split_A to edge_only) is kept with it and
+listed in the outcome, so a repeat cannot hide a result.
 
 ## 12. Network
 
@@ -477,8 +589,8 @@ deployment on the existing link, the link is part of the system under test, and 
 property. The link is characterised by the Stage-0 facts (interfaces, link speed, MTU, route in both directions) and
 by the transport share observed in the experiment itself (Stage-4 in-path round trip minus server compute, or the
 Stage-5 remainder of §11.6). Clock synchronisation (`timedatectl` NTPSynchronized=yes or chrony "Leap status: Normal")
-is **required** on both hosts at Stage 0, because cross-host timestamps bind and order the runs (§9.3, §11.1). This is the
-minimum the protocol requires to interpret the end-to-end numbers.
+is **required** on both hosts at Stage 0 for audit ordering only: cross-host timestamps bind the split runs to their
+server halves and order the blocks (§9.3, §11.1); no latency is computed from them (§11.3).
 
 ## 13. STOP / CONTINUE rules, repeats and outcomes
 
@@ -507,8 +619,19 @@ is then copied to both lab hosts, where `gs_bench.py retire` moves the local cop
 folders (no new log entry), so write-once files do not block the repeat and no rsync can bring an old attempt back; a
 file older than its part's last invalidation is stale and the gate waits for the fresh one.
 
-**Attempt accounting.** Every command logs START, RUN (the measurement begins: after connect and the device check) and
-END with its exit status (§14); each repeat records the run tokens it accounted for. Per part and writer command, over
+**Attempt accounting.** Every command logs START, RUN (the measurement begins: after connect and the device check),
+WROTE for every output file BEFORE it is written (file, digest, and the result it records: a Stage-2 status or a Stage-3
+rule preview), SAVED once it is written, and END with its exit status (§14). Logging fails closed: a command that cannot
+write its START event does not run, an output whose WROTE event cannot be written is not written, and an output whose
+SAVED event cannot be written is removed again. Each repeat records the run tokens it accounted for. Every output present
+is attributed to the run that logged writing it: a run that wrote complete outputs is the attempt (its END may be
+missing: a crash after writing, or an END that could not be written) and is never repeated (missing files: copy them);
+a file that no logged run wrote waits for the current logs and, if it stays unaccounted for, is an INTEGRITY FAILURE (so
+is a Stage-1 workload check that is not the one file one logged `verify-workload` run wrote with the digest it logged,
+and an invalidated Stage-2 gate that is missing or differs from the hash the invalidation log recorded: the
+confirmation chain reads both); a run that crashed before its outputs were completely written (WROTE without SAVED: a full disk, a kill at that instant)
+makes its part repeatable, and what it had logged still counts (a Stage-3 rule failure stands; a Stage-2 status is an
+observation for the confirmation). A Stage-2 repeat covers both hosts (§8). Per part and writer command, over
 the runs no repeat accounted for, the gate requires exactly one completed run: a run that crashed or was killed while
 measuring, with nothing completed since, makes the part repeatable (cause `invalid`, capped); a crashed run before the
 completed one, without a repeat in between, makes it INVALID too; **two completed runs mean that an attempt's outputs
@@ -518,9 +641,19 @@ would give (`would_be`), so deleting an output cannot hide a seen result; a miss
 it", and a lost output can never be repeated (that would be a redraw after the result), so the run cannot complete. A
 refusal or connection failure before RUN is not an attempt.
 
+**A discarded attempt can only hurt.** A file written by more than one run, more than one run that wrote complete
+outputs, or more than one completed run means that outputs were deleted and the command re-run: a negative verdict of
+the outputs present, or a negative result that a run whose outputs are gone logged (Stage 2: an allocation failure;
+Stage 3: a rule failure in the split run's preview), stands and is final (Stage 2: STOP_INFEASIBLE; Stage 3: FAIL; Stage 5: UNSTABLE); any other verdict, a
+result included, becomes a final INCOMPLETE flagged as an integrity failure, with the verdict of the outputs present
+reported. A discard with files still missing never finalises: the gate waits for them. Outputs of a completed command that
+never reach the analysis host leave the stage ungateable; the outcome reports an INTEGRITY FAILURE (§13.3) together with
+the result the run that wrote them logged, never a neutral INCOMPLETE.
+
 Caps (`gs_spec.REPEAT_CAPS`) count earlier invalidations and supersedes over the whole chain of freeze records, whatever
-the note says (per part and cause in Stages 2-4, per repeat event and cause in Stage 5); when a cap is reached the gate
-turns final. Nothing invalidated is ever deleted.
+the note says (per part and cause in Stages 2-4, per repeat event and cause in Stage 5), and all causes together are
+capped by `REPEAT_TOTAL` (Stage 2: 3, Stages 3-5: 2; causes where nothing ran are not counted), so mixing causes never
+adds redraws; when a cap is reached the gate turns final. Nothing invalidated is ever deleted.
 
 ### 13.3 Outcome (`gs_bench.py outcome`)
 The outcome command recomputes every stored gate from the raw files (any mismatch: no outcome), requires the Stage-6
@@ -532,7 +665,8 @@ memory result); **NOT_EQUIVALENT** (the deployed split is not the same computati
 complete the correctness runs; an implementation result, no performance claim); **NOT_EVALUABLE** (no reference; no
 claim); **COMPLETE** with one efficiency category (correct, fits, and the measured runtime relation to edge-only and
 server-only on this hardware, with the component decomposition); **UNSTABLE** (no efficiency category). INVALID is never
-an outcome.
+an outcome. An integrity failure (completed outputs missing, or a discarded attempt) is listed in `integrity_failures`;
+without a final gate the outcome is reported as an INTEGRITY FAILURE (a protocol violation), never as a neutral result.
 
 ## 14. Outputs, result JSON, provenance (`gs_results.py`)
 
@@ -541,8 +675,10 @@ the module docstring). Every result JSON carries `provenance`: experiment, proto
 role, host, devices, freeze hash, run id, adapter hash, configuration id, checkpoint manifest hash, `profile_role`, UTC.
 Gates refuse rows whose provenance does not match the freeze record, comes from another host than the frozen one for
 its role, ran on devices outside the frozen placement, or is `dev`. Files are written once (`gs_common.write_*`).
-Each host appends START, RUN and END events (token, stage, part, writer command, exit status; crashes and kills leave
-no END) for every command to `runs/<run_id>/<host>.exit_status.log`; the gates read them for attempt accounting (§13.2).
+Each host appends START, RUN, WROTE (one per output file, before it is written: file, digest, result), SAVED (after it
+is written) and END events
+(token, stage, part, writer command, exit status; crashes and kills leave no END) for every command to
+`runs/<run_id>/<host>.exit_status.log`; the gates read them for attempt accounting (§13.2).
 The exit-status logs and the invalidation logs are append-only: every committed version must extend the previous one
 and the working copy must extend the last committed one (checked with the evidence, §6.3). `runs/` is committed after
 every command and gate, and pushed by the PI (§21).
@@ -557,7 +693,8 @@ record), `adapter_history/` (every record's adapter as committed with it) and `r
 `_invalidated/` parts included), with a SHA256SUMS member and an
 external `<archive>.sha256`. No model weights (the manifest identifies the checkpoint); Brian's source snapshot only
 with his consent (`--include-snapshot`), otherwise its manifest hashes in the freeze record. `verify-archive`
-recomputes both levels. The archive hash is recorded in the results note and the paper.
+recomputes both levels. The archive refuses to be written if any lab-data member contains credential-like content (§4.1).
+The archive hash is recorded in the results note and the paper.
 
 ## 16. Post-result changes: how they are prevented
 
@@ -611,6 +748,8 @@ workload, runtime and decision rule; this one does not claim it.
    trace, unsplit mode, in-host split), hence the tier, the component-profile mode and the secondary blocks.
 9. Lab permissions: quiet GPU windows; a hash-verified checkpoint copy and code snapshot in the experiment's own
    directories; inclusion of Brian's snapshot in the archive.
+10. Authentication between the DGX Spark and the server (mechanism and credential NAMES only, Q17); the experiment's own
+   endpoint / port, the account it runs under and its cache directories (Q18).
 
 ## 19. Assumptions this protocol refuses to make
 
@@ -622,7 +761,9 @@ that one server GPU is used; that the live deployment tree stays unchanged; that
 infeasibility; that the reference runtime equals the deployment's runtime; that the deployment's own in-host pipeline is
 a valid floor; that greedy outputs agree bit-for-bit across GB10 and A6000 (hence the floor); that an implementation
 returns the stopping EOS token; that the two hosts' clocks agree exactly; that the link is fast enough to ignore; any
-performance threshold for "efficient" beyond the CI categories.
+performance threshold for "efficient" beyond the CI categories; that a credential may be recorded anywhere; that Brian's
+running deployment may be stopped or reconfigured by the experiment; that a GPU is idle because `nvidia-smi` lists no
+process; that a comparator may be replaced when it cannot be produced.
 
 ## 20. Executable components and CPU tests
 
@@ -663,7 +804,13 @@ procedure and stated here so that a reader can weigh them.
    can be reviewed.
 2. **Uncommitted evidence can be destroyed.** Outputs and exit-status log lines exist only on a lab host until copied
    and committed; an operator who deletes both an attempt's outputs and its log lines before the first commit leaves no
-   trace. Mitigation: commit `runs/` (outputs and logs) after every command and every gate, and push those commits (the
+   trace, and log lines can be forged before that commit. With the log lines kept and unforged, every output is attributed
+   to the run that logged writing it before writing it (§13.2): a deletion and re-run is detected, a negative result
+   that a run whose outputs are gone logged (Stage-2 status, Stage-3 rule preview) still counts, any other verdict ends
+   the run as an integrity failure (a deletion without a re-run: an INTEGRITY FAILURE outcome naming the logged result),
+   and a deleted Stage-4 / Stage-5 attempt's numbers are lost (their digests are logged). A script that reads an output
+   in the microseconds between its write and its SAVED event, kills the run and deletes the file turns it into a crash
+   (a repeat); its logged result still counts. Mitigation: commit `runs/` (outputs and logs) after every command and every gate, and push those commits (the
    PI pushes); once committed, deletions, renames and log rewrites are refused (§6.3, §14).
 3. **Local history can be rewritten before a push.** The evidence checks read the local repository. Mitigation: push
    after every gate commit; the archive and the remote history are the record.
@@ -674,8 +821,24 @@ procedure and stated here so that a reader can weigh them.
    files outside the roots are hashed at Stage 0 and guarded like the tree), the adapter puts the snapshot first on
    `sys.path` and may not name a live path, and `PYTHONPATH` / library paths and the key package versions are compared
    with the freeze.
-5. **A crash can be induced.** Killing a run while it measures costs one repeat (capped) and is logged; it cannot select
-   between completed attempts.
+5. **A crash can be induced.** Killing a run before it writes its outputs costs one repeat (capped by the stage total) and
+   is logged; it cannot select between attempts (outputs written by one run are kept even without an END line, outputs
+   written by two runs are a discarded attempt, and a kill between WROTE and the write is a crash whose logged result
+   still counts), and it never removes an observed allocation failure (every Stage-2 attempt keeps its INFEASIBLE
+   observations, and a confirmed split failure is final in any attempt; a crash never yields a FITS observation). Repeated
+   kills end the stage INCOMPLETE instead of the verdict the run would have reached (for example an imminent allocation
+   failure); every crash is listed with the outcome, a crashed Stage-5 attempt with its partial ratio. Likewise, an
+   environment deliberately broken so that `verify-workload` really fails (a genuine, logged workload mismatch) makes the
+   run's allocation failures non-evidence and, through a new record, starts a new confirmation chain (the caps carry
+   over the record chain, so this too ends INCOMPLETE, never in a better verdict).
 6. **A kernel OOM kill is not classified.** A memory probe killed by the OOM killer leaves no record and counts as a
    crash, so a model that only fits by exhausting the DGX Spark's unified memory would end INCOMPLETE rather than
    INFEASIBLE. The kernel log for the run token's pid is reported with such a crash.
+7. **Some contention is invisible.** A job that `nvidia-smi` cannot list (another container) and that starts after a
+   probe began, or host-memory pressure from other processes on the unified-memory Spark during a probe, is not
+   observed; the memory held by others is checked before each probe, foreign compute processes are sampled during it,
+   and an allocation failure must recur in the same probe's last valid earlier observation to count.
+8. **The edge is bound to the experiment's server by endpoint and time window, not by a handshake.** The experiment's
+   instance listens on a port other than the live deployment's (checked as port numbers, whatever the host is called,
+   URL default ports included) and
+   each split run must lie in its serve window; the deployment's protocol is not changed to exchange a run token.

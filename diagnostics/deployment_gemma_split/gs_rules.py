@@ -163,16 +163,32 @@ def within_window(times, start, end, tol=S.CLOCK_SKEW_TOLERANCE_S):
     return bool(ts) and min(ts) >= C.parse_utc(start) - tol and max(ts) <= C.parse_utc(end) + tol
 
 
+def contention_seen(recs):
+    """Foreign compute processes (start, during, end) or memory held by others before the run, in Stage-3 records."""
+    out = []
+    for name, rec in recs.items():
+        c = rec.get("contention") or {}
+        lists = [(rec.get("contention_before") or {}).get("foreign") or [], (rec.get("contention_after") or {}).get("foreign") or [],
+                 rec.get("foreign_during") or [], c.get("foreign_before") or [], c.get("foreign_during") or [], c.get("foreign_after") or []]
+        if any(len(x) > S.FOREIGN_PROCESSES_ALLOWED for x in lists):
+            out.append(f"{name}: foreign compute process on an experiment device")
+        if (rec.get("occupied_before") or {}).get("busy") or (c.get("occupied_before") or {}).get("busy"):
+            out.append(f"{name}: memory held by others before the run")
+    return out
+
+
 def would_be(rows, tier, vocab, eos):
     """What the completed split items alone give, reported with an INVALID attempt (PREREG §9.5). The generation rule is
     monotone (more items can only add unexplained divergences or degenerate outputs), so its failure over the completed
-    items is decisive; the teacher-forced rule is not (a mean can move either way) and is reported only."""
+    items is decisive; the teacher-forced rule is decisive only when every item completed (a mean can move either way)."""
     done = [r for r in rows["split"] if not r.get("error")]
     g = gen_rule(rows["reference_server"], done, vocab, len(done), eos)
     out = {"items_completed": len(done), "items": len(rows["split"]), "generation": g, "teacher_forced": None,
            "verdict": "FAIL" if not g["pass"] else "UNDETERMINED"}
     if tier == S.TIER_FULL and done and tf_summary(done) and tf_summary(rows["reference_edge"]):
         out["teacher_forced"] = tf_rule(tf_summary(done), tf_summary(rows["reference_edge"]))
+        if len(done) == len(rows["split"]) and not out["teacher_forced"]["pass"]:
+            out["verdict"] = "FAIL"           # all items completed: the teacher-forced rule is decisive too
     return out
 
 
@@ -220,21 +236,28 @@ def decide_stage3(rd, freeze, reference_feasible=True, dev=False):
         return dec
     ref = {r["id"]: r for r in rows["reference_server"]}
     vocab = (freeze["checkpoint"]["summary"] or {}).get("vocab_size")
-    for sub in [s for s in ("split", "pipeline") if s in rows]:
-        errs = [r["id"] for r in rows[sub] if r.get("error")]
-        if errs:
-            P.append(problem(sub, "exceptions", f"exceptions in {sub} runs: {errs[:10]}"))
+    serve, smeta = C.read_json(sd / "split" / "server_serve.json"), C.read_json(sd / "split" / "meta.json")
+    until = C.parse_utc(smeta["ended_utc"]) - S.CLOCK_SKEW_TOLERANCE_S if smeta.get("ended_utc") else None   # before the result existed
+    srv = dict(serve, contention_after={"foreign": []},       # only what the server saw before the split run ended counts
+               foreign_during=[x for x in serve.get("foreign_during") or [] if until is None or not x.get("first_seen_utc")
+                               or C.parse_utc(x["first_seen_utc"]) <= until])
+    cont = contention_seen({"server half": srv, "edge (split run)": smeta})
+    if cont:                 # an attempt with contention is repeated; its exceptions never count toward FAIL
+        P.append(problem("split", "contention", "contention during the split run: " + "; ".join(cont)))
+    errs = [r["id"] for r in rows["split"] if r.get("error")]
+    if errs and not cont:
+        P.append(problem("split", "exceptions", f"exceptions in split runs: {errs[:10]}"))
+    if "pipeline" in rows:   # a diagnostic, never a floor: its errors are reported and never affect the verdict (PREREG §9.2)
+        dec["diagnostics"]["pipeline_errors"] = [r["id"] for r in rows["pipeline"] if r.get("error")]
     if tier == S.TIER_FULL:
         for sub in [s for s in ("reference_edge", "split", "pipeline") if s in rows]:
             short = [r["id"] for r in rows[sub] if not r.get("error") and len(r.get("agree", [])) != len(ref[r["id"]]["tokens"])]
             if short:
                 P.append(problem(sub, "invalid", f"teacher-forced coverage incomplete in {sub}: {short[:10]}"))
-    serve = C.read_json(sd / "split" / "server_serve.json")
     P += [problem("split", "invalid", p) for p in R.check_provenance(serve.get("provenance"), freeze, "stage3", "server",
                                                                        require_target=not dev, what="split/server_serve.json")]
     if not devices_ok((serve.get("provenance") or {}).get("devices"), freeze, "server"):
         P.append(problem("split", "invalid", "the server half served on devices outside the frozen server placement"))
-    smeta = C.read_json(sd / "split" / "meta.json")
     if not within_window([smeta.get("started_utc"), smeta.get("ended_utc")], serve["started_utc"], serve["ended_utc"]):
         P.append(problem("split", "invalid", "the split run falls outside the server's serve window for this run"))
     audit = SP.audit_boundary(freeze["split"]["capture"], C.read_json(sd / "split" / "boundary_audit.json")["messages"])
@@ -243,10 +266,10 @@ def decide_stage3(rd, freeze, reference_feasible=True, dev=False):
         P.append(problem("split", "boundary", "boundary content differs from the frozen split capture: " + "; ".join(audit["problems"][:5])))
     if P:
         dec["would_be"] = would_be(rows, tier, vocab, eos)
-        if all(p["cause"] == "exceptions" for p in P) and dec["would_be"]["verdict"] == "FAIL":
+        if all(p["cause"] in ("exceptions", "contention") for p in P) and dec["would_be"]["verdict"] == "FAIL":
             dec["rules"]["generation"] = dec["would_be"]["generation"]
-            dec.update(verdict="FAIL", reasons=[f"the {dec['would_be']['items_completed']} completed items already fail the generation rule, "
-                                                "which more items cannot reverse: FAIL despite the exceptions (PREREG §9.5)"])
+            dec.update(verdict="FAIL", reasons=[f"the {dec['would_be']['items_completed']} completed items already fail the rules, which "
+                                                "neither more items nor contention can reverse: FAIL (PREREG §9.5)"])
             return dec
         dec["verdict"] = "INVALID"
         return dec
@@ -262,8 +285,9 @@ def decide_stage3(rd, freeze, reference_feasible=True, dev=False):
         dec["rules"]["teacher_forced"] = t
         ok = ok and t["pass"]
     if "pipeline" in rows:   # descriptive only: localises a divergence (transport vs segment code); never a floor
-        dec["diagnostics"]["pipeline"] = {"teacher_forced": tf_summary(rows["pipeline"]) if tier == S.TIER_FULL else None,
-                                          "generation": gen_rule(rows["reference_server"], rows["pipeline"], vocab, len(want), eos)}
+        ok_rows = [r for r in rows["pipeline"] if not r.get("error")]
+        dec["diagnostics"]["pipeline"] = {"teacher_forced": tf_summary(ok_rows) if tier == S.TIER_FULL and ok_rows else None,
+                                          "generation": gen_rule(rows["reference_server"], ok_rows, vocab, len(ok_rows), eos)}
     if any(r.get("nan") for r in rows["split"]):
         dec.setdefault("reasons", []).append("NaN in split log-probs")
         ok = False
@@ -283,13 +307,15 @@ def classify(text):
     return "other"
 
 
-def status_of(failure, foreign_before, foreign_after, unified=False, ooms=0):
-    """FITS / INFEASIBLE / BLOCKED_CONTENTION / INVALID for one probe. `ooms`: allocator OOM events in the process."""
+def status_of(failure, foreign_before, foreign_after, unified=False, ooms=0, during=(), occupied=False):
+    """FITS / INFEASIBLE / BLOCKED_CONTENTION / INVALID for one probe. `ooms`: allocator OOM events in the process.
+    A failure counts as INFEASIBLE only on an otherwise idle device: no foreign compute process at the start, during the
+    probe or at the end, and no memory held by others before the probe loaded anything (PREREG §8)."""
     if len(foreign_before) > S.FOREIGN_PROCESSES_ALLOWED:
         return "BLOCKED_CONTENTION"
     if failure is None:
         return "FITS"
-    if len(foreign_after) > S.FOREIGN_PROCESSES_ALLOWED:
+    if len(foreign_after) > S.FOREIGN_PROCESSES_ALLOWED or len(during) > S.FOREIGN_PROCESSES_ALLOWED or occupied:
         return "INVALID"
     c = classify(failure)
     return "INFEASIBLE" if (ooms > 0 or c == "oom_device" or (c == "oom_host" and unified)) else "INVALID"
@@ -299,7 +325,10 @@ def combine_split(edge, server):
     """Split feasibility from the edge probe and the server record. INFEASIBLE > BLOCKED_CONTENTION > INVALID > FITS.
     An edge failure that coincides with allocator OOM events in the server process is the server's infeasibility."""
     st = {"edge": edge["status"], "server": server["status"]}
-    if st["edge"] == "INVALID" and server.get("ooms", 0) > 0 and st["server"] == "FITS" and not server.get("foreign_after"):
+    if st["edge"] == "INVALID" and server.get("ooms", 0) > 0 and st["server"] == "FITS" and not server.get("foreign_after") and \
+            not edge.get("foreign_after") and \
+            not server.get("foreign_during") and not (server.get("occupied_before") or {}).get("busy") and \
+            not edge.get("foreign_during") and not (edge.get("occupied_before") or {}).get("busy"):
         st["server"] = "INFEASIBLE"
     for v in ("INFEASIBLE", "BLOCKED_CONTENTION", "INVALID"):
         if v in st.values():
@@ -331,6 +360,33 @@ def summarize_components(rd, freeze):
         out["decode_step_ns"] = {"edge": {g: out["in_path"][g]["edge_compute"].get("median") for g in S.TIMING_GROUPS},
                                  "server": {g: out["in_path"][g]["server_compute"].get("median") for g in S.TIMING_GROUPS}}
     return out
+
+
+def request_failure(r):
+    """Why a Stage-5 request counts as failed (PREREG §11.3), or None: an exception, or a stream that ended before
+    gen_tokens without stopping at EOS (with ignore_eos it must deliver exactly gen_tokens)."""
+    if r.get("error"):
+        return str(r["error"])[:120]
+    n, gen = r.get("n_tokens"), r.get("gen_tokens")
+    if n is None or gen is None:
+        return "no token count recorded"
+    if n == gen or (not r.get("ignore_eos") and r.get("stopped_on_eos") and 1 <= n <= gen):
+        return None
+    return f"truncated: {n} of {gen} tokens" + ("" if r.get("ignore_eos") else " without stopping at EOS")
+
+
+def partial_primary(rd, freeze):
+    """What a crashed Stage-5 attempt would have shown from the blocks it completed (split_A against edge_only), kept with
+    the repeat (PREREG §11.7); None when either block is missing."""
+    sd = R.stage_dir(rd, "stage5")
+    if not all((sd / b / "requests.jsonl").exists() for b in ("split_A", "edge_only")):
+        return None
+    a, e = ({r["prompt_id"]: r for r in _measured(rd, b)} for b in ("split_A", "edge_only"))
+    pairs = {g: [(r["tpot_ns"], e[pid]["tpot_ns"]) for pid, r in a.items() if r["group"] == g and pid in e and
+                 r.get("tpot_ns") is not None and e[pid].get("tpot_ns") is not None] for g in S.TIMING_GROUPS}
+    prim = ST.paired_bootstrap_ratio(pairs)
+    return {"statistic": "PARTIAL (crashed attempt): median TPOT(split_A) / median TPOT(edge_only)", **prim,
+            "category": ST.efficiency_category(prim["ci"])}
 
 
 def _measured(rd, block):
@@ -379,8 +435,8 @@ def summarize_e2e(rd, freeze, components, dev=False):
                 if len(m[k]["foreign"]) > S.FOREIGN_PROCESSES_ALLOWED:
                     P.append(problem(b, "contention", f"{b}: foreign compute process on an experiment device ({k})"))
         rows = _measured(rd, b)
-        errs = [r["prompt_id"] for r in rows if r.get("error")]
-        if errs:
+        errs = [f"{r['prompt_id']}: {request_failure(r)}" for r in C.read_jsonl(sd / b / "requests.jsonl") if request_failure(r)]
+        if errs:                                   # warm-up requests included: a failing system is not timed around
             P.append(problem(b, "failed_requests", f"{b}: failed requests {errs[:5]} (never retried or dropped within a block)"))
         out["blocks"][b] = {"runtime": meta["runtime"], **{g: {"ttft_ns": ST.summarize([r["ttft_ns"] for r in rows if r["group"] == g and r.get("ttft_ns") is not None]),
                                                               "tpot_ns": ST.summarize([r["tpot_ns"] for r in rows if r["group"] == g and r.get("tpot_ns") is not None]),

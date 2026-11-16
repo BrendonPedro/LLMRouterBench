@@ -18,6 +18,7 @@ import gs_spec as S  # noqa: E402
 
 SERVER_HOST = S.SERVER_IDENTITY["hostname"]
 EDGE_HOST = "spark-test-0001"
+SERVER_CVD = "0"                           # the target fixture's server pins its frozen GPU (PREREG §8)
 VERSIONS = {"python": "3.12.3", "torch": "2.9.1", "torch_cuda": "13.0", "transformers": "5.19.0", "driver": "580.95"}
 SMI_SERVER = "\n".join(f"{i}, NVIDIA RTX A6000, GPU-a6000-000{i}, 49140 MiB, 4 MiB, 580.95.05, 8.6, 00000000:0{i + 1}:00.0" for i in range(3))
 SMI_EDGE = "0, NVIDIA GB10, GPU-gb10-0000, [N/A], [N/A], 580.95.05, 12.1, 0000000F:01:00.0"
@@ -126,11 +127,14 @@ def double_split_capture(endpoint="127.0.0.1:1", cut=3, L=8, device="cpu", uuid=
             {"direction": "server_to_edge", "name": "next_token", "dtype": "int64", "shape": "[1]", "when": "every_step"}],
         "kv_cache": {"kv_cache_edge": "none (full recompute per step)", "kv_cache_server": "none (full recompute per step)",
                      "shared_kv_handling": "edge sends the full-attention source layer's K/V every step", "prefix_caching": "none"},
-        "transport": {"protocol": "tcp", "serialization": "length-prefixed JSON header + raw tensor bytes", "endpoint": endpoint, "compression": "none"},
+        "transport": {"protocol": "tcp", "serialization": "length-prefixed JSON header + raw tensor bytes", "endpoint": endpoint,
+                      "experiment_endpoint": "%s:%d" % (endpoint.rsplit(":", 1)[0], int(endpoint.rsplit(":", 1)[1]) + 1), "compression": "none"},
         "generation": {"sampling_location": "server", "default_sampling": {}, "greedy_supported": True, "streaming_supported": True,
                        "ignore_eos_supported": True},
         "gpu_placement": {"edge": {"devices": [device], "uuids": [uuid]}, "server": {"devices": [device], "uuids": [uuid]}},
         "launch": {"server_command": "gs_bench.py serve", "edge_command": "gs_bench.py ...", "working_dirs": {}, "env_overrides": {}},
+        "authentication": {"mechanism": "none (local TCP, test double)", "credential_env_vars": [], "config_fields": [], "supplied_out_of_band": False},
+        "tuning_history": "none (test double)",
         "unknowns": []}
 
 
@@ -194,7 +198,7 @@ def write_target_capture(gs, model_root, source_root, config_id="cfg-1", test_do
     import gs_gate as G
     cap = Path(gs) / "capture"
     C.write_json(cap / "edge" / "inventory.json", fake_inventory("edge"))
-    C.write_json(cap / "server" / "inventory.json", fake_inventory("server"))
+    C.write_json(cap / "server" / "inventory.json", dict(fake_inventory("server"), env={"CUDA_VISIBLE_DEVICES": SERVER_CVD}))
     import gs_inventory as INV
     C.write_json(cap / "roles.json", INV.roles_record(fake_inventory("edge"), fake_inventory("server")))
     md = fake_model_dir(model_root)
@@ -208,6 +212,7 @@ def write_target_capture(gs, model_root, source_root, config_id="cfg-1", test_do
         C.write_json(cap / r / "snapshot.json", {"role": r, "host": host, "sources": [{"snapshot_root": "/nonexistent", "manifest_sha256": "x"}]})
     sc = double_split_capture(endpoint="10.0.0.1:5000", device="cuda:0", uuid="GPU-a6000-0000", config_id=config_id)
     sc["gpu_placement"]["edge"]["uuids"] = ["GPU-gb10-0000"]
+    sc["gpu_placement"]["server"]["CUDA_VISIBLE_DEVICES"] = SERVER_CVD
     C.write_json(cap / "split_capture.json", sc)
     C.write_json(cap / "capabilities.json", capabilities(FAKE_CAPS))
     cands = {"candidates": [candidates(config_id, designated_by_implementer=True, designation_ref="lab_answers.md#q2")]}
@@ -242,6 +247,17 @@ def memory_record(freeze, role, what, status, ooms=0, foreign_after=(), failure=
                                                            host=host)}
 
 
+def stage1_check(rd, freeze, role, match, host, log_host="same"):
+    """A Stage-1 workload check as `verify-workload` writes it, with its logged run (WROTE / SAVED: written once).
+    log_host: the host whose exit-status log records the run (None: this machine's)."""
+    import gs_results as R
+    f = R.stage_dir(rd, "stage1") / f"{role}_workload.json"
+    if not f.exists():
+        C.write_json(f, {"match": match, "provenance": R.provenance(freeze, "stage1", role, [], "target", host=host)})
+        log_run(rd, "stage1", role, "verify-workload", rc="0" if match else "2", host=host if log_host == "same" else log_host,
+                wrote=wrote_of(rd, "stage1", [f.name]))
+
+
 def stage2_raw(rd, freeze, status="FITS", match=("edge", "server"), hosts=True):
     """Real target-mode Stage-2 raw files for a record built from write_target_capture (Stage-1 checks, memory records on
     the frozen devices, exit-status events), so that its gate recomputes. Overwrites (test shortcut)."""
@@ -249,8 +265,7 @@ def stage2_raw(rd, freeze, status="FITS", match=("edge", "server"), hosts=True):
     for role in S.ROLES:
         host = SERVER_HOST if role == "server" else EDGE_HOST
         dev = freeze["split"]["capture"]["gpu_placement"][role]["devices"]
-        C.write_json(R.stage_dir(rd, "stage1") / f"{role}_workload.json",
-                     {"match": role in match, "provenance": R.provenance(freeze, "stage1", role, [], "target", host=host)}, overwrite=True)
+        stage1_check(rd, freeze, role, role in match, host, log_host="same" if hosts else None)
         for what in ("split", "reference"):
             C.write_json(R.stage_dir(rd, "stage2") / role / f"{what}_memory.json", memory_record(freeze, role, what, status, devices=dev),
                          overwrite=True)
@@ -266,30 +281,49 @@ def token():
     return f"{os.getpid()}-{int(time.time() * 1000) + _TOKENS[0]}"
 
 
-def log_run(rd, stage, part, cmd, rc="0", run=True, host=None, out=None):
-    """The exit-status events of one command run (START, RUN when measuring began, END unless rc is None: a crash)."""
+def wrote_of(rd, stage, files):
+    """{file: (digest, result)} for the present files (relative to the stage dir), as WROTE events record them."""
+    import gs_results as R
+    sd = R.stage_dir(rd, stage)
+    return {f: (R.file_digest(sd / f), R.file_result(C.read_json(sd / f)) if f.endswith(".json") else None) for f in files if (sd / f).exists()}
+
+
+def log_run(rd, stage, part, cmd, rc="0", run=True, host=None, out=None, res=None, wrote=None, saved=True):
+    """The exit-status events of one command run: START, RUN (measuring began), WROTE and (unless saved=False: the write
+    never completed) SAVED per file (`wrote`: {file: (digest, result)}), END unless rc is None (a crash, or an END that
+    could not be written)."""
     import gs_results as R
     tok = token()
     R.log_event(rd, "START", tok, stage, part, cmd, host=host)
     if run:
         R.log_event(rd, "RUN", tok, stage, part, cmd, host=host)
+    for f, (d, r) in (wrote or {}).items():
+        R.log_event(rd, "WROTE", tok, stage, part, cmd, host=host, out=d, res=r, file=f)
+        if saved:
+            R.log_event(rd, "SAVED", tok, stage, part, cmd, host=host, out=d, file=f)
     if rc is not None:
-        R.log_event(rd, "END", tok, stage, part, cmd, rc=rc, host=host, out=out)
+        R.log_event(rd, "END", tok, stage, part, cmd, rc=rc, host=host, out=out, res=res)
     return tok
 
 
-def log_runs(rd, freeze, stage, hosts=None):
-    """One completed run for every writer whose files exist and that has no completed run since the part's last repeat
-    (what the CLI logs; for tests that write outputs directly). hosts: {role: hostname} to log under the frozen hosts."""
+def log_runs(rd, freeze, stage, hosts=None, rc="0"):
+    """One run (START, RUN, WROTE per file, END unless rc is None) for every writer whose present files no logged run since
+    the part's last repeat wrote (what the CLI logs; for tests that write outputs directly). hosts: {role: hostname}."""
     import gs_gate as G
     import gs_results as R
-    sd, ev = R.stage_dir(rd, stage), R.read_events(rd)
-    for part, spec in R.parts(stage, freeze["adapter"]["info"]["capabilities"]).items():
+    caps = freeze["adapter"]["info"]["capabilities"]
+    for part, spec in R.parts(stage, caps).items():
         used = G.consumed(rd, stage, part)
-        for cmd in sorted({R.writer(stage, part, f) for f in spec["own"] + spec["companion"] if (sd / f).exists()}):
-            if not R.completed_tokens(ev, stage, part, cmd) - used:
-                log_run(rd, stage, part, cmd, host=(hosts or {}).get("server" if cmd == "serve" else spec["role"]),
-                        out=R.outputs_digest(rd, stage, part, cmd, freeze["adapter"]["info"]["capabilities"]))
+        for cmd in sorted({R.writer(stage, part, f) for f in spec["own"] + spec["companion"]}):
+            present = wrote_of(rd, stage, [f for f in spec["own"] + spec["companion"] if R.writer(stage, part, f) == cmd])
+            if not present:
+                continue
+            wrote = [w for t, w in R.wrote_events(R.read_events(rd), stage, part, cmd).items() if t not in used]
+            if any(all(w.get(f, (None,))[0] == d for f, (d, _) in present.items()) for w in wrote):
+                continue                        # already accounted for
+            log_run(rd, stage, part, cmd, rc=rc, host=(hosts or {}).get("server" if cmd == "serve" else spec["role"]),
+                    out=R.outputs_digest(rd, stage, part, cmd, caps) if rc == "0" else None,
+                    res=R.outputs_result(rd, stage, part, cmd, caps) if rc == "0" else None, wrote=present)
 
 
 def free_port():

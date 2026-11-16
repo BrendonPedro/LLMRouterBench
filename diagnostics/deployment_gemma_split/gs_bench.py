@@ -8,6 +8,7 @@ Stage 0  (facts; no model, no GPU kernel, no timer)
   split-validate --capture capture/split_capture.json --checkpoint capture/server/checkpoint.json
   select --candidates capture/candidates.json --roles capture/roles.json --out capture/selected_config.json
   stage0 --capture-dir capture                              DESK           gs_gate.stage0 -> capture/stage0_verdict.json
+  scan-secrets                                              any host       credential-like content in capture/ adapter/ frozen/ runs/
 Stage 1  (adapter + freeze; still no timer)
   tokenize --tokenizer-dir D --out capture/workload_tokens.json            gs_workload
   snapshot --role R --dest DIR                              EDGE, SERVER   -> capture/R/snapshot.json
@@ -260,7 +261,9 @@ def end_forced(a):
     """END rc=0 for a server half whose record was written after a forced stop (os._exit skips the normal END)."""
     lc = getattr(a, "log_ctx", None)
     if lc:
-        R.log_event(lc["rd"], "END", lc["token"], lc["stage"], lc["part"], lc["cmd"], rc="0")
+        args = (lc["rd"], lc["stage"], lc["part"], lc["cmd"], lc.get("caps", []))
+        R.log_event(lc["rd"], "END", lc["token"], lc["stage"], lc["part"], lc["cmd"], rc="0", out=R.outputs_digest(*args),
+                    res=R.outputs_result(*args))
 
 
 def ref_device(freeze, role, a):
@@ -323,6 +326,15 @@ def cmd_snapshot(a):
     recs = [DP.snapshot(src, Path(a.dest) / f"source{i}") for i, src in enumerate(dep["sources"])]
     C.write_json(cap / "snapshot.json", {"role": a.role, "host": dep["host"], "sources": recs})
     print(C.canonical(recs))
+
+
+def cmd_scan_secrets(a):
+    """Run before every commit of capture/, adapter/, frozen/ or runs/ (PREREG §4.1): exit 2 on any finding (file, line,
+    rule; never the value)."""
+    gs_dir = Path(a.gs_dir)
+    found = C.scan_files([q for d in ("capture", "adapter", "frozen", "runs") for q in sorted((gs_dir / d).rglob("*"))], gs_dir)
+    print("\n".join(found) if found else "no credential-like content")
+    sys.exit(2 if found else 0)
 
 
 def cmd_adapter_check(a):
@@ -428,8 +440,10 @@ def cmd_serve(a):
     stop, done, lock = threading.Event(), threading.Event(), threading.Lock()
     stamp = C.utc_ms if a.stage == 5 else C.utc          # Stages 2-4: second resolution, as coarse as the exit log
     state = {"started_utc": stamp(), "failure": None, "signals": 0, "written": False}
-    mon = M.ServerMonitor(devices) if a.stage == 2 else None
+    mon = M.ServerMonitor(devices, uuids=uuids) if a.stage == 2 else None
+    fmon = M.ForeignMonitor(uuids, M.own_pids()) if a.stage == 3 else None       # Stage 3: contention during the split run
     before = M.snapshot(devices) if a.stage == 2 else PR.contention(uuids)
+    occ = M.occupied(before if a.stage == 2 else M.snapshot([]), uuids, _unified(freeze, "server")) if a.stage in (2, 3) else (False, {})
 
     def finalize(forced=False):
         with lock:
@@ -448,9 +462,11 @@ def cmd_serve(a):
                 fb = M.foreign_processes(before["smi"], uuids)
                 fa = M.foreign_processes(after["smi"], uuids)
                 ooms = M.oom_events(before, after, mon.peak if mon else None)
+                during = mon.foreign() if mon else []
                 rec = {"what": "split", "role": "server", "devices": list(used), "before": before, "after": after, "foreign_before": fb,
-                       "foreign_after": fa, "failure": state["failure"], "ooms": ooms, "server_peaks": mon.peak if mon else {},
-                       "status": RU.status_of(state["failure"], fb, fa, _unified(freeze, "server"), ooms),
+                       "foreign_during": during, "foreign_after": fa, "occupied_before": occ[1], "failure": state["failure"], "ooms": ooms,
+                       "server_peaks": mon.peak if mon else {},
+                       "status": RU.status_of(state["failure"], fb, fa, _unified(freeze, "server"), ooms, during=during, occupied=occ[0]),
                        "started_utc": state["started_utc"], "ended_utc": ended, "stop_note": note, "provenance": prov}
                 R.write(R.stage_dir(rd, "stage2") / "server" / "split_memory.json", rec, timing_allowed=False)
                 print("server split memory:", rec["status"], flush=True)
@@ -459,6 +475,7 @@ def cmd_serve(a):
                         5: R.stage_dir(rd, "stage5") / (a.block or "") / "server_meta.json"}[a.stage]
                 rec = {"stage": stage, "block": a.block, "fresh_start": True, "started_utc": state["started_utc"], "ended_utc": ended,
                        "contention_before": before, "contention_after": PR.contention(uuids), "failure": state["failure"], "stop_note": note,
+                       "foreign_during": fmon.foreign() if fmon else [], "occupied_before": occ[1] if a.stage == 3 else None,
                        "provenance": prov}
                 R.write(path, rec, timing_allowed=a.stage == 5)
                 print(f"server record written: {path}", flush=True)
@@ -491,6 +508,9 @@ def cmd_serve(a):
             state["failure"] = "not run: foreign compute process on an experiment device"
         elif mon is not None:
             with mon:
+                ad.serve(ready=ready, stop=stop)
+        elif fmon is not None:
+            with fmon:
                 ad.serve(ready=ready, stop=stop)
         else:
             ad.serve(ready=ready, stop=stop)
@@ -562,8 +582,11 @@ def cmd_correctness(a):
     preflight(freeze, gs_dir, role, a)
     import gs_correctness as CO
     ad = make_adapter(freeze, role, gs_dir, a)
-    (CO.run_split if a.what == "split" else CO.run_pipeline)(freeze, gs_dir, ad, pr, check=lambda used: (check_devices(freeze, role, used),
-                                                                                                         mark_run(a)))
+    chk = lambda used: (check_devices(freeze, role, used), mark_run(a))  # noqa: E731
+    if a.what == "split":
+        CO.run_split(freeze, gs_dir, ad, pr, check=chk, uuids=placement(freeze, role)[1], unified=_unified(freeze, role))
+    else:
+        CO.run_pipeline(freeze, gs_dir, ad, pr, check=chk)
     R.exit_log(rd, f"correctness {a.what} done")
 
 
@@ -723,11 +746,18 @@ def logged(fn, a):
     label = a.cmd + (f":{a.what}" if a.cmd == "memory" else "")     # the writer of the file (gs_results.writer)
     try:
         fr = F.load(a.freeze)
-        rd, caps = R.run_dir(Path(a.gs_dir).resolve(), fr), fr["adapter"]["info"]["capabilities"]
-        R.log_event(rd, "START", token, stage, part, label)
-        a.log_ctx = {"rd": rd, "token": token, "stage": stage, "part": part, "cmd": label}
     except Exception:
-        rd = None
+        fr = None                    # the command itself refuses the record (ctx); nothing runs
+    if fr is not None:
+        rd, caps = R.run_dir(Path(a.gs_dir).resolve(), fr), fr["adapter"]["info"]["capabilities"]
+        try:
+            R.log_event(rd, "START", token, stage, part, label)
+        except Exception as e:       # no run without its START event: attempt accounting must see every run (fail closed)
+            print(f"REFUSED: cannot write runs/{fr['run_id']}/<host>.exit_status.log ({type(e).__name__}: {e}); nothing runs "
+                  "(PREREG §13.2)", file=sys.stderr)
+            sys.exit(2)
+        a.log_ctx = {"rd": rd, "token": token, "stage": stage, "part": part, "cmd": label, "caps": caps}
+        R.RUN_CTX.update(rd=rd, token=token, stage=stage, part=part, cmd=label)   # every output is logged before it is written
     code = "crash"
     try:
         fn(a)
@@ -737,17 +767,18 @@ def logged(fn, a):
         raise
     except BaseException as e:
         if rd is not None:
-            R.exit_log(rd, f"CRASH token={token} {type(e).__name__}: {str(e)[:500]}")
+            R.exit_log(rd, f"CRASH run={token} {type(e).__name__}: {str(e)[:500]}")
         raise
     finally:
+        R.RUN_CTX.clear()
         if rd is not None:
-            out = None
+            out = res = None
             if code == "0" and label in R.WRITER_CMDS:
                 try:
-                    out = R.outputs_digest(rd, stage, part, label, caps)
+                    out, res = R.outputs_digest(rd, stage, part, label, caps), R.outputs_result(rd, stage, part, label, caps)
                 except Exception:
-                    out = None
-            R.log_event(rd, "END", token, stage, part, label, rc=code, out=out)
+                    out = res = None
+            R.log_event(rd, "END", token, stage, part, label, rc=code, out=out, res=res)
 
 
 def main(argv=None):
@@ -766,6 +797,9 @@ def main(argv=None):
     p.add_argument("--dest", required=True)
     p.add_argument("--gs-dir", default=str(S.GS_DIR))
     p.set_defaults(fn=cmd_snapshot)
+    p = sp.add_parser("scan-secrets")
+    p.add_argument("--gs-dir", default=str(S.GS_DIR))
+    p.set_defaults(fn=cmd_scan_secrets)
     p = sp.add_parser("adapter-check")
     p.add_argument("--adapter", required=True)
     p.add_argument("--gs-dir", default=str(S.GS_DIR))

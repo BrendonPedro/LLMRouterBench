@@ -75,7 +75,8 @@
   "protocol": "FILL: tcp | http | grpc | zmq | other",
   "serialization": "FILL",
   "endpoint": "FILL: host:port or URL the edge uses to reach the server",
-  "compression": "none"
+  "compression": "none",
+  "experiment_endpoint": "FILL: host:port the experiment's OWN server instance listens on (same protocol and serialisation; a port Brian's running deployment does not use)"
  },
  "generation": {
   "sampling_location": "FILL: edge | server",
@@ -114,6 +115,16 @@
   "env_overrides": {}
  },
  "tuning_history": "FILL: was the split point or any setting chosen by measuring performance? when, on which hardware? (context only)",
+ "authentication": {
+  "mechanism": "FILL: none | shared token in an environment variable | mTLS | SSH tunnel | other (describe; NEVER a value)",
+  "credential_env_vars": [
+   "FILL_NAME_ONLY"
+  ],
+  "config_fields": [
+   "FILL_NAME_ONLY"
+  ],
+  "supplied_out_of_band": "FILL: true | false"
+ },
  "unknowns": [
   "FILL: list every field still unknown; the list must be empty for Stage 0 to CONTINUE"
  ]

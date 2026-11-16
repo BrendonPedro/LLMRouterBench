@@ -69,13 +69,20 @@ def write_text(path, text, overwrite=False):
     return _atomic_write(path, text, overwrite)
 
 
+def json_text(obj):
+    return json.dumps(obj, indent=1, sort_keys=True, default=str, ensure_ascii=False) + "\n"
+
+
+def jsonl_text(rows):
+    return "".join(json.dumps(r, sort_keys=True, default=str, ensure_ascii=False) + "\n" for r in rows)
+
+
 def write_json(path, obj, overwrite=False):
-    return _atomic_write(path, json.dumps(obj, indent=1, sort_keys=True, default=str, ensure_ascii=False) + "\n", overwrite)
+    return _atomic_write(path, json_text(obj), overwrite)
 
 
 def write_jsonl(path, rows, overwrite=False):
-    return _atomic_write(path, "".join(json.dumps(r, sort_keys=True, default=str, ensure_ascii=False) + "\n" for r in rows),
-                         overwrite)
+    return _atomic_write(path, jsonl_text(rows), overwrite)
 
 
 def read_jsonl(path):
@@ -107,7 +114,8 @@ def git(args, cwd):
 # --------------------------------------------------------------------------- #
 # Redaction (PREREG §4.1: secrets are never captured)                          #
 # --------------------------------------------------------------------------- #
-SECRET_NAME = re.compile(r"(TOKEN|SECRET|PASSW|API_?KEY|ACCESS_?KEY|PRIVATE_?KEY|CREDENTIAL|AUTH|COOKIE|SESSION)", re.I)
+SECRET_NAME = re.compile(r"(TOKEN(?!IZER)|SECRET|PASSW|PASSPHRASE|(?:^|_)PASS(?:$|_)|(?:^|_)PWD(?:$|_)|API_?KEY|ACCESS_?KEY|PRIVATE_?KEY|"
+                         r"(?:^|_)KEY(?:$|_)|CREDENTIAL|AUTH|COOKIE|SESSION|BEARER|(?:^|_)JWT(?:$|_))", re.I)
 REDACTED = "<redacted>"
 _TEXT_RULES = (
     (re.compile(r"(?i)\b([a-z][a-z0-9+.-]*://)[^/\s:@]+:[^/\s@]+@"), r"\1" + REDACTED + "@"),       # user:pass@ in URLs
@@ -115,10 +123,60 @@ _TEXT_RULES = (
     (re.compile(r"(?i)(--?(?:api[-_]?key|access[-_]?key|token|password|passwd|secret|auth)(?:[= ]+))(\S+)"), r"\1" + REDACTED),
     (re.compile(r"\bhf_[A-Za-z0-9]{16,}\b"), REDACTED),
     (re.compile(r"\b(?:sk|ghp|gho|ghs|github_pat|xox[abp])[-_][A-Za-z0-9_-]{16,}\b"), REDACTED),
-    (re.compile(r"(?i)\b([A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|PASSWD|API_?KEY|ACCESS_?KEY|CREDENTIAL)[A-Z0-9_]*)=(\S+)"),
-     r"\1=" + REDACTED),
+    (re.compile(r"(?i)\b([A-Z0-9_]*(?:TOKEN(?!IZER)|SECRET|PASSWORD|PASSWD|PASSPHRASE|API_?KEY|ACCESS_?KEY|PRIVATE_?KEY|CREDENTIAL|_KEY)"
+                r"[A-Z0-9_]*)=(\S+)"), r"\1=" + REDACTED),
     (re.compile(r"(?i)(authorization:\s*(?:bearer|basic)\s+)\S+"), r"\1" + REDACTED),
+    (re.compile(r"(?i)\b(bearer|basic)\s+(?!<redacted>)[A-Za-z0-9._~+/=-]{16,}"), r"\1 " + REDACTED),
+    (re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?(?:-----END [A-Z ]*PRIVATE KEY-----|\Z)", re.S), REDACTED),
+    (re.compile(r"\bAKIA[0-9A-Z]{16}\b"), REDACTED),
+    (re.compile(r"(?i)(authorization:\s*(?:token|apikey)\s+)\S+"), r"\1" + REDACTED),
+    (re.compile(r"(?i)(\bx-api-key\s*[:=]\s*)\S+"), r"\1" + REDACTED),
+    (re.compile(r"(\bsshpass\s+-p\s*)\S+"), r"\1" + REDACTED),
+    (re.compile(r"(?i)(--?auth[-_]?token(?:[= ]+))(\S+)"), r"\1" + REDACTED),
 )
+
+# Credentials must never enter a GEMMA-SPLIT artifact (PREREG §4.1): capture/, adapter/, runs/, freeze records, git, archive.
+# These high-precision patterns are checked before a freeze and before an archive is written; a finding names the rule
+# and the line, never the value.
+_SECRET_FINDINGS = (
+    ("credentials in a URL", re.compile(r"(?i)\b[a-z][a-z0-9+.-]*://[^/\s:@<>\"']+:[^/\s@<>\"']+@")),
+    ("private key block", re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----")),
+    ("Hugging Face token", re.compile(r"\bhf_[A-Za-z0-9]{20,}\b")),
+    ("API token", re.compile(r"\b(?:sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{20,}|gho_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|"
+                             r"xox[abp]-[A-Za-z0-9-]{10,})")),
+    ("AWS access key id", re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
+    ("authorization header", re.compile(r"(?i)authorization[\"']?\s*[:=]\s*[\"']?(?:bearer|basic|token|apikey)\s+(?!<redacted>)"
+                                        r"[A-Za-z0-9._~+/=-]{8,}")),
+    ("API key header", re.compile(r"(?i)\bx-api-key[\"']?\s*[:=]\s*[\"']?(?!<redacted>)[A-Za-z0-9._~+/=-]{8,}")),
+    ("credential option", re.compile(r"(?i)(?:^|\s)--?(?:api[-_]?key|access[-_]?key|auth[-_]?token|token|password|passwd|secret)(?:=|\s+)"
+                                     r"(?!<redacted>|\$)[\"']?[A-Za-z0-9._~+/=-]{8,}")),
+    ("sshpass password", re.compile(r"\bsshpass\s+-p\s*(?!<redacted>|\$)\S+")),
+    ("secret assignment", re.compile(r"(?i)(?:^|[^A-Za-z0-9])[A-Za-z0-9_]*(?:token|secret|password|passwd|passphrase|api_?key|access_?key|"
+                                     r"private_?key|credentials?)[\"']?\s*[=:]\s*[\"']?(?=[^\s\"']*\d)[A-Za-z0-9_\-./+=]{12,}")),
+)
+
+
+def secret_findings(text):
+    """[(rule, line number)] for credential-like content in text (redacted values and ${VAR} references never match)."""
+    out = []
+    for n, line in enumerate((text or "").splitlines(), 1):
+        for name, pat in _SECRET_FINDINGS:
+            if pat.search(line):
+                out.append((name, n))
+    return out
+
+
+TEXT_SUFFIXES = (".json", ".jsonl", ".md", ".txt", ".log", ".py", ".sh", ".yaml", ".yml", ".toml", ".cfg", ".ini", ".env", ".csv")
+
+
+def scan_files(paths, root):
+    """['<relative path>:<line> (<rule>)'] over the text files among `paths` (relative to root)."""
+    out = []
+    for p in paths:
+        p = Path(p)
+        if p.is_file() and (p.suffix in TEXT_SUFFIXES or p.name.startswith(".env")):
+            out += [f"{p.relative_to(root).as_posix()}:{n} ({rule})" for rule, n in secret_findings(p.read_text(encoding="utf-8", errors="replace"))]
+    return out
 
 
 def redact_text(s):
@@ -127,6 +185,18 @@ def redact_text(s):
     for pat, rep in _TEXT_RULES:
         s = pat.sub(rep, s)
     return s
+
+
+def redact_obj(obj):
+    """Copy of a JSON-like object with redact_text applied to every string value (keys unchanged): harness outputs may
+    carry exception messages, which must never carry a credential into runs/ (PREREG §4.1)."""
+    if isinstance(obj, str):
+        return redact_text(obj)
+    if isinstance(obj, dict):
+        return {k: redact_obj(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [redact_obj(v) for v in obj]
+    return obj
 
 
 def redact_env(env):

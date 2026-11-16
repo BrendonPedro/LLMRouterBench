@@ -98,21 +98,52 @@ def _run_split_like(freeze, gs_dir, runner, tier, can_ignore_eos):
     return rows, {"messages": RU.aggregate_audit(messages), "teacher_forced_messages": RU.aggregate_audit(tf_messages)}
 
 
-def run_split(freeze, gs_dir, adapter, profile_role, check=None):
+def rules_preview(freeze, gs_dir, rows):
+    """The correctness rules over this run's rows, computed on the edge (R_server and R_edge are local): recorded in the
+    split run's meta.json and logged in its END line, so that a deleted attempt's FAIL still counts (PREREG §13.2). The
+    decision (gs_rules.decide_stage3) recomputes everything; with exceptions only the monotone generation rule is decisive."""
+    rd = R.run_dir(gs_dir, freeze)
+    ref_p, hw_p = R.stage_dir(rd, STAGE) / "reference_server" / "reference.jsonl", R.stage_dir(rd, STAGE) / "reference_edge" / "compare.jsonl"
+    if not ref_p.exists():
+        return None
+    done = [r for r in rows if not r.get("error")]
+    g = RU.gen_rule(C.read_jsonl(ref_p), done, (freeze["checkpoint"]["summary"] or {}).get("vocab_size"), len(done),
+                    freeze["workload"]["eos_token_ids"])
+    tf = None
+    if freeze["adapter"]["tier"] == S.TIER_FULL and hw_p.exists() and done and RU.tf_summary(done) and RU.tf_summary(C.read_jsonl(hw_p)):
+        tf = RU.tf_rule(RU.tf_summary(done), RU.tf_summary(C.read_jsonl(hw_p)))["pass"]
+    complete = len(done) == len(rows)
+    fail = (not g["pass"]) or (complete and tf is False)
+    return {"verdict": "FAIL" if fail else ("PASS" if complete else "INCOMPLETE"), "generation_pass": g["pass"], "teacher_forced_pass": tf,
+            "items_completed": len(done), "items": len(rows)}
+
+
+def run_split(freeze, gs_dir, adapter, profile_role, check=None, uuids=None, unified=False):
+    """The split run on the edge with the server half serving. Foreign compute processes on the edge devices are recorded
+    at the start, during the run and at the end, with memory held by others before it (Stage-3 contention, PREREG §9.5)."""
+    import gs_memory as M
+    uuids = list(freeze["split"]["capture"]["gpu_placement"]["edge"].get("uuids", []) if uuids is None else uuids)
+    mine = M.own_pids()
     started = C.utc()
-    adapter.connect()
-    try:
-        devices = adapter.edge_devices()
-        if check:
-            check(devices)
-        rows, audit = _run_split_like(freeze, gs_dir, adapter, freeze["adapter"]["tier"], "ignore_eos" in adapter.capabilities())
-    finally:
-        AD.safe_close(adapter)
+    snap = M.snapshot([])
+    cont = {"foreign_before": M.foreign_processes(snap["smi"], uuids, mine), "occupied_before": M.occupied(snap, uuids, unified)[1]}
+    with M.ForeignMonitor(uuids, mine) as mon:
+        adapter.connect()
+        try:
+            devices = adapter.edge_devices()
+            if check:
+                check(devices)
+            rows, audit = _run_split_like(freeze, gs_dir, adapter, freeze["adapter"]["tier"], "ignore_eos" in adapter.capabilities())
+        finally:
+            AD.safe_close(adapter)
+    cont.update(foreign_during=mon.foreign(), foreign_after=M.foreign_processes(M.smi_snapshot(), uuids, M.own_pids() | mine))
     sd = R.stage_dir(R.run_dir(gs_dir, freeze), STAGE) / "split"
     R.write_rows(sd / "compare.jsonl", rows, timing_allowed=False)
     R.write(sd / "boundary_audit.json", audit, timing_allowed=False)
     R.write(sd / "meta.json", _meta(freeze, "edge", devices, profile_role, {"adapter": freeze["adapter"]["info"], "started_utc": started,
-                                                                         "ended_utc": C.utc()}), timing_allowed=False)
+                                                                         "ended_utc": C.utc(), "contention": cont,
+                                                                         "rules_preview": rules_preview(freeze, gs_dir, rows)}),
+            timing_allowed=False)
     return rows
 
 

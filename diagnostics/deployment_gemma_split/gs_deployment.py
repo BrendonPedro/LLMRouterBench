@@ -58,7 +58,7 @@ def source_capture(source_root):
         prefix = os.path.relpath(root, top)            # "." or the source root's path inside the repository
         scope = [] if prefix == "." else ["--", prefix]
         tracked = (C.git(["ls-files", "-z", "--full-name", *scope], top) or "").split("\0")
-        status = C.git(["status", "--porcelain=v1", "--untracked-files=all", *scope], top) or ""
+        status = C.git(["--no-optional-locks", "status", "--porcelain=v1", "--untracked-files=all", *scope], top) or ""   # read-only
         untracked = [l[3:] for l in status.splitlines() if l.startswith("??")]
         rec["git"] = {"toplevel": str(top), "subdir": prefix, "commit": C.git(["rev-parse", "HEAD"], top),
                       "branch": C.git(["rev-parse", "--abbrev-ref", "HEAD"], top), "dirty": bool(status.strip()),
@@ -121,6 +121,8 @@ def snapshot(source_rec, dest):
     """Copy the manifest files of one captured source root to `dest` and verify every hash (Stage 1). Returns the
     snapshot record; raises if any file differs from the capture (the live deployment changed after Stage 0)."""
     src, dest = Path(source_rec["root"]), Path(dest)
+    if dest.resolve() == src.resolve() or src.resolve() in dest.resolve().parents:
+        raise ValueError(f"{dest} lies inside Brian's source tree {src}: the snapshot is written outside it (nothing of his is modified)")
     if dest.exists() and any(dest.iterdir()):
         raise FileExistsError(f"{dest} is not empty: a snapshot is written once")
     problems = []

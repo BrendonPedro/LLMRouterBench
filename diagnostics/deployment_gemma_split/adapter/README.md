@@ -10,6 +10,10 @@ Rules (PREREG §5):
   captured launch commands use. No symlinks and no subpackages outside this directory's hashed files. Put the snapshot
   first on `sys.path`; an editable install of the deployment's package resolves to the live tree and is refused. Anything
   you run (scripts, configs) must lie under a captured source root: launch files outside the roots are guarded too.
+- Load no weights in `make_adapter()`: loading happens in `connect()` (edge) / `serve()` (server), inside the Stage-2
+  probes. The experiment's own server instance listens on `transport.experiment_endpoint` (never Brian's live port); a
+  credential, if needed, is read at run time from the environment variable named in `authentication` and is never
+  written, logged or returned.
 - Do not change the checkpoint, dtype, layer ownership, cut, kernels, KV policy, transport, serialisation or any
   computation. Force greedy decoding and the frozen token ids only. Return the stopping EOS id in `tokens`.
 - No timers: the harness times. No caching across requests that the deployment does not do itself.

@@ -89,6 +89,11 @@ def create(gs_dir, run_id, out, snapshots=()):
         raise FileExistsError(f"{out} exists: an archive is written once")
     mem = members(gs_dir, run_id, snapshots)
     blob = lambda p: p if isinstance(p, bytes) else p.read_bytes()  # noqa: E731
+    lab = ("capture/", "adapter/", "adapter_history/", "frozen/", "runs/", "snapshot/")     # where lab data can enter (the harness is fixed)
+    found = [f"{name}:{n} ({rule})" for name, p in mem.items() if name.startswith(lab) and (name.endswith(C.TEXT_SUFFIXES) or "/." in name
+             or name.startswith("snapshot/")) for rule, n in C.secret_findings(blob(p).decode("utf-8", errors="replace"))]
+    if found:
+        raise ValueError(f"credential-like content in archive members (PREREG §4.1, §15): {found[:10]}: remove it; nothing is archived")
     sums = "".join(f"{C.sha256_bytes(blob(p))}  {name}\n" for name, p in mem.items()).encode()
     prefix = f"gemma_split_{run_id}/"
     buf = io.BytesIO()

@@ -9,6 +9,8 @@ Qwen3 first-k/last-k design is listed in `differences`, not corrected.
   python -I gs_split.py validate --capture capture/split_capture.json --checkpoint capture/server/checkpoint.json
   python -I gs_split.py select --candidates capture/candidates.json --roles capture/roles.json --out capture/selected_config.json
 """
+import json
+import re
 import sys
 from pathlib import Path
 
@@ -23,7 +25,12 @@ OWNED_PARTS = ("embed_tokens", "per_layer_embeddings", "final_norm", "lm_head", 
 DIRECTIONS = ("edge_to_server", "server_to_edge")
 WHEN = ("prefill", "decode", "every_step", "once")
 REQUIRED_TOP = ("schema", "configuration_id", "captured_utc", "captured_by", "sources", "implementation", "model", "ownership",
-                "boundary", "kv_cache", "transport", "generation", "gpu_placement", "launch", "unknowns")
+                "boundary", "kv_cache", "transport", "generation", "gpu_placement", "launch", "authentication", "tuning_history", "unknowns")
+ENV_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+HOST_PORT = re.compile(r"^(?:[a-z][a-z0-9+.-]*://)?[^\s/:@]+:\d{1,5}(?:/\S*)?$")
+# Candidate fields that look like measurements are refused: the selection is performance-blind (PREREG §4.5).
+MEASUREMENT_KEY = re.compile(r"(latenc|throughput|tpot|ttft|tok(en)?s?_per|per_s(ec)?$|speed|_ms$|_ns$|_s$|time|memory|mem_|vram|_gib$|"
+                             r"_gb$|_mib$|_bytes$|bench|score|faster|slower)", re.I)
 TOKEN_NAMES = ("input_ids", "token_ids", "token_id", "tokens", "prompt", "text")
 PLE_NAMES = ("per_layer", "ple")
 KV_NAMES = ("kv", "key", "value", "past")
@@ -65,6 +72,31 @@ def placeholders(obj, path="$"):
     return [path] if isinstance(obj, str) and obj.strip().upper().startswith("FILL") else []
 
 
+def _port(endpoint):
+    """The port of host:port or of a URL; a URL without one uses its scheme's default (http/ws 80, https/wss 443)."""
+    e = str(endpoint or "")
+    m = re.search(r":(\d{1,5})(?:/|$)", re.sub(r"^[a-z][a-z0-9+.-]*://", "", e, flags=re.I))
+    if m:
+        return int(m.group(1))
+    return {"http": 80, "ws": 80, "https": 443, "wss": 443}.get(e.split("://", 1)[0].lower()) if "://" in e else None
+
+
+def authentication_problems(auth):
+    """The split capture records HOW the deployment authenticates, never a credential (PREREG §4.1)."""
+    if not isinstance(auth, dict):
+        return ["authentication must be an object {mechanism, credential_env_vars, config_fields, supplied_out_of_band}"]
+    P = []
+    if not isinstance(auth.get("mechanism"), str) or not auth["mechanism"].strip():
+        P.append("authentication.mechanism must name the mechanism (e.g. 'none', 'shared token in an environment variable', 'mTLS')")
+    for k in ("credential_env_vars", "config_fields"):
+        v = auth.get(k)
+        if not isinstance(v, list) or not all(isinstance(x, str) and ENV_NAME.match(x) for x in v):
+            P.append(f"authentication.{k} must be a list of NAMES (letters, digits, underscore), never values")
+    if not isinstance(auth.get("supplied_out_of_band"), bool):
+        P.append("authentication.supplied_out_of_band must be true or false")
+    return P
+
+
 def validate(cap, ck_summary):
     """(problems, warnings). Problems block Stage 0 (STOP_SPLIT_CAPTURE_INVALID or STOP_INCOMPLETE for unknowns)."""
     P, W = [], []
@@ -80,6 +112,22 @@ def validate(cap, ck_summary):
         P.append(f"schema {cap['schema']!r} != {SCHEMA!r}")
     if not isinstance(cap["configuration_id"], str) or not cap["configuration_id"].strip():
         P.append("configuration_id must be a non-empty string")
+    P += authentication_problems(cap.get("authentication"))
+    ep = (cap.get("transport") or {}).get("experiment_endpoint")
+    if not isinstance(ep, str) or not HOST_PORT.match(ep):
+        P.append(f"transport.experiment_endpoint must be host:port (or a URL with a port) for the experiment's own server instance, got {ep!r}")
+    elif _port(ep) == _port((cap.get("transport") or {}).get("endpoint")):
+        P.append("transport.experiment_endpoint uses the live deployment's port: the experiment's own instance listens on its own "
+                 "port, so that the edge can never reach Brian's running server, whatever the host is called (PREREG §4.3)")
+    if not isinstance(cap.get("tuning_history"), str) or not cap["tuning_history"].strip():
+        P.append("tuning_history must record whether and how the configuration was chosen by measurement (Q4; 'none' if not)")
+    srv = (cap.get("gpu_placement") or {}).get("server") or {}
+    if any(str(d).startswith("cuda") for d in srv.get("devices", [])) and not srv.get("CUDA_VISIBLE_DEVICES"):
+        P.append("gpu_placement.server.CUDA_VISIBLE_DEVICES must pin the frozen GPU(s) on the multi-GPU server, so that the "
+                 "deployment can load on no other device (PREREG §8)")
+    found = C.secret_findings(json.dumps(cap, indent=1))
+    if found:
+        P.append(f"credential-like content in the split capture {sorted({r for r, _ in found})}: record only mechanism and names (PREREG §4.1)")
     L = (ck_summary or {}).get("num_hidden_layers")
     if not L:
         return P + ["captured config.json has no num_hidden_layers: cannot validate ownership"], W
@@ -312,6 +360,9 @@ def select(candidates, roles):
             why.append(f"hosts ({c.get('edge_host')}, {c.get('server_host')}) != roles ({eh}, {sh})")
         if c.get("designated_by_implementer") and not c.get("designation_ref"):
             why.append("designation without a dated written reference (lab_answers.md anchor)")
+        perf = sorted(k for k in c if MEASUREMENT_KEY.search(str(k)))
+        if perf:
+            why.append(f"measurement-like fields {perf}: a candidate carries Stage-0 facts only (PREREG §4.5)")
         rec["trace"].append({"configuration_id": c.get("configuration_id"), "eligible": not why, "excluded_because": why})
         if not why:
             elig.append(c)

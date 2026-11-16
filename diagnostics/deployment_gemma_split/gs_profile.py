@@ -12,9 +12,13 @@ decomposition during a dedicated instrumented run with the server half serving. 
 Stage 5: the blocks of gs_spec.block_order in that order, each from freshly started processes, each over the same
 2 x (2 warm-up + 20 measured) prompts, greedy, exactly 256 new tokens when the deployment supports ignore_eos. The
 host running the block records perf_counter_ns at submission and at every token's arrival; no synchronisation is added.
-TTFT = first token - submission; TPOT = (last - first) / (n - 1).
+TTFT = first token - submission; TPOT = (last - first) / (n - 1). A request that raises is recorded with its error; no
+token for REQUEST_STALL_S aborts the block (a crash, repeated within the caps): a hung request is never waited out,
+retried or dropped.
 """
+import os
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -63,6 +67,25 @@ def timing_items(w):
     for g in S.TIMING_GROUPS:
         out += WL.items(w, "timing", g, "warmup") + WL.items(w, "timing", g, "measured")
     return out
+
+
+class Stall:
+    """Aborts the process when no token arrives for REQUEST_STALL_S (PREREG §11.3). os._exit leaves no END event, so the
+    gate sees a crashed block (repeatable within the caps) and no partial output is written."""
+
+    def __init__(self, label):
+        self.label, self.last, self.stop = label, time.monotonic(), threading.Event()
+        threading.Thread(target=self._loop, daemon=True).start()
+
+    def tick(self):
+        self.last = time.monotonic()
+
+    def _loop(self):
+        while not self.stop.wait(5.0):
+            if time.monotonic() - self.last > S.REQUEST_STALL_S:
+                sys.stderr.write(f"STALL: no token for {S.REQUEST_STALL_S} s in {self.label}: the block is aborted (PREREG §11.3)\n")
+                sys.stderr.flush()
+                os._exit(3)
 
 
 def contention(devices_uuids):
@@ -132,13 +155,19 @@ def run_block(freeze, gs_dir, block, runner, role, devices, uuids, runtime_label
     eos = freeze["workload"]["eos_token_ids"]
     started = C.utc_ms()
     before = contention(uuids)
-    rows = []
+    rows, stall = [], Stall(block)
     for it in timing_items(w):
         stamps = []
-        row = {"group": it["group"], "prompt_id": it["id"], "kind": it["kind"]}
+        ign = bool(it["ignore_eos"] and can_ignore_eos)
+        row = {"group": it["group"], "prompt_id": it["id"], "kind": it["kind"], "gen_tokens": it["gen_tokens"], "ignore_eos": ign}
+
+        def on_token(i, t, stamps=stamps):
+            stamps.append(time.perf_counter_ns())
+            stall.tick()
+        stall.tick()
         t0 = time.perf_counter_ns()
         try:
-            res = runner.stream(it["ids"], it["gen_tokens"], eos, it["ignore_eos"] and can_ignore_eos, lambda i, t: stamps.append(time.perf_counter_ns()))
+            res = runner.stream(it["ids"], it["gen_tokens"], eos, ign, on_token)
             t_end = time.perf_counter_ns()
             n = len(stamps)
             row.update(n_tokens=n, stopped_on_eos=bool(res.get("stopped_on_eos")), total_ns=t_end - t0,
@@ -147,6 +176,7 @@ def run_block(freeze, gs_dir, block, runner, role, devices, uuids, runtime_label
         except Exception as e:
             row["error"] = f"{type(e).__name__}: {e}"
         rows.append(row)
+    stall.stop.set()
     after = contention(uuids)
     bd = R.stage_dir(R.run_dir(gs_dir, freeze), "stage5") / block
     R.write_rows(bd / "requests.jsonl", rows, timing_allowed=True)

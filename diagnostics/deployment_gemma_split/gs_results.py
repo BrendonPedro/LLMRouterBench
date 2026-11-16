@@ -130,34 +130,77 @@ def assert_no_timing_fields(obj, path="$"):
             assert_no_timing_fields(v, f"{path}[{i}]")
 
 
+RUN_CTX = {}          # set by gs_bench.logged for the duration of a command: {rd, token, stage, part, cmd}
+
+
+def file_result(obj):
+    """The result a written record carries: a Stage-2 status, or a Stage-3 split run's rule preview."""
+    if isinstance(obj, dict):
+        if isinstance(obj.get("status"), str):
+            return obj["status"]
+        if isinstance((obj.get("rules_preview") or {}).get("verdict"), str):
+            return obj["rules_preview"]["verdict"]
+    return None
+
+
+def _logged_write(path, text, obj):
+    """An output written by a logged run (PREREG §13.2): WROTE (file, digest, result) BEFORE the write, SAVED after it.
+    Fails closed: without its WROTE event nothing is written; if SAVED cannot be logged the file is removed again. So a
+    file present was written by the run that logged WROTE; a WROTE without SAVED is a write that never completed."""
+    path = Path(path)
+    if path.exists():
+        raise FileExistsError(f"{path} exists: GEMMA-SPLIT outputs are written once (write a new file instead)")
+    if not RUN_CTX:
+        return C.write_text(path, text)
+    sd = stage_dir(RUN_CTX["rd"], RUN_CTX["stage"]) if RUN_CTX.get("stage") in S.STAGE_DIRS else Path(RUN_CTX["rd"])
+    try:
+        rel = path.resolve().relative_to(Path(sd).resolve()).as_posix()
+    except ValueError:
+        rel = path.name
+    ctx, digest = dict(RUN_CTX), C.sha256_bytes(text.encode("utf-8"))[:16]
+    log_event(ctx["rd"], "WROTE", ctx["token"], ctx["stage"], ctx["part"], ctx["cmd"], out=digest, res=file_result(obj), file=rel)
+    C.write_text(path, text)
+    try:
+        log_event(ctx["rd"], "SAVED", ctx["token"], ctx["stage"], ctx["part"], ctx["cmd"], out=digest, file=rel)
+    except BaseException:
+        path.unlink(missing_ok=True)
+        raise
+    return path
+
+
 def write(path, obj, timing_allowed):
     if not timing_allowed:
         assert_no_timing_fields(obj)
-    return C.write_json(path, obj)
+    obj = C.redact_obj(obj)
+    return _logged_write(path, C.json_text(obj), obj)
 
 
 def write_rows(path, rows, timing_allowed):
     if not timing_allowed:
         for r in rows:
             assert_no_timing_fields(r)
-    return C.write_jsonl(path, rows)
+    return _logged_write(path, C.jsonl_text([C.redact_obj(r) for r in rows]), None)
 
 
 def exit_log(rd, line, host=None):
     p = Path(rd) / f"{host or socket.gethostname()}.exit_status.log"
     p.parent.mkdir(parents=True, exist_ok=True)
     with open(p, "a", encoding="utf-8") as f:
-        f.write(f"{C.utc()} {line}\n")
+        f.write(f"{C.utc()} {C.redact_text(line)}\n")
 
 
-EVENT_RE = re.compile(r"^(\S+) (START|RUN|END) token=(\S+) stage=(\S+) part=(\S+) rc=(\S+) cmd=(\S+)(?: out=(\S+))?")
+EVENT_RE = re.compile(r"^(\S+) (START|RUN|WROTE|SAVED|END) run=(\S+) stage=(\S+) part=(\S+) rc=(\S+) cmd=(\S+)(?: out=(\S+))?(?: res=(\S+))?"
+                      r"(?: file=(\S+))?")
 
 
-def log_event(rd, kind, token, stage, part, cmd, rc="-", host=None, out=None):
+def log_event(rd, kind, token, stage, part, cmd, rc="-", host=None, out=None, res=None, file=None):
     """START, RUN (measurement begins: after connect and the device check) and END of a command in
     runs/<run_id>/<host>.exit_status.log; gs_gate reads these events for attempt accounting (PREREG §13.2). A completed
-    writer's END carries `out`, the digest of the files it wrote (which attempt's outputs are present)."""
-    exit_log(rd, f"{kind} token={token} stage={stage or '-'} part={part or '-'} rc={rc} cmd={cmd}" + (f" out={out}" if out else ""), host=host)
+    writer's END carries `out`, the digest of the files it wrote (which attempt's outputs are present), and `res`, the
+    result it recorded where there is one (a Stage-2 probe's status, a Stage-3 split run's rule preview), so that a
+    deleted attempt's result still counts (PREREG §13.2)."""
+    exit_log(rd, f"{kind} run={token} stage={stage or '-'} part={part or '-'} rc={rc} cmd={cmd}" + (f" out={out}" if out else "") +
+             (f" res={res}" if res else "") + (f" file={file}" if file else ""), host=host)
 
 
 def read_events(rd):
@@ -167,7 +210,7 @@ def read_events(rd):
         for line in p.read_text(encoding="utf-8", errors="replace").splitlines():
             m = EVENT_RE.match(line)
             if m:
-                out.append(dict(zip(("utc", "kind", "token", "stage", "part", "rc", "cmd", "out"), m.groups()),
+                out.append(dict(zip(("utc", "kind", "token", "stage", "part", "rc", "cmd", "out", "res", "file"), m.groups()),
                                 host=p.name.split(".exit_status")[0]))
     return out
 
@@ -195,6 +238,29 @@ def outputs_digest(rd, stage, part, cmd, caps):
     sd = stage_dir(rd, stage)
     files = sorted(f for f in spec["own"] + spec["companion"] if writer(stage, part, f) == cmd and (sd / f).exists())
     return C.sha256_obj([[f, C.sha256_file(sd / f)] for f in files])[:16] if files else None
+
+
+def outputs_result(rd, stage, part, cmd, caps):
+    """The result a writer recorded, for its END line: a Stage-2 record's status, a Stage-3 split run's rule preview."""
+    spec = parts(stage, caps).get(part) if stage in S.STAGE_ORDER else None
+    sd = stage_dir(rd, stage)
+    for f in (spec or {}).get("own", []) + (spec or {}).get("companion", []):
+        if writer(stage, part, f) == cmd and f.endswith(".json") and (sd / f).exists() and file_result(C.read_json(sd / f)):
+            return file_result(C.read_json(sd / f))
+    return None
+
+
+def wrote_events(events, stage, part, cmd, kind="WROTE"):
+    """{run token: {file: (digest, result)}} from the WROTE (intent) or SAVED (written) events of a writer."""
+    out = {}
+    for e in events:
+        if e["kind"] == kind and (e["stage"], e["part"], e["cmd"]) == (stage, part, cmd) and e.get("file"):
+            out.setdefault(f"{e['host']}/{e['token']}", {})[e["file"]] = (e.get("out"), e.get("res"))
+    return out
+
+
+def file_digest(path):
+    return C.sha256_file(path)[:16]
 
 
 def _tokens(events, kind, stage, part, cmd, rc=None):

@@ -1,8 +1,11 @@
 # capture/ (Stage 0 and Stage 1 inputs; empty of lab facts until Stage 0 runs)
 
-Written after the tag `gemma-split-prereg-v1`, committed in commit A (capture/ and adapter/ only), then hashed by
-the freeze record. Templates: `split_capture.template.json`, `capabilities.template.json`, `candidates.template.json`
+Written after the tag `gemma-split-prereg-v1`: the Stage-0 capture (with `capabilities.json`) is committed in commit A0
+before any adapter file exists, the Stage-1 files with the adapter in commit A, and everything is hashed by the freeze
+record. Templates: `split_capture.template.json`, `capabilities.template.json`, `candidates.template.json`
 (every value is a `FILL` placeholder, booleans included; none of them validates as it is); questions: `LAB_QUESTIONS.md`.
+No file here may contain a credential value: authentication is recorded as mechanism + variable / field NAMES only
+(`split_capture.json` -> `authentication`, Q17); the freeze and the archive refuse credential-like content.
 
 | File | Written by | Where |
 |---|---|---|

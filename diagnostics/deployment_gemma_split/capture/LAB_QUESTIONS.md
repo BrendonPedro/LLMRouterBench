@@ -2,7 +2,9 @@
 
 Answers go into `capture/lab_answers.md`, one dated section per answer (`## Q3 (2026-MM-DD, Brian)`), before any
 Stage-2 command runs. A selection made from these answers (PREREG §4.5) cites the section anchor. Nobody is shown
-any GEMMA-SPLIT measurement before the answers are recorded (none exists before Stage 2).
+any GEMMA-SPLIT measurement before the answers are recorded (none exists before Stage 2). **Never write a credential
+value (API key, token, password, private key, other secret) into `lab_answers.md` or any other file here**: the freeze
+and the archive refuse credential-like content (PREREG §4.1).
 
 ## Deployment identity
 - Q1. Which code implements the Gemma split on each machine (path, repository, branch, commit)? Is it the same code
@@ -42,4 +44,12 @@ any GEMMA-SPLIT measurement before the answers are recorded (none exists before 
 - Q15. Is a Python environment on each machine available to run the harness (the deployment's own interpreter;
   the harness needs only the standard library plus the deployment's torch / transformers)?
 - Q16. Are both machines' clocks synchronised (NTP / chrony)? Cross-host timestamps bind and order the runs (30 s
-  tolerance).
+  tolerance; no latency is computed from them).
+- Q17. What authentication mechanism does the DGX <-> server / API deployment use? Record only the mechanism and the
+  names of environment variables / configuration fields. Do NOT record credential values, tokens, passwords, private
+  keys, or other secrets in GEMMA-SPLIT artifacts. (Goes into `split_capture.json` -> `authentication`; state whether the
+  credential is supplied out of band.)
+- Q18. May the experiment start its OWN instance of the deployment from the snapshot (nothing of yours is stopped,
+  restarted, reconfigured or written), on which port (`transport.experiment_endpoint`), under which account, with which
+  cache directories (HF_HOME, TORCH_HOME, TRITON_CACHE_DIR, XDG_CACHE_HOME)? If your running deployment occupies the
+  experiment GPU, will you stop it yourself for a window (date recorded), or should the experiment wait?

@@ -431,6 +431,30 @@ class Faults(unittest.TestCase):
             self.assertIn(needle, " ".join(p["reason"] for p in dec["problems"]), fault)
             self.assertIn(cause, [p["cause"] for p in dec["problems"]], fault)
 
+    def test_pipeline_errors_and_contention_never_fail(self):
+        dec = self.run_split("T1", pipeline_faults="omit_shared_kv")[0]       # the in-host diagnostic breaks, the split is correct
+        self.assertEqual(dec["verdict"], "PASS", dec["problems"])
+        self.assertTrue(dec["diagnostics"]["pipeline_errors"])
+        dec, rd, fr, gs = self.run_split("T1", "omit_shared_kv")              # split exceptions ...
+        p = R.stage_dir(rd, "stage3") / "split" / "server_serve.json"
+        C.write_json(p, dict(C.read_json(p), foreign_during=[{"pid": 4242, "gpu_uuid": "GPU-other-user"}]), overwrite=True)
+        causes = [x["cause"] for x in RU.decide_stage3(rd, fr, dev=True)["problems"]]   # ... while another user's job ran
+        self.assertIn("contention", causes)
+        self.assertNotIn("exceptions", causes)                                 # never counted toward FAIL
+        dec, rd, fr, gs = self.run_split("T1", "omit_shared_kv")              # a job that appears only when the server is stopped
+        smeta = C.read_json(R.stage_dir(rd, "stage3") / "split" / "meta.json")
+        late = C.utc_ms(C.parse_utc(smeta["ended_utc"]) + 3600)
+        p = R.stage_dir(rd, "stage3") / "split" / "server_serve.json"
+        C.write_json(p, dict(C.read_json(p), contention_after={"foreign": [{"pid": 4242}]},
+                             foreign_during=[{"pid": 4242, "first_seen_utc": late}]), overwrite=True)
+        causes = [x["cause"] for x in RU.decide_stage3(rd, fr, dev=True)["problems"]]
+        self.assertIn("exceptions", causes)                                    # it cannot turn the exceptions into contention
+        self.assertNotIn("contention", causes)
+        dec, rd, fr, gs = self.run_split("T1", "skip_layer")                  # a rule failure ...
+        p = R.stage_dir(rd, "stage3") / "split" / "server_serve.json"
+        C.write_json(p, dict(C.read_json(p), foreign_during=[{"pid": 4242}]), overwrite=True)
+        self.assertEqual(RU.decide_stage3(rd, fr, dev=True)["verdict"], "FAIL")   # ... is never erased by contention
+
     def test_exception_repeats_end_in_fail_and_fail_closes_runtime(self):
         dec, rd, fr, gs = self.run_split("T1", "omit_shared_kv")
         T.log_runs(rd, fr, "stage3")                          # the drivers ran directly: the events the CLI would log

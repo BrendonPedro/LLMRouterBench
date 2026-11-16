@@ -36,7 +36,8 @@ POST_FREEZE_DIRS = ("frozen/", "runs/", "results/")     # may change after the f
 FIXES_FILE = "frozen/HARNESS_FIXES.md"                  # lines "<path> | <fix commit> | <regression test> | <reason>"
 STRICT_VERSION_KEYS = ("python", "torch", "torch_cuda", "transformers", "accelerate", "safetensors", "tokenizers", "flash_attn", "vllm",
                        "driver")
-EXEC_ENV_KEYS = ("CUDA_VISIBLE_DEVICES", "CUDA_DEVICE_ORDER", "PYTORCH_CUDA_ALLOC_CONF", "OMP_NUM_THREADS", "MKL_NUM_THREADS",
+EXEC_ENV_KEYS = ("HF_HOME", "TORCH_HOME", "TRITON_CACHE_DIR", "XDG_CACHE_HOME",
+                 "CUDA_VISIBLE_DEVICES", "CUDA_DEVICE_ORDER", "PYTORCH_CUDA_ALLOC_CONF", "OMP_NUM_THREADS", "MKL_NUM_THREADS",
                  "NVIDIA_TF32_OVERRIDE", "CUBLAS_WORKSPACE_CONFIG", "TOKENIZERS_PARALLELISM", "LD_PRELOAD", "LD_LIBRARY_PATH",
                  "PYTHONPATH", "PYTHONHOME")
 EXEC_ENV_PREFIXES = ("TORCH_", "NCCL_", "TRANSFORMERS_", "VLLM_", "HF_HUB_")
@@ -144,6 +145,9 @@ def expected_record_name(revision):
     return "freeze_record.json" if revision == 1 else f"freeze_record.r{revision}.json"
 
 
+APPEND_ONLY = (".exit_status.log", "/_invalidated/LOG.jsonl")    # checked for append-only growth instead
+
+
 def evidence_problems(gs_dir):
     """Records and run outputs are append-only evidence: a record under another name, a tracked record or output missing
     from the working tree, or a deletion / rename in git history (other than a move into _invalidated/) is refused."""
@@ -164,8 +168,13 @@ def evidence_problems(gs_dir):
             P.append(f"deleted from git history: {f[1]}")
         elif f[0].startswith("R") and len(f) == 3 and ("/_invalidated/" not in f[2] or f[1].startswith(f"{rel}/frozen/")):
             P.append(f"renamed in git history: {f[1]} -> {f[2]}")
+        elif f[0] == "M" and len(f) == 2 and not f[1].endswith(APPEND_ONLY + (FIXES_FILE,)):
+            P.append(f"modified in git history: {f[1]} (outputs, gates and records are written once)")
+    for t in (C.git(["diff", "--name-only", "HEAD", "--", f"{rel}/frozen", f"{rel}/runs"], repo) or "").splitlines():
+        if t and not t.endswith(APPEND_ONLY + (FIXES_FILE,)):
+            P.append(f"modified in the working tree: {t} (outputs, gates and records are written once)")
     for t in tracked:          # exit-status and invalidation logs are append-only: each version extends the previous one
-        if not t.endswith((".exit_status.log", "/_invalidated/LOG.jsonl")):
+        if not t.endswith(APPEND_ONLY):
             continue
         prev = ""
         for h in (C.git(["log", "--first-parent", "--reverse", "--format=%H", "HEAD", "--", t], repo) or "").split():
@@ -189,20 +198,27 @@ def had_outputs(gs_dir, run_id):
     return now or bool(hist)
 
 
+DECLARED_FIRST = ("capture/capabilities.json", "capture/candidates.json", "capture/selected_config.json")
+
+
 def capabilities_declared_first(gs_dir):
-    """capture/capabilities.json must have been committed before any adapter file existed, and unchanged since (PREREG §5.3)."""
+    """The capability declaration and the configuration selection (candidates and result) must have been committed before
+    any adapter file existed (commit A0), and unchanged since: nothing run through an adapter can influence them
+    (PREREG §4.5, §5.3)."""
     repo, rel = repo_of(gs_dir), rel_dir(gs_dir)
-    first = (C.git(["log", "--diff-filter=A", "--format=%H", "--", f"{rel}/capture/capabilities.json"], repo) or "").splitlines()
-    if not first:
-        return ["capture/capabilities.json is not committed: commit the declaration before writing the adapter"]
-    c0 = first[-1]
     P = []
-    early = [l for l in (C.git(["ls-tree", "-r", "--name-only", c0, "--", f"{rel}/adapter"], repo) or "").splitlines()
-             if not l.endswith("/README.md")]
-    if early:
-        P.append(f"capture/capabilities.json was first committed together with or after adapter files {early[:3]}")
-    if C.run(["git", "diff", "--quiet", c0, "--", f"{rel}/capture/capabilities.json"], cwd=str(repo))["rc"] != 0:
-        P.append("capture/capabilities.json changed after it was first committed")
+    for f in DECLARED_FIRST:
+        first = (C.git(["log", "--diff-filter=A", "--format=%H", "--", f"{rel}/{f}"], repo) or "").splitlines()
+        if not first:
+            P.append(f"{f} is not committed: commit it (commit A0) before writing the adapter")
+            continue
+        c0 = first[-1]
+        early = [l for l in (C.git(["ls-tree", "-r", "--name-only", c0, "--", f"{rel}/adapter"], repo) or "").splitlines()
+                 if not l.endswith("/README.md")]
+        if early:
+            P.append(f"{f} was first committed together with or after adapter files {early[:3]}")
+        if C.run(["git", "diff", "--quiet", c0, "--", f"{rel}/{f}"], cwd=str(repo))["rc"] != 0:
+            P.append(f"{f} changed after it was first committed")
     return P
 
 
@@ -281,6 +297,49 @@ def crash_basis(gs_dir, rec, stage):
     return P, {"stage": stage, "entries": [{"part": part, "cause": "invalid"} for part in failed]}
 
 
+SPLIT_META_KEYS = ("captured_utc", "captured_by", "sources", "unknowns")
+
+
+def lock_problems(prev_rec, basis, counts, new):
+    """What a superseding record may change (PREREG §6.4: facts may be corrected, the choice may not). Never: the selected
+    configuration and its selection inputs, the checkpoint, the deployment's code, the hosts. Only when the previous run
+    produced nothing (a): any other capture fact and the environment. After an INVALID (b): the split capture's boundary
+    section only for a boundary cause, the workload token ids only for a workload mismatch, nothing else of capture/ or
+    the environment. After an orchestration defect (c): nothing of capture/ (supersede_problems)."""
+    P, kind = [], (basis or "")[:3]
+    causes = {e["cause"] for e in ((counts or {}).get("entries") or [])}
+    old_split = prev_rec.get("split") or {}
+    if new["configuration_id"] != old_split.get("configuration_id") or new["selected"] != (old_split.get("selection") or {}).get("selected"):
+        P.append(f"the selected configuration changed ({old_split.get('configuration_id')} -> {new['configuration_id']}): the configuration "
+                 "chosen at Stage 0 is frozen for every record")
+    if new["candidates_sha256"] != prev_rec.get("file_sha256", {}).get("capture/candidates.json"):
+        P.append("capture/candidates.json changed: the selection inputs are frozen for every record")
+    for r in S.ROLES:
+        if new["checkpoint"][r] != (prev_rec.get("checkpoint") or {}).get(r, {}).get("manifest_sha256"):
+            P.append(f"{r}: the checkpoint manifest changed: the checkpoint is frozen for every record")
+        if new["code"][r] != [s.get("manifest_sha256") for s in (prev_rec.get("deployment") or {}).get(r, {}).get("sources", [])]:
+            P.append(f"{r}: the deployment's source manifest changed: the deployment's code is frozen for every record")
+        if new["hosts"][r] != (prev_rec.get("roles") or {}).get(r, {}).get("host"):
+            P.append(f"{r}: the host changed: the hosts are frozen for every record")
+    if new["edge_reference"] != ((prev_rec.get("checkpoint") or {}).get("edge_reference") or {}).get("manifest_sha256"):
+        P.append("the edge's reference checkpoint copy changed: frozen for every record")
+    if kind != "(a)":
+        strip = lambda c, b: {k: v for k, v in c.items() if k not in SPLIT_META_KEYS + (("boundary",) if b else ())}  # noqa: E731
+        if strip(new["split"], True) != strip(old_split.get("capture") or {}, True):
+            P.append("the split capture changed outside its boundary section after outputs existed (ownership, cut, dtype, KV, "
+                     "transport, placement, launch, authentication are frozen)")
+        if new["split"].get("boundary") != (old_split.get("capture") or {}).get("boundary") and "boundary" not in causes:
+            P.append("the boundary section changed, but the INVALID that justifies this record is not a boundary difference")
+        if new["ids_sha256"] != (prev_rec.get("workload") or {}).get("ids_sha256") and "workload_mismatch" not in causes:
+            P.append("the workload token ids changed, but the INVALID that justifies this record is not a workload mismatch")
+        for r in S.ROLES:
+            m = (prev_rec.get("machines") or {}).get(r, {})
+            if new["versions"][r] != m.get("versions") or new["exec_env"][r] != m.get("exec_env"):
+                P.append(f"{r}: the environment (versions / execution variables) changed after outputs existed: restore it; a new "
+                         "environment is not a reason for a new record once outputs exist")
+    return P
+
+
 def supersede_problems(gs_dir, prev, new_hashes):
     """The rule for a new record (PREREG §6.4). prev: [(path, record)] of this kind, oldest first.
     Returns (problems, basis, counts_as_repeat): a new record counts as a repeat of the causes that justified it."""
@@ -315,10 +374,10 @@ def supersede_problems(gs_dir, prev, new_hashes):
         if done:
             P.append(f"{p_path.name}: no outputs, but the exit-status logs show completed commands {done[:5]}: outputs were deleted; "
                      "no new record")
-        return P, "the previous run produced no output", None
+        return P, "(a) the previous run produced no output", None
     if g and g["verdict"] == "INVALID" and g.get("supersede_eligible"):
         entries = sorted({(p["part"], p["cause"]) for p in g.get("problems", [])})
-        return P, f"{st['latest'][0]} INVALID with a cause that needs a new record", \
+        return P, f"(b) {st['latest'][0]} INVALID with a cause that needs a new record", \
             {"stage": st["latest"][0], "entries": [{"part": a, "cause": b} for a, b in entries]}
     i = S.STAGE_ORDER.index(st["latest"][0]) if st["latest"] else -1
     if g and g["verdict"] == S.OPEN_VERDICT.get(st["latest"][0]) and not st["next_stage_has_outputs"] and i + 1 < len(S.STAGE_ORDER):
@@ -329,7 +388,7 @@ def supersede_problems(gs_dir, prev, new_hashes):
             P.append(f"{p_path.name}: the run stopped before {nxt} produced output, so only orchestration files "
                      f"({', '.join(S.ORCHESTRATION_FILES)}) or tests may change; changed: {bad[:5]}")
         P_c, counts = crash_basis(gs_dir, p_rec, nxt)
-        return P + [f"{p_path.name}: {p}" for p in P_c], f"{nxt} could not run (orchestration defect); only orchestration files changed", counts
+        return P + [f"{p_path.name}: {p}" for p in P_c], f"(c) {nxt} could not run (orchestration defect); only orchestration files changed", counts
     P.append(f"{p_path.name}: a new record is allowed only when the previous run produced nothing, ended INVALID with a cause in "
              f"{S.SUPERSEDE_CAUSES}, or crashed before a stage produced output (latest gate {st['latest']})")
     return P, None, None
@@ -397,11 +456,24 @@ def build(gs_dir, adapter_rel, dev=False, notes="", supersede_reason=None):
                 text = q.read_text(encoding="utf-8", errors="replace")
                 problems += [f"adapter/{q.relative_to(gs_dir / 'adapter').as_posix()} names the live deployment tree {root}: use the "
                              "snapshot (PREREG §5.2)" for root in roots if root in text]
+    if not dev:
+        files = [q for d in ("capture", "adapter") for q in sorted((gs_dir / d).rglob("*"))] + [gs_dir / FIXES_FILE]
+        problems += [f"credential-like content {x}: remove it; record only the mechanism and the names (PREREG §4.1)"
+                     for x in C.scan_files(files, gs_dir)]
     counts, changed = None, []
     if prev:
         new_hashes = hash_set(gs_dir)
         P_sup, basis, counts = supersede_problems(gs_dir, prev, new_hashes)
         problems += P_sup
+        edge_ref_cap = cap / "edge" / "checkpoint_reference.json"
+        problems += [f"{prev[-1][0].name}: {x}" for x in lock_problems(prev[-1][1], basis, counts, {
+            "configuration_id": split_cap.get("configuration_id"), "selected": sel.get("selected"),
+            "candidates_sha256": new_hashes.get("capture/candidates.json"), "split": split_cap,
+            "checkpoint": {r: ck[r]["manifest_sha256"] for r in S.ROLES},
+            "edge_reference": C.read_json(edge_ref_cap)["manifest_sha256"] if edge_ref_cap.exists() else None,
+            "code": {r: [s["manifest_sha256"] for s in dep[r]["sources"]] for r in S.ROLES},
+            "hosts": {r: roles.get(r, {}).get("host") for r in S.ROLES}, "ids_sha256": tokens.get("ids_sha256"),
+            "versions": {r: inv[r]["versions"] for r in S.ROLES}, "exec_env": {r: exec_env(inv[r].get("env", {})) for r in S.ROLES}})]
         old_hashes = prev[-1][1].get("file_sha256", {})
         changed = sorted(f for f in set(new_hashes) | set(old_hashes) if new_hashes.get(f) != old_hashes.get(f))
         fixes = documented_fixes(gs_dir)

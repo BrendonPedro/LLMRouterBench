@@ -2,7 +2,9 @@
 verdict logic (status_of, combine_split, classify) lives in gs_rules, a decision file.
 
 Feasibility is a fact, not a threshold: the frozen configuration FITS on a host iff its part loads and the workload's
-longest item (`probe_item`) completes there. Peak memory is recorded from every source the host supports (torch
+longest item (`probe_item`) completes there. An allocation failure is evidence of infeasibility only on an otherwise idle
+device: no foreign compute process at the start, during the probe (sampled every MONITOR_PERIOD_S) or at the end, and no
+memory held by others before the probe loaded anything (`occupied`); otherwise it is INVALID (gs_rules.status_of). Peak memory is recorded from every source the host supports (torch
 allocator peaks and OOM-event counters per device, cudaMemGetInfo, process peak RSS, the largest resident processes,
 /proc/meminfo, nvidia-smi); unified-memory devices that report "[N/A]" keep None. A first allocation failure gives
 INFEASIBLE_UNCONFIRMED at the gate and is repeated once with fresh processes before it becomes STOP_INFEASIBLE.
@@ -88,6 +90,53 @@ def snapshot(devices):
     return snap
 
 
+def occupied(snap, uuids, unified):
+    """(busy, facts): memory others held on the experiment device(s) before the probe loaded anything. Discrete GPU:
+    nvidia-smi memory.used of the frozen UUIDs above OCCUPIED_DEVICE_MAX_MIB (also catches processes nvidia-smi cannot
+    list, e.g. in other containers). Unified memory (DGX Spark): MemTotal - MemAvailable minus this process's RSS above
+    OCCUPIED_HOST_MAX_FRAC of MemTotal."""
+    from gs_reference import norm_uuid
+    if not [u for u in uuids if u and u != "cpu"]:          # no GPU in the placement (dev runs on a CPU test host)
+        return False, {"busy": False, "device_used_mib": [], "note": "no GPU device in the placement"}
+    want = {norm_uuid(u) for u in uuids}
+    used = [g.get("memory_used_mib") for g in (snap.get("smi") or {}).get("gpus", []) if norm_uuid(g.get("uuid")) in want]
+    facts = {"device_used_mib": used}
+    busy = any(isinstance(u, (int, float)) and u > S.OCCUPIED_DEVICE_MAX_MIB for u in used)
+    mi = snap.get("meminfo") or {}
+    if unified and mi.get("MemTotal") and mi.get("MemAvailable") is not None:
+        others = mi["MemTotal"] - mi["MemAvailable"] - (snap.get("process_rss_bytes") or 0)
+        facts["host_used_by_others_frac"] = round(max(others, 0) / mi["MemTotal"], 4)
+        busy = busy or facts["host_used_by_others_frac"] > S.OCCUPIED_HOST_MAX_FRAC
+    facts["busy"] = bool(busy)
+    return bool(busy), facts
+
+
+class ForeignMonitor:
+    """Samples nvidia-smi compute processes on the experiment devices while a probe runs; any foreign process seen at any
+    sample is kept (a job that comes and goes during the probe must not turn into evidence of infeasibility)."""
+
+    def __init__(self, uuids, mine, period=None):
+        self.uuids, self.mine, self.period, self.seen = uuids, set(mine), period or S.MONITOR_PERIOD_S, {}
+        self.stop = threading.Event()
+        self.t = threading.Thread(target=self._loop, daemon=True)
+
+    def _loop(self):
+        while not self.stop.wait(self.period):
+            for a in foreign_processes(smi_snapshot(), self.uuids, own_pids() | self.mine):
+                self.seen.setdefault(a["pid"], dict(a, first_seen_utc=C.utc()))
+
+    def __enter__(self):
+        self.t.start()
+        return self
+
+    def __exit__(self, *exc):
+        self.stop.set()
+        self.t.join(timeout=30)
+
+    def foreign(self):
+        return sorted(self.seen.values(), key=lambda a: a["pid"])
+
+
 def oom_events(before, after, peaks=None):
     """Allocator OOM events in this process between two snapshots (also seen by a monitor); 0 without CUDA."""
     n = 0
@@ -104,34 +153,45 @@ def run_probe(what, role, devices, uuids, body, unified=False):
     mine = own_pids()
     before = snapshot(devices)
     fb = foreign_processes(before["smi"], uuids, mine)
-    rec = {"what": what, "role": role, "devices": [str(d) for d in devices], "before": before, "foreign_before": fb, "unified_memory": unified}
-    failure, extra = None, {}
+    busy, occ = occupied(before, uuids, unified)
+    rec = {"what": what, "role": role, "devices": [str(d) for d in devices], "before": before, "foreign_before": fb, "unified_memory": unified,
+           "occupied_before": occ}
+    failure, extra, during = None, {}, []
     if len(fb) > S.FOREIGN_PROCESSES_ALLOWED:
         failure = "not run: foreign compute process on an experiment device"
     else:
-        try:
-            extra = body() or {}
-        except Exception as e:   # an OOM may surface as RuntimeError, torch.OutOfMemoryError or MemoryError
-            failure = f"{type(e).__name__}: {e}\n" + traceback.format_exc()[-4000:]
+        with ForeignMonitor(uuids, mine) as mon:
+            try:
+                extra = body() or {}
+            except Exception as e:   # an OOM may surface as RuntimeError, torch.OutOfMemoryError or MemoryError
+                failure = f"{type(e).__name__}: {e}\n" + traceback.format_exc()[-4000:]
+        during = mon.foreign()
     after = snapshot(devices)
     fa = foreign_processes(after["smi"], uuids, own_pids() | mine)
     ooms = oom_events(before, after)
-    rec.update(after=after, foreign_after=fa, failure=failure, failure_class=None if failure is None else RU.classify(failure), ooms=ooms,
-               status=RU.status_of(failure, fb, fa, unified, ooms), **extra)
+    rec.update(after=after, foreign_during=during, foreign_after=fa, failure=failure,
+               failure_class=None if failure is None else RU.classify(failure), ooms=ooms,
+               status=RU.status_of(failure, fb, fa, unified, ooms, during=during, occupied=busy), **extra)
     return rec
 
 
 class ServerMonitor:
-    """Polls allocator peaks and OOM counters in the server process while the adapter serves (Stage 2 only)."""
+    """Polls allocator peaks and OOM counters in the server process while the adapter serves (Stage 2 only), and the
+    foreign compute processes on its devices (`foreign`)."""
 
-    def __init__(self, devices, period=1.0):
-        self.devices, self.period, self.peak = devices, period, {}
+    def __init__(self, devices, period=1.0, uuids=()):
+        self.devices, self.period, self.peak, self.uuids, self.seen, self.mine = devices, period, {}, list(uuids), {}, own_pids()
         self.stop = threading.Event()
         self.t = threading.Thread(target=self._loop, daemon=True)
+
+    def foreign(self):
+        return sorted(self.seen.values(), key=lambda a: a["pid"])
 
     def _loop(self):
         while not self.stop.wait(self.period):
             s = snapshot(self.devices)
+            for a in foreign_processes(s["smi"], self.uuids, own_pids() | self.mine) if self.uuids else []:
+                self.seen.setdefault(a["pid"], dict(a, first_seen_utc=C.utc()))
             for d, v in s["torch"].items():
                 cur = self.peak.setdefault(d, {})
                 for k in ("max_allocated_bytes", "max_reserved_bytes", "num_ooms"):

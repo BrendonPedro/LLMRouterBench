@@ -14,20 +14,24 @@ python without `-B` there: bytecode and symlinks in the directory are refused) i
 use them for attempt accounting: never edit or delete them); for Stage 0/1 commands append
 `; echo "rc=$? <cmd>" >> capture/<role>/exit_status.log`.
 
+**Before every commit** of `capture/`, `adapter/`, `frozen/` or `runs/`: `$PY -I -B gs_bench.py scan-secrets` (exit 2 on any
+credential-like content; remove it before committing, PREREG §4.1).
+
 **Commit after every command (EDGE, SERVER) and every gate (DESK):** `git add diagnostics/deployment_gemma_split/runs &&
 git commit -m "GEMMA-SPLIT <stage> <cmd> <host>"` (commits touching only `runs/`), and push those commits (the PI pushes,
 PREREG §21). Never delete an output or a log line; a deleted-and-re-run attempt makes the stage INCOMPLETE (final).
 
-**Gate hand-off, after every gate (DESK):** `rsync -a` the stage directory of `runs/$ID/` from both hosts to DESK
-before gating, together with both hosts' `runs/$ID/<host>.exit_status.log` (role and block sub-directories never
-collide); after `gate`, copy `runs/$ID/<stage>/gate.json` to both hosts (the next stage reads it locally) and commit the
+**Gate hand-off, after every gate (DESK):** `rsync -a --exclude _invalidated/ --exclude gate.json --exclude summary.json
+--exclude decision.json` the stage directory of `runs/$ID/` from both hosts to DESK before gating, together with both
+hosts' `runs/$ID/<host>.exit_status.log` (role and block sub-directories never collide; DESK is the only authority for
+gates and `_invalidated/`, which are never synced from a host: an overwritten invalidated gate is an integrity failure); after `gate`, copy `runs/$ID/<stage>/gate.json` to both hosts (the next stage reads it locally) and commit the
 gate, the decision / summary and any `_invalidated/LOG.jsonl` (`git add diagnostics/deployment_gemma_split/runs &&
 git commit -m "GEMMA-SPLIT <stage> gate"`: a commit touching only `runs/`). `gate` exits 0 if the stage opened, 3 if
 not, 4 if raw outputs or logs are still missing or a file is stale (nothing written).
 
 **Repeats:** only the parts a gate lists as repeatable (Stage 5: always the whole block sequence):
 `$PY -I -B gs_bench.py invalidate --freeze $F --stage N --all --note "<what happened>"` on DESK (or `--part P` per part
-in Stages 2-4). The cause is taken from the gate; notes do not change it; caps count over the whole record chain; final
+in Stages 3-4; Stage 2 always repeats both hosts). The cause is taken from the gate; notes do not change it; caps count over the whole record chain; final
 verdicts are refused. Then copy `runs/$ID/<stage>/_invalidated/LOG.jsonl` to both hosts and run
 `$PY -I -B gs_bench.py retire --freeze $F --stage N` on each, which moves the hosts' copies of the same parts aside;
 only then repeat. **A crash** (a command killed or failing while it measures): copy the outputs and both hosts' logs
@@ -47,7 +51,8 @@ Never move or recreate the tag. Do not touch `e1opt-prereg-v1` / `e0-prereg-v1` 
 On each lab machine: `git fetch --tags && git checkout gemma-split-prereg-v1` in the experiment's checkout.
 ```
 EDGE:    $PY -I -B gs_bench.py inventory --role edge   --peer <SERVER IP or name> --out-dir capture/edge     # in the deployment's environment
-SERVER:  $PY -I -B gs_bench.py inventory --role server --peer <EDGE IP or name>   --out-dir capture/server   # (same CUDA_VISIBLE_DEVICES etc.)
+SERVER:  $PY -I -B gs_bench.py inventory --role server --peer <EDGE IP or name>   --out-dir capture/server   # (same CUDA_VISIBLE_DEVICES etc.;
+#        on the 3-GPU server CUDA_VISIBLE_DEVICES must pin the deployment's GPU(s), e.g. its UUID, for every command)
 EDGE:    $PY -I -B gs_bench.py checkpoint --role edge   --model-dir <dir the edge part loads> --out capture/edge/checkpoint.json
 SERVER:  $PY -I -B gs_bench.py checkpoint --role server --model-dir <.../gemma-4-E4B-it>      --out capture/server/checkpoint.json
 EDGE:    $PY -I -B gs_bench.py deployment --role edge   --source-root <Brian's code dir> [--launch-file <script/config> ...] --out capture/edge/deployment.json
@@ -55,6 +60,12 @@ SERVER:  $PY -I -B gs_bench.py deployment --role server --source-root <Brian's c
 ```
 Name as `--source-root` every directory the adapter will run code or configs from (repeat the flag): only source roots
 are snapshotted, and launch files outside them are recorded but guarded like the live tree, so they cannot be run.
+Never stop, restart, reconfigure, `chmod` or write into anything of Brian's: the experiment runs its own instance on
+`transport.experiment_endpoint` (Q18); if his deployment occupies an experiment GPU, wait (or Brian stops it himself,
+dated in `lab_answers.md`). Run under the experiment's account, or export experiment-owned `HF_HOME`, `TORCH_HOME`,
+`TRITON_CACHE_DIR`, `XDG_CACHE_HOME` before `inventory` (they are part of the frozen environment). Authentication: record
+the mechanism and the variable / field NAMES only (Q17); supply the credential in the environment at run time, never in
+a file of the experiment.
 If the edge's checkpoint directory is not `identical` to the server's (`python -I -B gs_checkpoint.py compare --edge
 ... --server ...`, or the Stage-0 verdict, reports it) and the lab permits a copy (Q13): copy the server directory to an
 experiment-owned directory on the EDGE, then `checkpoint --role edge --model-dir <copy> --out capture/edge/checkpoint_reference.json`.
@@ -105,8 +116,10 @@ EDGE:    $PY -I -B gs_bench.py verify-workload --freeze $F --role edge      # to
 SERVER:  $PY -I -B gs_bench.py check-freeze    --freeze $F --role server
 SERVER:  $PY -I -B gs_bench.py verify-workload --freeze $F --role server
 ```
-Copy `runs/$ID/stage1_checks/*` to DESK. Stopping rule: a check that cannot pass means the machine changed since Stage 0:
-fix the environment (never the record) or redo Stage 0 for that host and write a new record (Stage N below).
+Copy `runs/$ID/stage1_checks/*` to DESK. Stopping rule: a check that cannot pass means the machine changed since Stage 0.
+Never delete or re-run a written check (a second check is an integrity failure): gate Stage 2 as usual (a workload
+mismatch makes it INVALID and eligible for a new record), then correct the capture or redo Stage 0 for that host and
+write a new record (Stage N below).
 
 ## Stage 2: memory feasibility (both hosts; no timer; the experiment's GPUs must be quiet)
 ```
@@ -117,6 +130,8 @@ SERVER:  $PY -I -B gs_bench.py memory --freeze $F --what reference --role server
 EDGE:    $PY -I -B gs_bench.py memory --freeze $F --what reference --role edge
 DESK:    $PY -I -B gs_bench.py gate   --freeze $F --stage 2
 ```
+Run every Stage-2 command of the attempt even after a crash or a `serve` that exits without READY (the edge split then
+records its failed connection): a gate with a crash waits until every other command has run (exit 4).
 Stopping rule: STOP_INFEASIBLE or INCOMPLETE -> final (Stage 6). INFEASIBLE_UNCONFIRMED -> `invalidate --stage 2 --all`,
 `retire` on both hosts, and repeat Stage 2 once with fresh processes. BLOCKED_CONTENTION -> wait for quiet GPUs, then
 the same. INVALID -> the same (twice at most).

@@ -252,7 +252,7 @@ class DoubleAdapter(AD.SplitAdapter):
         super().__init__(info, role)
         cap = freeze["split"]["capture"]
         self.cut = max(b for a, b in cap["ownership"]["edge"]["layers"])
-        self.endpoint = options.get("endpoint") or cap["transport"]["endpoint"]
+        self.endpoint = options.get("endpoint") or cap["transport"].get("experiment_endpoint") or cap["transport"]["endpoint"]
         self.device = options.get("device") or cap["gpu_placement"][role]["devices"][0]
         self.model_dir = options.get("model_dir") or freeze["checkpoint"][role]["model_dir"]
         self.faults = set(filter(None, (options.get("faults") or os.environ.get("GS_DOUBLE_FAULTS", "")).split(",")))

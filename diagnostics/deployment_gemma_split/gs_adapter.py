@@ -9,6 +9,13 @@ methods below; force greedy decoding and the frozen token ids. NOT permitted: ch
 layer ownership, cut, kernels, KV policy, transport, serialisation or any computation; adding timers (the harness
 times); caching across requests beyond what the deployment itself does.
 
+Operational rules (PREREG §4.1, §4.3, §8): make_adapter() loads no weights and allocates no device memory (loading
+happens in connect() on the edge and serve() on the server, inside the memory probes); the experiment's own server
+instance listens on, and the edge connects to, the split capture's transport.experiment_endpoint (same protocol and
+serialisation), so Brian's running deployment is never stopped or reconfigured; a credential, if the transport needs
+one, is read at run time from the environment variable named in the split capture's `authentication` section and is
+never written, logged or returned.
+
 An adapter module is a file with
   ADAPTER_INFO = {...}          a literal dict (read with ast, no import needed): see INFO_KEYS
   def make_adapter(freeze, role, options) -> SplitAdapter
