@@ -1,8 +1,8 @@
 # E1-OPT: optimised-runtime split follow-up. Pre-registration DRAFT, revision 3 (2026-11-11)
 
-Status: **DRAFT, NOT FROZEN.** No E1-OPT measurement exists. Nothing in this directory has run on a GPU.
-To freeze: review this file and the code it names, then tag the commit `e1opt-prereg-v1`. Until that tag exists,
-no document may call E1-OPT "pre-registered". The E0 pre-registration (`deployment_e0/PREREG.md`, tag
+Status: frozen by tag `e1opt-prereg-v1` (2026-11-12; preserved unchanged); amended before any measurement by §16
+(v2), frozen by tag `e1opt-prereg-v2`. No E1-OPT measurement exists. Nothing in this directory has run on a GPU.
+(Text below that says "draft" or names `e1opt-prereg-v1` as the freeze tag is the v1 wording, kept for the record.) The E0 pre-registration (`deployment_e0/PREREG.md`, tag
 `e0-prereg-v1`, validated harness commit `81461b6`) is **not changed** by this file and stays the record of the
 E0 result (G-UB2 STOP, best bounded advantage +0.5 pt, 0 of 20 cells). E0 is a valid pre-registered result for
 the frozen eager runtime. E1-OPT is a new experiment, not a re-run, motivated by a post hoc CPU analysis showing
@@ -21,6 +21,11 @@ Everything not listed here is inherited unchanged from E0 PREREG: the model (Qwe
 `9216db57`), the U-shaped cut and ownership (§2), the transport accounting (§2.1), the memory classes and budgets
 (§3), the S1 scores and the 200-query sample (§1, §8.1), the frozen workload (§6.1), the utility, grid, statistic,
 bootstrap, exclusions and completeness rules (§8), the extension rule (§8.5), and the consequences table (§9.3).
+
+**Amendment v2 (2026-11-16, §16), before any E1 measurement:** two Stage-0 portability corrections found on the real
+DGX Spark. GPU memory falls back to PyTorch's physical capacity when `nvidia-smi` reports none (GB10). The
+competitor vLLM is an explicitly supplied executable checked in its own environment, not an import in the E1 runtime
+Python. Frozen by tag `e1opt-prereg-v2`; `e1opt-prereg-v1` is preserved unchanged.
 
 ## 0. Why a new experiment and not a re-run of E0
 
@@ -134,7 +139,7 @@ record. A device on a fallback is reported as such in every table.
 
 ### 4.3 Freeze point and freeze record
 
-Order: tag `e1opt-prereg-v1` (code and protocol) → Stage 0 inventory (facts) → Stage 1a: `e1_bench.py freeze`
+Order: tag `e1opt-prereg-v1` (code and protocol; superseded by `e1opt-prereg-v2`, §16) → Stage 0 inventory (facts) → Stage 1a: `e1_bench.py freeze`
 writes `frozen/runtime_freeze.json` from the inventory and the role record; it is committed in a commit touching
 only `frozen/`. No GPU executes E1 code before that record exists. Every later command takes `--freeze <path>`,
 runs `e1_freeze.check` first and refuses on any mismatch (non-zero exit, nothing written). A record is never
@@ -146,7 +151,8 @@ experiment repository commit and the tag; the E1 directory path; SHA-256 of ever
 reads (`e0_spec.py`, `e0_r.py`, `e0_latency.py`, `e0_instrument.py`, `e0_memory.py`, `e0_f.py`, `e0_q.py`,
 `split_runtime.py`, `frozen/workload.json`, `frozen/q2_keys.json`) plus the E0 validated commit, the S1 score and
 sample hashes and the two E0 archive hashes; protocol and header version; model repo, revision, dtype, wire dtype
-and config; the required transformers version and the competitor vLLM pin; the cuts, U-min and primary classes;
+and config; the required transformers version and the competitor vLLM pin (and, v2, per machine the competitor
+executable's path, SHA-256 and version, §16 B); the cuts, U-min and primary classes;
 the one-server-GPU rule; the static-cache configuration (L_F = 17,920 tokens, prefill chunk 2,048, layout, measured
 and reference modes); the buffer strategy; the no-raw-text ownership definition; the seeds (bootstrap 20261107,
 n = 10,000, order, Q2, held-out, synthetic activations); the decision rule (margin 3.0, rounding 10⁻⁶ pt, strict
@@ -207,7 +213,8 @@ GPU, after the freeze, in this order, with the freeze checker first (check I):
 
 Per machine: hostname; `uname -a`; architecture; CPU; RAM; `nvidia-smi` (GPU names, count, memory, driver,
 compute capability, UUIDs); CUDA toolkit; Python; PyTorch version, CUDA build, availability and device
-enumeration; vLLM importable and version; flash-attn importable, version and whether `flash_attn_with_kvcache`
+enumeration; the competitor vLLM executable, its version and SHA-256 (v2, §16 B; `--vllm-bin`); GPU memory with
+its source (v2, §16 A); flash-attn importable, version and whether `flash_attn_with_kvcache`
 exists; pynvml; NICs and rated speeds; the route to the peer; whether `tc` exists; `sudo -n` and `capsh` output for
 CAP_NET_ADMIN (to be confirmed manually); unified-memory indication. Output: `env/<hostname>.json` (machine-readable)
 and `env/<hostname>.txt` (summary). The script runs no benchmark, no model and no CUDA timing.
@@ -221,8 +228,8 @@ is the Asus server.
 A machine **can be the server** iff one of its physical GPUs (or its unified memory) holds the server segment at the
 largest frozen segment (k = 3): weights + KV(L_F) + E1 buffers + 2 GiB margin ≈ 59 GiB (`e1_inventory.server_need_gib`),
 with compute capability ≥ 8.0 and a CUDA PyTorch build. A machine **can be the edge** iff one GPU can emulate the
-largest primary budget (16 GiB, E0 §3.1 cap method), compute capability ≥ 8.0, and vLLM imports for the
-competitors. The pair is **feasible** iff a role assignment exists with one server and one edge and both machines
+largest primary budget (16 GiB, E0 §3.1 cap method), compute capability ≥ 8.0, and a valid competitor vLLM
+executable was supplied (v2, §16 B; in its own environment, not the E1 runtime Python). The pair is **feasible** iff a role assignment exists with one server and one edge and both machines
 have a route to each other.
 
 ### 6.3 Role assignment (`e1_bench.py inventory roles`; deterministic; before any measurement)
@@ -274,9 +281,9 @@ threshold.
 
 | Stage | Where | Command(s) | Rule |
 |---|---|---|---|
-| tag | repository | `git tag e1opt-prereg-v1` after review | nothing below runs before the tag |
+| tag | repository | `git tag e1opt-prereg-v2` after review (v1 preserved; §16) | nothing below runs before the tag |
 | 0 inventory | both lab machines, no model | `inventory collect`, `inventory roles` | **INCOMPLETE** iff no feasible assignment. No performance input |
-| 1a freeze | analysis host | `freeze --inventory --roles --tag e1opt-prereg-v1 --out frozen/runtime_freeze.json`; commit (frozen/ only); `check-freeze` on each machine | no GPU has executed E1 code before this record exists |
+| 1a freeze | analysis host | `freeze --inventory --roles --tag e1opt-prereg-v2 --out frozen/runtime_freeze.json`; commit (frozen/ only); `check-freeze` on each machine | no GPU has executed E1 code before this record exists |
 | 1b equivalence | server GPU, edge GPU, then both | `equivalence reference`, `local --role server`, `local --role edge --segments-only`, `joint`, `decide` | **STOP** iff Q fails after one fix (then §4.4); INVALID on harness defects or any timing field |
 | 2 server segment | server GPU | `profile-server-segment --class 12`, `--class 16` | descriptive only: server step vs E0's 66.9 / 61.3 ms and vs the device roofline. **No decision.** |
 | 3 edge | edge machine, capped | `fit-split --class 12/16`; `fit-competitor` for every E0 §3 model and class; `profile-edge-segment --class 12/16`; `summarize-fit`; `gate-ub` | **G-UB-E1**: E0 `gate-ub2` on {Stage-3 edge and competitor profiles} × {Stage-2 server profiles}, 0.90 discount on both segments, zero link, provenance-checked: **STOP** iff no cell has Δ ≥ 3.0 (rounded, §7.2). A class whose cut or competitor fails the fit is not evaluable |
@@ -392,7 +399,7 @@ architecture (pinned at freeze), the torch build (bitwise prefix check), the att
 | Runtime (static cache, segments, graphs, attention branch) | `e1_static_cache.py`, `e1_segment.py`, `e1_attention.py`, `e1_memory.py` | `tests/test_e1_cpu.py` |
 | Wire (hardened HELLO, freeze hash, fail-closed) | `e1_protocol.py` | `tests/test_e1_cpu.py`, `tests/test_e1_joint.py` |
 | Freeze writer / checker | `e1_freeze.py` | `tests/test_e1_freeze.py` |
-| Stage-0 inventory, feasibility, roles | `e1_inventory.py` | `tests/test_e1_rules.py` |
+| Stage-0 inventory, feasibility, roles (v2: memory source, competitor executable) | `e1_inventory.py` | `tests/test_e1_rules.py` |
 | Provenance and gate rejections | `e1_provenance.py`, `e1_gate.py` | `tests/test_e1_rules.py`, `tests/test_e1_profile_gate.py` |
 | Equivalence driver (no timing fields) | `e1_equivalence.py` | `tests/test_e1_equivalence.py` |
 | Target profilers (fit, competitors, edge segment, server segment, summary) | `e1_profile.py` | `tests/test_e1_profile_gate.py` |
@@ -405,3 +412,69 @@ imports are hashed separately in the record. `tests/e1_testlib.py` is included (
 helper script that could affect a scientific output must be placed in this directory under one of these patterns
 or it will fail the "file not covered by the freeze" check at the next run only if it is hashed; a script outside
 the patterns cannot be imported by the drivers, which import siblings by name only.
+
+## 16. Amendment v2 (2026-11-16): Stage-0 portability corrections before any E1 measurement
+
+**Why.** Trying Stage 0 on the actual DGX Spark exposed two portability defects in the v1 Stage-0 code
+(`e1opt-prereg-v1` -> `d9ba549`). No E1-OPT measurement of any kind exists: no target-hardware correctness, memory or
+performance run, no timing and no model inference. Both corrections were made solely because the real GB10
+contradicted Stage-0 assumptions. **Neither is result-driven:** no performance or correctness number was seen. The
+v1 tag, its commit and its history are preserved unchanged. This amendment is frozen by the new tag
+`e1opt-prereg-v2`, and every later stage uses that tag (`freeze --tag e1opt-prereg-v2`).
+
+**A. GPU memory capacity on unified memory (GB10).** On the DGX Spark, `nvidia-smi --query-gpu=memory.total` returns
+`[N/A]`. PyTorch reports the device's physical capacity (128,524,095,488 bytes, about 119.7 GiB). v1 recorded no
+memory, so §6.2 treated a capable GB10 as holding nothing. v2 rule (`e1_inventory.fill_memory_from_torch`):
+- A numeric `nvidia-smi` value is kept as it is.
+- Only when it is unavailable is `torch.cuda.get_device_properties(i).total_memory` used.
+- The torch device is matched by UUID, or by index only when both sources list exactly one GPU.
+- Each GPU records `memory_source` (`nvidia-smi`, `torch_cuda_properties` or `unavailable`), and the freeze record
+  carries it.
+- Free, available or currently used memory is never used as capacity. Without a match the memory stays unknown,
+  and §6.2 then treats it as not fitting.
+
+The feasibility arithmetic, the one-server-GPU rule and the role rules of §6.3 are unchanged. Rule 3 already states
+the consequence for a 128 GB unified-memory machine; v2 only gives that rule the capacity the device really has.
+
+**B. Competitor vLLM in its own environment.** In v1, edge feasibility required `vllm` to import in the E1 runtime
+Python. Stage 3, however, already runs the competitors through an explicitly named executable (`fit-competitor
+--vllm-bin`, passed unchanged to E0's `e0_f.py edge-fit`, which runs `<vllm-bin> serve`). The freeze checker never
+locked vLLM. v1 thus coupled the E1 runtime environment (whose Python, torch, torch CUDA, transformers and flash-attn
+versions are locked) to the competitor environment for no protocol reason. v2 changes the following:
+- Stage 0 takes `inventory collect --vllm-bin <absolute path>`, or `--no-competitor <reason>`; exactly one of the
+  two is required, so omitting it never steers roles silently. `e1_inventory.probe_vllm` checks the executable in its
+  own environment and records `competitor_vllm`: path, resolved path, file SHA-256, interpreter, the interpreter's
+  `sys.executable`, `vllm.__file__` and `vllm.__version__`.
+- The executable must be an existing, executable Python console script whose interpreter imports vllm. Invoked
+  directly by the same path, as Stage 3 invokes it, with `--version`, it must itself print that version on stdout. So
+  pip, ray or another script of a vLLM environment is refused. The check catches mistakes, not deliberate
+  substitution: a script written to print vLLM's version is not detected, and the vllm package content is not hashed
+  (only the console script, the interpreter path, the vllm location and the version are frozen). Before Stage 0, run
+  `<vllm> --version` by hand on the edge host and check that the bare version is a line on stdout.
+- It fails closed. Without a valid executable a machine cannot be the edge (§6.2); a named but invalid executable
+  makes `collect` refuse to write; `freeze` refuses an edge without one.
+- The freeze record carries `competitor_vllm` per machine. `fit-competitor` refuses any `--vllm-bin` whose resolved
+  path, SHA-256, interpreter `sys.executable`, vllm location or version differs from the frozen one. Otherwise Stage 3 is unchanged,
+  and the vLLM version rule of §3 is unchanged (0.8.5.post1 if it installs, else the installed release, pinned in the
+  record).
+
+**Limitations, stated before Stage 0:**
+- **GB10 as edge.** On the GB10, NVML may report no device memory, exactly as `nvidia-smi` does. E0's Stage-3 code,
+  which E1 reuses unchanged (`e0_f.py edge-fit`, the idle baseline, the fit-split pass test), reads NVML memory on the
+  edge. If the GB10 becomes the edge, Stage 0 must confirm that `nvidia-smi --query-gpu=memory.used` is numeric there;
+  otherwise Stage 3 cannot measure the edge and the class is not evaluable (a hardware result, §3). The server-side
+  commands do not read NVML memory.
+- **Container-only vLLM.** A vLLM available only inside a container (for example NVIDIA's NGC image) has no host
+  console script, and a wrapper around `docker run` is refused. Stage 3 needs vLLM installed on the edge host.
+
+**Not changed:**
+- the model, cuts, memory classes and cap method;
+- the gates, the decision rule and rounding;
+- the timing and measurement code, and the role rules;
+- the one-server-GPU rule;
+- the strict runtime version checks (python, torch, torch CUDA, transformers, flash-attn);
+- E0's files.
+
+Changed files: `e1_inventory.py`, `e1_freeze.py` (record version 4, `competitor_problems`), `e1_profile.py` (the
+Stage-3 executable check only), `tests/e1_testlib.py`, `tests/test_e1_rules.py`, `tests/test_e1_freeze.py`, this
+file, `RUNBOOK.md` and `README.md`.

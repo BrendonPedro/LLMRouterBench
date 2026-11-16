@@ -39,11 +39,22 @@ def fake_gpu(index=0, name="FAKE-GPU-80GB", uuid="GPU-fake-0000", memory_mib=819
     return {"index": index, "name": name, "uuid": uuid, "memory_mib": memory_mib, "driver": "999.99", "compute_cap": cc}
 
 
-def fake_inventory(hostname, gpus, vllm=True, flash=True, route="10.0.0.9 dev eth0 src 10.0.0.1", versions=None, arch="x86_64"):
+def fake_competitor(valid=True):
+    """A competitor_vllm inventory entry as e1_inventory.probe_vllm records it (§16 B)."""
+    if not valid:
+        return {"supplied": False, "path": None, "valid": False, "error": "no competitor vLLM executable supplied (--vllm-bin)"}
+    return {"supplied": True, "path": "/opt/vllm-env/bin/vllm", "valid": True, "resolved": "/opt/vllm-env/bin/vllm", "sha256": "ab" * 32,
+            "interpreter": ["/opt/vllm-env/bin/python"], "python_executable": "/opt/vllm-env/bin/python",
+            "vllm_file": "/opt/vllm-env/lib/python3.12/site-packages/vllm/__init__.py", "dist_version": "0.8.5.post1",
+            "version": "0.8.5.post1", "error": None}
+
+
+def fake_inventory(hostname, gpus, vllm=True, flash=True, route="10.0.0.9 dev eth0 src 10.0.0.1", versions=None, arch="x86_64", competitor=True):
     return {"hostname": hostname, "utc": "2026-11-11T00:00:00Z", "uname": "fake", "arch": arch, "os": "fake", "cpu": "fake", "ram_gib": 256,
             "nvidia_smi_raw": "", "gpus": gpus, "gpu_count": len(gpus), "cuda_toolkit": "fake", "python": "3.12",
             "torch": {"version": "fake", "cuda": "12.4", "cuda_available": True, "device_count": len(gpus), "devices": []},
             "vllm": {"importable": vllm, "version": "0.8.5.post1"} if vllm else {"importable": False, "error": "no wheel"},
+            "competitor_vllm": fake_competitor(competitor),
             "flash_attn": {"importable": flash, "version": "2.7.4", "has_flash_attn_with_kvcache": True} if flash else {"importable": False, "error": "no wheel for sm_121"},
             "pynvml": {"importable": True, "version": "12"}, "nics": [{"name": "eth0", "state": "UP", "speed_mbps": 10000}],
             "route_to_peer": route, "peer": "10.0.0.9", "tc_present": True, "tc_version": "tc utility", "sudo_noninteractive": False,

@@ -33,6 +33,7 @@ import e0_latency as L  # noqa: E402
 import e0_f as F  # noqa: E402  (read-only: failure_kind, edge-fit via subprocess)
 import e1_attention  # noqa: E402
 import e1_freeze  # noqa: E402
+import e1_inventory as INV  # noqa: E402  (competitor executable check, PREREG §16 B)
 import e1_protocol as P  # noqa: E402
 import e1_provenance as PV  # noqa: E402
 from e1_equivalence import device_identity, GraphCaptureError  # noqa: E402
@@ -201,6 +202,10 @@ def fit_split(a):
 def fit_competitor(a):
     a.k, a.j = S.FIXED_CUTS[a.mem_class]
     rec, branch, gpu, profile_role, prov = _prep(a, "edge", "3")
+    probe = INV.probe_vllm(a.vllm_bin)               # §16 B: only the frozen competitor executable, unchanged (fail closed)
+    bad = e1_freeze.competitor_problems(e1_freeze.machine_entry(rec, a.host).get("competitor_vllm"), probe)
+    if bad:
+        sys.exit("REFUSED: " + "; ".join(bad))
     prov = dict(prov, cut=None, competitor=a.model, engine="vllm")
     if (gpu["index"] or 0) != 0 and torch.cuda.device_count() > 1:
         sys.exit("E0's edge-fit samples NVML index 0; the inventoried edge GPU is not index 0 on a multi-GPU machine. "

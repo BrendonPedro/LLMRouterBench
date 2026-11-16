@@ -29,7 +29,8 @@ DOC_FILES = ("PREREG_E1OPT.md",)
 E0_DEPENDENCIES = ("e0_spec.py", "e0_r.py", "e0_latency.py", "e0_instrument.py", "e0_memory.py", "e0_f.py", "e0_q.py",
                    "split_runtime.py", "frozen/workload.json", "frozen/q2_keys.json")
 STRICT_VERSION_KEYS = ("torch", "torch_cuda", "transformers", "flash_attn", "python")
-RECORD_VERSION = 3
+RECORD_VERSION = 4                        # v2 amendment (§16): GPU memory_source; per-machine competitor_vllm
+COMPETITOR_KEYS = ("resolved", "sha256", "python_executable", "vllm_file", "version")
 
 
 class FreezeMismatch(RuntimeError):
@@ -132,10 +133,14 @@ def build(inventory, roles, e1_dir=E1_DIR, notes=None, now=None):
         if gpu is None:
             raise ValueError(f"{role}: GPU index {r['gpu_index']} not in the inventory of {r['host']}")
         dev = dict(gpu, flash_attn=inv.get("flash_attn", {}))
+        comp = inv.get("competitor_vllm") or {}
+        if role == "edge" and not comp.get("valid"):
+            raise ValueError(f"edge {r['host']}: no valid competitor vLLM executable in the inventory (PREREG §16 B): {comp.get('error')}")
         machines[r["host"]] = {"role": role, "gpu": {"index": gpu["index"], "name": gpu.get("name"), "uuid": gpu.get("uuid"),
-                                                    "memory_mib": gpu.get("memory_mib"), "compute_cap": gpu.get("compute_cap")},
+                                                    "memory_mib": gpu.get("memory_mib"), "memory_source": gpu.get("memory_source"),
+                                                    "compute_cap": gpu.get("compute_cap")},
                                "n_gpus_on_machine": len(inv.get("gpus", [])), "versions": inv.get("versions", {}),
-                               "branch": branch_for_device(dev)}
+                               "competitor_vllm": comp, "branch": branch_for_device(dev)}
     rec = {
         "experiment": S.NAME, "record_version": RECORD_VERSION, "decision_rule_version": S.DECISION_RULE_VERSION,
         "frozen_at_utc": now or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -254,6 +259,17 @@ def machine_entry(rec, host=None):
     return rec["machines"][host]
 
 
+def competitor_problems(frozen, probe):
+    """Stage 3 (§16 B): the --vllm-bin given to fit-competitor must be the competitor executable frozen for this machine:
+    valid now, same resolved path, same file SHA-256 and same vllm version. Returns the differences ([] if none)."""
+    frozen = frozen or {}
+    if not frozen.get("valid"):
+        return ["the freeze record holds no valid competitor vLLM executable for this machine"]
+    if not probe.get("valid"):
+        return [f"--vllm-bin: {probe.get('error')}"]
+    return [f"competitor vLLM {k}: {probe.get(k)} != frozen {frozen.get(k)}" for k in COMPETITOR_KEYS if probe.get(k) != frozen.get(k)]
+
+
 def main(argv=None):
     import argparse
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -261,7 +277,7 @@ def main(argv=None):
     w = sub.add_parser("freeze")
     w.add_argument("--inventory", required=True, help="merged inventory JSON ({hostname: inventory})")
     w.add_argument("--roles", required=True); w.add_argument("--out", required=True)
-    w.add_argument("--tag", default=None, help="git tag the record will be frozen under (e1opt-prereg-v1)")
+    w.add_argument("--tag", default=None, help="git tag the record will be frozen under (e1opt-prereg-v2)")
     w.add_argument("--notes", default="")
     c = sub.add_parser("check-freeze")
     c.add_argument("--freeze", required=True); c.add_argument("--role", default=None); c.add_argument("--host", default=None)

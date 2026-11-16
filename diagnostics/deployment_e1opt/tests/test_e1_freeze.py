@@ -113,6 +113,27 @@ class FreezeTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             FZ.build(self.inv, roles)
 
+    def test_v2_competitor_and_memory_source_in_the_record(self):
+        """§16: the record carries each GPU's memory source and the competitor vLLM executable (path, SHA-256, version);
+        an edge without a valid one is refused; Stage 3 accepts only the frozen executable."""
+        self.assertEqual(self.rec["record_version"], 4)
+        edge = next(m for m in self.rec["machines"].values() if m["role"] == "edge")
+        self.assertTrue(edge["competitor_vllm"]["valid"])
+        self.assertEqual(edge["competitor_vllm"]["version"], "0.8.5.post1")
+        self.assertIn("memory_source", edge["gpu"])
+        edge_host = self.roles["edge"]["host"]
+        inv = dict(self.inv, **{edge_host: dict(self.inv[edge_host], competitor_vllm=T.fake_competitor(False))})
+        with self.assertRaises(ValueError) as cm:
+            FZ.build(inv, self.roles)
+        self.assertIn("competitor vLLM", str(cm.exception))
+        frozen = edge["competitor_vllm"]
+        self.assertEqual(FZ.competitor_problems(frozen, dict(frozen)), [])
+        for k, v in (("sha256", "cd" * 32), ("version", "0.9.0"), ("resolved", "/other/env/bin/vllm"), ("python_executable", "/usr/bin/python3"),
+                     ("vllm_file", "/elsewhere/vllm/__init__.py")):
+            self.assertTrue(FZ.competitor_problems(frozen, dict(frozen, **{k: v})), k)    # another file, release or install
+        self.assertTrue(FZ.competitor_problems(frozen, T.fake_competitor(False)))          # missing / invalid now
+        self.assertTrue(FZ.competitor_problems(T.fake_competitor(False), dict(frozen)))    # nothing valid was frozen
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -16,7 +16,8 @@ RUNBOOK §3, or `; echo "rc=$? <cmd>" >> exit_status.log`). Back up each stage d
 
 ```
 cd ~/research/LLMRouterBench && git add diagnostics/deployment_e1opt && git commit -m "E1-OPT protocol and drivers"   # by you, after review
-git tag e1opt-prereg-v1 && git push --tags        # by you
+git tag e1opt-prereg-v1 && git push --tags        # by you (done 2026-11-12; preserved, never moved)
+git tag -a e1opt-prereg-v2 <amendment commit> && git push origin e1opt-prereg-v2   # PREREG §16; every stage below uses v2
 ```
 Expected runtime: minutes. Stopping rule: do not tag while any item of PREREG §14 that is a code constraint is open.
 
@@ -24,8 +25,13 @@ Expected runtime: minutes. Stopping rule: do not tag while any item of PREREG §
 
 On each lab machine (the script enumerates CUDA devices only):
 ```
-cd $E1 && $PY -I e1_bench.py inventory collect --peer <IP or hostname of the other machine> --out env/$(hostname).json
+cd $E1 && $PY -I e1_bench.py inventory collect --peer <IP or hostname of the other machine> \
+    --vllm-bin <absolute path of the competitor vLLM executable, e.g. <vllm venv>/bin/vllm> --out env/$(hostname).json
+#   or, on a machine with no competitor vLLM (it then cannot be the edge):  --no-competitor "<reason>" instead of --vllm-bin
 ```
+(PREREG §16 B: the competitor vLLM lives in its own environment; `collect` refuses an invalid `--vllm-bin`, and a
+machine without one cannot be the edge. GPU memory falls back to PyTorch's physical capacity where `nvidia-smi`
+says `[N/A]`, as on the GB10, §16 A; check `memory_source` in the `.txt`.)
 Output: `env/<hostname>.json` + `.txt`. Copy both to LOCAL DESKTOP `$E1/env/`. Then:
 ```
 cd $E1 && $PY -I e1_bench.py inventory roles --inventory env/A.json env/B.json --out env/roles.json --merged-out env/inventory.json \
@@ -39,7 +45,7 @@ Check PREREG §14 item 5 (edge GPU must be NVML index 0 on a multi-GPU edge).
 ## Stage 1a: freeze record (LOCAL DESKTOP; then verify on each lab machine)
 
 ```
-cd $E1 && $PY -I e1_bench.py freeze --inventory env/inventory.json --roles env/roles.json --tag e1opt-prereg-v1 --out frozen/runtime_freeze.json
+cd $E1 && $PY -I e1_bench.py freeze --inventory env/inventory.json --roles env/roles.json --tag e1opt-prereg-v2 --out frozen/runtime_freeze.json
 git add diagnostics/deployment_e1opt/frozen diagnostics/deployment_e1opt/env && git commit -m "E1-OPT freeze record"   # touches frozen/ and env/ only
 ```
 (If `env/` must not be committed, keep it out; the checker only requires that nothing outside `frozen/` of the
@@ -105,7 +111,7 @@ here). GPU use: server only. Safe unattended: yes. Outputs: `e1_runs/stage2/P-se
 cd $E1 && $PY -I e1_bench.py fit-split --freeze frozen/runtime_freeze.json --model-dir $MODEL --device cuda:<edge index> --class 12 --out-dir e1_runs/stage3
 cd $E1 && $PY -I e1_bench.py fit-split ... --class 16 --out-dir e1_runs/stage3
 for M in 12 16 24; do for model in Qwen3-8B-AWQ Qwen3-14B-AWQ Qwen3-32B-AWQ Qwen3-8B; do
-  $PY -I e1_bench.py fit-competitor --freeze frozen/runtime_freeze.json --device cuda:<edge index> --class $M --model $model --vllm-bin <vllm> --out-dir e1_runs/stage3; done; done
+  $PY -I e1_bench.py fit-competitor --freeze frozen/runtime_freeze.json --device cuda:<edge index> --class $M --model $model --vllm-bin <vllm> --out-dir e1_runs/stage3; done; done   # <vllm>: the executable given at Stage 0 (refused otherwise, §16 B)
 cd $E1 && $PY -I e1_bench.py profile-edge-segment --freeze frozen/runtime_freeze.json --model-dir $MODEL --device cuda:<edge index> --class 12 --out-dir e1_runs/stage3
 cd $E1 && $PY -I e1_bench.py profile-edge-segment ... --class 16 --out-dir e1_runs/stage3
 cd $E1 && $PY -I e1_bench.py summarize-fit --freeze frozen/runtime_freeze.json --dir e1_runs/stage3

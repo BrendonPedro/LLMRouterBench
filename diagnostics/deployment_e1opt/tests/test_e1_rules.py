@@ -72,8 +72,10 @@ class Inventory(unittest.TestCase):
         self.assertTrue(f["edge"]["feasible"])
         f = INV.feasibility(T.fake_inventory("b", [T.fake_gpu(0, memory_mib=81920)]))
         self.assertTrue(f["server"]["feasible"]); self.assertTrue(f["edge"]["feasible"])
-        f = INV.feasibility(T.fake_inventory("c", [T.fake_gpu(0, memory_mib=81920)], vllm=False))
-        self.assertTrue(f["server"]["feasible"]); self.assertFalse(f["edge"]["feasible"]); self.assertIn("vLLM", f["edge"]["reasons"][0])
+        f = INV.feasibility(T.fake_inventory("c", [T.fake_gpu(0, memory_mib=81920)], competitor=False))
+        self.assertTrue(f["server"]["feasible"]); self.assertFalse(f["edge"]["feasible"]); self.assertIn("competitor vLLM", f["edge"]["reasons"][0])
+        f = INV.feasibility(T.fake_inventory("c2", [T.fake_gpu(0, memory_mib=81920)], vllm=False))   # v2 (§16 B): vLLM need not import
+        self.assertTrue(f["edge"]["feasible"])                                                       # in the E1 runtime Python
         f = INV.feasibility(T.fake_inventory("d", [T.fake_gpu(0, memory_mib=131072, cc=7.5)]))
         self.assertFalse(f["server"]["feasible"])
 
@@ -106,6 +108,110 @@ class Inventory(unittest.TestCase):
         r = INV.assign_roles(big, T.fake_inventory("nolink", [T.fake_gpu(0, uuid="N", memory_mib=24576)], route="ERROR no route"))
         self.assertFalse(r["feasible"]); self.assertIn("link", r["rule_applied"])
         self.assertNotIn("bandwidth", json.dumps(r).lower())
+
+
+class AmendmentV2(unittest.TestCase):
+    """PREREG_E1OPT §16 (v2): GB10 memory capacity fallback and the explicitly supplied competitor vLLM executable."""
+
+    GB10_SMI = "0, NVIDIA GB10, GPU-5f2a9c1e-0b7d-4e33-9a1c-2d4e6f8a0b1c, [N/A], 580.95.05, 12.1\n"
+    GB10_BYTES = 128524095488                                   # torch.cuda.get_device_properties(0).total_memory on the DGX Spark
+
+    def test_numeric_nvidia_smi_is_kept(self):
+        g = INV.parse_nvidia_smi_csv("0, NVIDIA RTX A6000, GPU-aaaa, 49140 MiB, 550.54.15, 8.6\n")
+        self.assertEqual((g[0]["memory_mib"], g[0]["memory_source"]), (49140, "nvidia-smi"))
+        td = {"devices": [{"index": 0, "uuid": "aaaa", "total_mib": 99999}]}     # torch never replaces a numeric nvidia-smi value
+        INV.fill_memory_from_torch(g, td)
+        self.assertEqual((g[0]["memory_mib"], g[0]["memory_source"]), (49140, "nvidia-smi"))
+
+    def test_gb10_na_falls_back_to_torch_total_memory(self):
+        g = INV.parse_nvidia_smi_csv(self.GB10_SMI)
+        self.assertEqual((g[0]["memory_mib"], g[0]["memory_source"]), (None, None))
+        total_mib = self.GB10_BYTES // (1 << 20)
+        self.assertEqual(total_mib, 122570)                     # ~119.7 GiB physical capacity
+        td = {"devices": [{"index": 0, "uuid": "5f2a9c1e-0b7d-4e33-9a1c-2d4e6f8a0b1c", "total_mib": total_mib}]}   # torch's uuid: no GPU- prefix
+        INV.fill_memory_from_torch(g, td)
+        self.assertEqual((g[0]["memory_mib"], g[0]["memory_source"]), (122570, "torch_cuda_properties"))
+        inv = T.fake_inventory("spark", g, arch="aarch64")
+        f = INV.feasibility(inv)
+        self.assertTrue(f["server"]["feasible"]); self.assertTrue(f["edge"]["feasible"])
+        before = T.fake_inventory("spark-v1", INV.parse_nvidia_smi_csv(self.GB10_SMI), arch="aarch64")   # the v1 defect
+        self.assertFalse(INV.feasibility(before)["server"]["feasible"]); self.assertFalse(INV.feasibility(before)["edge"]["feasible"])
+
+    def test_capacity_never_from_free_memory_or_a_wrong_device(self):
+        src = Path(INV.__file__).read_text()
+        self.assertNotIn("mem_get_info", src); self.assertNotIn("memory.free", src); self.assertNotIn("memory.used", src)
+        self.assertIn("p.total_memory", src)
+        g = [dict(x) for x in INV.parse_nvidia_smi_csv(self.GB10_SMI + "1, NVIDIA GB10, GPU-other, [N/A], 580.95.05, 12.1\n")]
+        td = {"devices": [{"index": 0, "uuid": "unrelated-1", "total_mib": 1}, {"index": 1, "uuid": "unrelated-2", "total_mib": 2}]}
+        INV.fill_memory_from_torch(g, td)                       # several GPUs and no UUID match: never matched by index
+        self.assertEqual([(x["memory_mib"], x["memory_source"]) for x in g], [(None, "unavailable"), (None, "unavailable")])
+        one = INV.parse_nvidia_smi_csv(self.GB10_SMI)
+        INV.fill_memory_from_torch(one, {"devices": [{"index": 0, "uuid": "", "total_mib": 122570}]})   # one GPU each: by index
+        self.assertEqual(one[0]["memory_source"], "torch_cuda_properties")
+        none = INV.parse_nvidia_smi_csv(self.GB10_SMI)
+        INV.fill_memory_from_torch(none, {"devices": []})       # torch sees nothing: unknown, not zero, not guessed
+        self.assertEqual((none[0]["memory_mib"], none[0]["memory_source"]), (None, "unavailable"))
+
+    def _script(self, d, name, text, mode=0o755):
+        p = Path(d) / name
+        p.write_text(text)
+        p.chmod(mode)
+        return str(p)
+
+    def test_competitor_vllm_probe_fails_closed(self):
+        import os
+        from unittest import mock
+        d = tempfile.mkdtemp(prefix="e1vllm_")
+        site = Path(d) / "site"
+        (site / "vllm").mkdir(parents=True)
+        (site / "vllm" / "__init__.py").write_text("__version__ = '0.8.5.post1'\n")
+        (site / "vllm-0.8.5.post1.dist-info").mkdir()
+        (site / "vllm-0.8.5.post1.dist-info" / "METADATA").write_text("Metadata-Version: 2.1\nName: vllm\nVersion: 0.8.5.post1\n")
+        cli = "import sys, vllm\nif sys.argv[1:] == ['--version']:\n    print(vllm.__version__)\n"   # as vllm's CLI answers --version
+        good = self._script(d, "vllm", f"#!{sys.executable}\n{cli}")
+        long_form = self._script(d, "vllm-pip", f"#!/bin/sh\n'''exec' \"{sys.executable}\" \"$0\" \"$@\"\n' '''\n{cli}")
+        uv_form = self._script(d, "vllm-uv", f"#!/bin/sh\n'''exec' '{sys.executable}' \"$0\" \"$@\"\n' '''\n{cli}")
+        other = self._script(d, "pip", f"#!{sys.executable}\nimport sys\nprint('pip 25.0')\n")   # another script of the same environment
+        liar = self._script(d, "not-vllm", f"#!{sys.executable}\nraise SystemExit('I am not vllm')\n")
+        with mock.patch.dict(os.environ, {"PYTHONPATH": str(site)}):
+            for path in (good, long_form, uv_form):
+                r = INV.probe_vllm(path)
+                self.assertTrue(r["valid"], r); self.assertEqual(r["version"], "0.8.5.post1")
+                self.assertEqual(r["resolved"], str(Path(path).resolve())); self.assertEqual(len(r["sha256"]), 64)
+                self.assertTrue(r["vllm_file"].startswith(str(site))); self.assertTrue(r["python_executable"])
+            for path in (other, liar):                           # a vLLM environment, but not the vLLM executable
+                r = INV.probe_vllm(path)
+                self.assertFalse(r["valid"], path); self.assertIn("not the vLLM executable", r["error"])
+        self.assertFalse(INV.probe_vllm(good)["valid"])          # the same script, but its environment has no vllm: wrong executable
+        self.assertIn("cannot import vllm", INV.probe_vllm(good)["error"])
+        cases = {None: "no competitor", "relative/vllm": "absolute path", str(Path(d) / "missing"): "does not exist",
+                 self._script(d, "noexec", f"#!{sys.executable}\n", 0o644): "not executable",
+                 self._script(d, "shell", "#!/bin/sh\necho 0.8.5.post1\n"): "not a Python console script",
+                 self._script(d, "versionliar", "#!/bin/sh\necho 0.8.5.post1\n"): "not a Python console script",
+                 self._script(d, "badquote", "#!/usr/bin/env 'python3\n"): "not a Python console script"}   # no crash
+        for path, why in cases.items():
+            r = INV.probe_vllm(path)
+            self.assertFalse(r["valid"], path); self.assertIn(why, r["error"], path)
+
+    def test_collect_refuses_an_invalid_named_executable(self):
+        from unittest import mock
+        out = Path(tempfile.mkdtemp(prefix="e1inv_")) / "host.json"
+        stub = lambda peer, vllm_bin: dict(T.fake_inventory("h", []), competitor_vllm=INV.probe_vllm(vllm_bin))   # noqa: E731  (control flow only)
+        with mock.patch.object(INV, "collect", stub):
+            for argv in (["--vllm-bin", "/nonexistent/bin/vllm"], [], ["--vllm-bin", "/x/vllm", "--no-competitor", "server only"]):
+                with self.assertRaises(SystemExit) as cm:          # an invalid executable, or no explicit choice: nothing written
+                    INV.main(["collect", *argv, "--out", str(out)])
+                self.assertIn("REFUSED", str(cm.exception.code), argv); self.assertFalse(out.exists())
+            INV.main(["collect", "--no-competitor", "the lab runs no competitor here", "--out", str(out)])
+        rec = json.loads(out.read_text())["competitor_vllm"]
+        self.assertEqual((rec["valid"], rec["no_competitor_reason"]), (False, "the lab runs no competitor here"))
+
+    def test_frozen_runtime_checks_unchanged(self):
+        import e1_freeze as FZ
+        self.assertEqual(FZ.STRICT_VERSION_KEYS, ("torch", "torch_cuda", "transformers", "flash_attn", "python"))
+        self.assertEqual(S.E0.TRANSFORMERS_VERSION, "4.51.3"); self.assertEqual(S.E0.VLLM_VERSION, "0.8.5.post1")
+        self.assertEqual(S.FIXED_CUTS, {12: (3, 3), 16: (5, 5), 24: (9, 9)}); self.assertEqual(S.PRIMARY_CLASSES, (12, 16))
+        self.assertIs(S.ONE_SERVER_GPU, True); self.assertEqual(S.DECISION_RULE_VERSION, "E1-OPT-r3")
 
 
 class Provenance(unittest.TestCase):
