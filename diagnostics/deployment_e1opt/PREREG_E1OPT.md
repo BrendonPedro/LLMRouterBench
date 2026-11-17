@@ -1,7 +1,9 @@
 # E1-OPT: optimised-runtime split follow-up. Pre-registration DRAFT, revision 3 (2026-11-11)
 
 Status: frozen by tag `e1opt-prereg-v1` (2026-11-12; preserved unchanged); amended before any measurement by §16
-(v2), frozen by tag `e1opt-prereg-v2`. No E1-OPT measurement exists. Nothing in this directory has run on a GPU.
+(v2), frozen by tag `e1opt-prereg-v2` (preserved unchanged). **Amended AFTER a Stage-1b failure by §17 (v3, a
+post-failure amendment, not pre-registered), frozen by tag `e1opt-prereg-v3`.** v2 did not pass Stage 1b. No timing
+measurement of E1-OPT exists. (The sentence "Nothing in this directory has run on a GPU" below is v1/v2 wording.)
 (Text below that says "draft" or names `e1opt-prereg-v1` as the freeze tag is the v1 wording, kept for the record.) The E0 pre-registration (`deployment_e0/PREREG.md`, tag
 `e0-prereg-v1`, validated harness commit `81461b6`) is **not changed** by this file and stays the record of the
 E0 result (G-UB2 STOP, best bounded advantage +0.5 pt, 0 of 20 cells). E0 is a valid pre-registered result for
@@ -189,13 +191,14 @@ GPU, after the freeze, in this order, with the freeze checker first (check I):
   procedures) for the joint stage.
 - `equivalence local --role server` (in-host, both segments on the server GPU): **A** prefix mode bitwise equal to
   the HF reference and to E0's runtime; **B** static mode with the frozen kernel and graph branch within 2⁻⁶ of
-  prefix mode, identical argmax; **C** greedy tokens equal to HF; **D** wire invariants over a loopback echo stub
+  prefix mode, identical argmax (v2 wording; from v3, check B is the SDPA-backend floor rule of §17); **C** greedy tokens equal to HF; **D** wire invariants over a loopback echo stub
   (bytes equal the hidden-state formula, HELLO keys within the control set, the server saw only HELLO/RESET/FWD/
   BYE); **E** ownership invariants (edge holds exactly layers [0,k) ∪ [L−j,L), embedding, norm, LM head; server
   holds exactly [k,L−j) and no embedding or head); **F/G** the attention kernel and CUDA-graph mode actually in use
   equal the freeze record; **H** nothing but the bf16 residual stream and headers crossed.
 - `equivalence local --role edge --segments-only` (the capped edge cannot hold the model): head and tail segments,
-  prefix vs E0's `run_layers` bitwise and static vs prefix within tolerance, plus D, E, F/G, H.
+  prefix vs E0's `run_layers` bitwise and static vs prefix within tolerance (v3: the §17 floor rule on the edge
+  chain), plus D, E, F/G, H.
 - `equivalence joint` (edge ↔ server over the lab link): Q1 teacher-forced comparison and Q2 greedy runs with the E1
   runtime in E0's file formats; then `equivalence decide` applies E0's Q1 and Q2 rules with E0's thresholds
   (`e0_q.q1_rule`, `e0_q.q2_rule`: D ≤ max(D_pipeline, D_hw) + 0.2 pp; KL ≤ 2 × max floors; ≥ 27 of 30 Q2 prompts
@@ -478,3 +481,88 @@ versions are locked) to the competitor environment for no protocol reason. v2 ch
 Changed files: `e1_inventory.py`, `e1_freeze.py` (record version 4, `competitor_problems`), `e1_profile.py` (the
 Stage-3 executable check only), `tests/e1_testlib.py`, `tests/test_e1_rules.py`, `tests/test_e1_freeze.py`, this
 file, `RUNBOOK.md` and `README.md`.
+
+## 17. Amendment v3 (2026-11-17): Stage-1b check B after the v2 failure (POST-FAILURE amendment)
+
+**Status of this amendment.** This change was made **after** a Stage-1b correctness result had been seen. It was
+not pre-registered before that result, and it is reported as a post-failure amendment wherever v3 results appear.
+Tags `e1opt-prereg-v1` and `e1opt-prereg-v2` and their commits are preserved unchanged. v3 is frozen by the new tag
+`e1opt-prereg-v3`. **v2 did not pass Stage 1b.** No v2 Stage-1b output is reused, pooled or reported as a v3 result.
+v3 uses the single implementation fix that §5 allows. A second Stage-1b failure under v3 is a STOP (§8, §11), and
+check B is not amended again.
+
+**The v2 failure (recorded verbatim from the DGX GB10, `equivalence local --role server --class 12`, frozen branch
+`sdpa_static_fallback`, CUDA graphs on).** The original output JSON and the v2 freeze record stay on the lab
+machines. They are archived unchanged (RUNBOOK, "Archive of the v2 failure") and never edited.
+
+| field | value |
+|---|---|
+| prefix bitwise vs HF / vs E0 (check A) | true / true |
+| static max abs vs prefix (final norm output) | 80.8125 (v2 tolerance 2⁻⁶) |
+| static within tolerance (check B) | **false** |
+| static argmax agreement with prefix | 0.983173 (409 of 416 positions; the check sequence is the first S1 prompt, 416 tokens, one prefill chunk) |
+| static greedy equals HF (check C) | true |
+| attention branch / CUDA graphs / branch matches freeze | sdpa_static_fallback / on / true |
+
+**Diagnosis (read-only; CPU experiments on Qwen3-0.6B real weights, 416-token check sequence; no GPU run).**
+- On a GPU the two modes do not run the same attention kernel. In prefix mode, transformers 4.51.3 passes no mask
+  for a single prefill chunk (`modeling_qwen3.py` `_update_causal_mask`, `_ignore_causal_mask_sdpa`). SDPA then
+  runs with `is_causal=True`, which can use its flash backend. The static path always passes an explicit
+  `[1, 1, n, L_F]` additive mask (`e1_segment.static_causal_mask`), and SDPA's flash backend cannot take one.
+- On the CPU, where both modes reach the same kernel, static mode is **bitwise equal** to prefix mode at L_F = 17,920
+  and with no padding.
+- Changing only the SDPA backend of the unchanged E0 computation (prefix mode, MATH vs default; no E1 code
+  involved) gives max abs 5.3125 (largest value 81), 8 of 416 argmax flips, every flip at a reference margin ≤ 0.125
+  nats. With the backend held fixed, static mode is bitwise equal to prefix mode.
+- The v2 check B was an absolute bound on bf16 values. A single bf16 rounding step on any value ≥ 4 exceeds 2⁻⁶.
+  Before the freeze it was validated only on a tiny random model on the CPU, where both modes share a kernel.
+- Conclusion: v2 check B cannot be met by any change of attention kernel. §4.1(3) and §13 explicitly allow such a
+  change ("small numeric differences (Q-tested, thresholds E0's)"). The v2 failure is evidence about the check, and
+  shows no defect in the static cache. The static cache, graph and attention code are **not changed** by v3.
+
+**v3 check B (`e1_spec.EQ_STATIC_RULE = "E1-OPT-v3-sdpa-backend-floor"`; `e1_equivalence.static_floor_rule`).**
+- Reference: prefix-mode final normed hidden states of the check sequence, default SDPA dispatch, on the GPU under
+  test. Reference top-K = 32 (E0 `Q1_TOPK`) through the LM head (`e0_q.ref_topk`).
+- Static: static-mode final hidden states of the same sequence with the frozen kernel and graph branch (unchanged
+  v2 computation). Metrics D (argmax disagreement, pp) and KL (E0 coarse top-K KL), by E0's `e0_q.compare_to_ref`,
+  over every position of the check sequence.
+- Floor: the unchanged prefix computation re-run with SDPA restricted to each backend of
+  `EQ_FLOOR_SDPA_BACKENDS = (FLASH_ATTENTION, CUDNN_ATTENTION, EFFICIENT_ATTENTION, MATH)` (every backend of
+  `torch.nn.attention.SDPBackend` that runs on CUDA or CPU; `OVERRIDEABLE` serves out-of-tree devices only), compared with the same reference. A backend that cannot run
+  on the device is recorded with its error. Floor D = max over the backends that ran, and floor KL likewise.
+- Rule: E0's Q1 rule unchanged (`e0_q.q1_rule` with the floor as both floors): D_static ≤ D_floor + 0.2 pp and
+  KL_static ≤ 2 × KL_floor (≤ 10⁻⁶ if the floor is exactly 0). With 416 positions, one position is 0.24 pp, so in
+  practice the static path may not flip more positions than the worst backend switch.
+- Why the envelope over backends, and not "the backend the static path uses": that backend cannot be read without a
+  profiler, which Stage 1b forbids. Forcing backends one at a time cannot identify it either, because the causal-flag
+  and explicit-mask variants of one backend are different kernels. That attempt could produce a zero floor for a pure
+  kernel difference.
+- Fail closed: if no floor backend runs, B fails with `harness_defect`. That is INVALID (§10.2), not a Q result.
+- Edge (`--segments-only`): the same rule on the edge chain embed → head → tail → final norm → LM head over the first
+  prefill chunk of the check sequence (prefix vs static; the floor on the prefix chain). Head and tail prefix-vs-E0
+  `run_layers` stays bitwise. The v2 per-segment absolute checks, including the single decode step, are reported
+  as descriptive. The edge's static decode step remains gated by the joint Q2 runs (§5), and the server's in-host
+  static greedy run (check C) gates the graphed decode path.
+- Not fitted: the thresholds (0.2 pp, 2×, 10⁻⁶) and K are E0's. The backend list is every CUDA/CPU SDPA backend. The positions
+  are v2's check sequence. No number of the rule was derived from 80.8125 or from the 7 flips. The v2 absolute
+  values are still written to the output (`static_max_abs_vs_prefix`, `static_within_v2_abs_tolerance`) and do not
+  enter the predicate.
+
+**Unchanged:** checks A, C, D, E, F/G and H and the overall local `pass` conjunction apart from B. The joint Q1/Q2
+procedures and `decide`. The runtime (`e1_static_cache.py`, `e1_segment.py`, `e1_attention.py`), the kernel, graph and
+compile settings and the branch rule. The timing code, gates, decision rule, cuts and roles. E0's files.
+
+**Procedure:** new freeze record `frozen/runtime_freeze_v3.json` written at the `e1opt-prereg-v3` commit (§4.3).
+The Stage-0 inventory and role record are reused only if `check-freeze` passes on both machines. Otherwise Stage 0 is
+redone. Then the whole of Stage 1b runs on every device. **No Stage-2 timing runs before `stage1b_decision.json`
+under the v3 record says `pass: true`.**
+
+**Separately recorded finding (not fixed in v3; does not affect a device on `sdpa_static_fallback`).**
+`e1_attention.set_seqlens` is never called. On a device whose frozen branch is `flash_attn_with_kvcache`, the
+static path therefore runs the SDPA fallback silently, and check F/G does not notice. `branch_in_use` reports
+availability, and `branch_matches` ignores `attention_last_kernel`. The GB10 server is on `sdpa_static_fallback`. If
+the v3 freeze record gives the edge `flash_attn_with_kvcache`, the edge's Stage 1b must not start: that would be a
+separate fix under §4.4.
+
+Changed files: `e1_spec.py`, `e1_equivalence.py` (check B and the two `pass` predicates),
+`tests/test_e1_equivalence.py`, `tests/test_e1_cpu.py`, this file, `RUNBOOK.md` and `README.md`.

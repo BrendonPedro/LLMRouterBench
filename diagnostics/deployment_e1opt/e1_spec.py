@@ -25,8 +25,16 @@ MODES = ("prefix", "static")
 # Required computation-equivalence tests (CPU, before any GPU time; and again on each GPU before measurement)
 EQ_PREFIX_BITWISE = True                  # static-cache prefix mode == E0 split == HF unsplit, bitwise
 EQ_STATIC_TOP1 = True                     # static mode: greedy tokens identical to HF on the Q2 prompts
-EQ_STATIC_MAX_ABS_BF16 = 2 ** -6          # static mode hidden states vs prefix mode, bf16, final norm output
+EQ_STATIC_MAX_ABS_BF16 = 2 ** -6          # v2 check B (absolute, final norm output); descriptive only since v3
 # On GPU the E0 Q1/Q2 thresholds apply unchanged (E0 PREREG §4): D <= floors + 0.2 pp; KL <= 2 x floors.
+
+# Amendment v3 (PREREG §17; post-failure, NOT pre-registered before the v2 Stage-1b result). Check B: static vs
+# prefix final hidden states pass E0's Q1 rule (e0_q.q1_rule, thresholds unchanged) against an SDPA-backend floor:
+# the largest D and KL that re-running the unchanged prefix (E0) computation with SDPA restricted to one backend
+# produces against the default dispatch, over the backends below that run on the device. Positions: every position
+# of the check sequence; reference top-K: prefix mode, default dispatch.
+EQ_STATIC_RULE = "E1-OPT-v3-sdpa-backend-floor"
+EQ_FLOOR_SDPA_BACKENDS = ("FLASH_ATTENTION", "CUDNN_ATTENTION", "EFFICIENT_ATTENTION", "MATH")
 
 # Decision rule (frozen from E0): delta >= 3.0 pt with CI lower bound > 0 in some evaluated cell.
 R_MARGIN_PT = E0.R_MARGIN_PT

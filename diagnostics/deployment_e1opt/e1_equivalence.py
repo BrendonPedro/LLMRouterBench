@@ -8,9 +8,9 @@ Subcommands (all require --freeze; the freeze checker runs first):
   reference      on a machine that holds the whole model: HF unsplit final hidden states and greedy tokens for the
                  check sequence(s) -> ref_hidden.pt (bf16) and, optionally, E0-format Q1 top-K npz and Q2 rows
   local          on one GPU, in-host (both segments on this device): prefix mode bitwise vs HF/E0, static mode
-                 (frozen kernel + graph branch) vs prefix within tolerance and identical argmax, greedy tokens
-                 vs HF, wire and ownership invariants, branch-in-use vs freeze. --segments-only for a machine
-                 that cannot hold the whole model (the capped edge): segment-level checks only
+                 (frozen kernel + graph branch) vs prefix by the SDPA-backend floor rule (PREREG §17), greedy
+                 tokens vs HF, wire and ownership invariants, branch-in-use vs freeze. --segments-only for a
+                 machine that cannot hold the whole model (the capped edge): segment-level checks only
   joint          edge <-> server over the link: Q1 teacher-forced comparison (E0 npz format) and Q2 greedy runs
                  (E0 row format) with the E1 runtime, for e0_q.decide / `decide` below
   decide         E0's Q1/Q2 rules (thresholds unchanged, e0_q.q1_rule / q2_rule) over the files above plus the
@@ -142,6 +142,47 @@ def reference_greedy(hf, ids, n, device):
     return g[0, t.shape[1]:].tolist()
 
 
+def backend_floor_hidden(fn):
+    """Re-run fn (the unchanged prefix-mode computation, returning final hidden states) with SDPA restricted to each
+    backend of S.EQ_FLOOR_SDPA_BACKENDS. A backend that cannot run here is recorded with its error, not raised."""
+    from torch.nn.attention import SDPBackend, sdpa_kernel
+    hidden, errors = {}, {}
+    for name in S.EQ_FLOOR_SDPA_BACKENDS:
+        b = getattr(SDPBackend, name, None)
+        if b is None:
+            errors[name] = "not defined in this torch"
+            continue
+        try:
+            with sdpa_kernel([b]):
+                hidden[name] = fn()
+        except RuntimeError as e:
+            errors[name] = f"{type(e).__name__}: {str(e).strip().splitlines()[0][:200]}"
+    return hidden, errors
+
+
+def _q1_stats(lm_head, ref_ids, ref_lps, h, positions):
+    ag, kl, _ = Q.compare_to_ref(torch, lm_head, h, positions, ref_ids, ref_lps)
+    return {"n_positions": int(ag.size), "D_pp": float(100.0 * (1.0 - ag.mean())), "KL": float(kl.mean())}
+
+
+def static_floor_rule(lm_head, h_prefix, h_static, floor_hidden, floor_errors):
+    """Amended check B (PREREG §17): E0's Q1 rule for static vs prefix, with the SDPA-backend floor as both floors."""
+    positions = list(range(h_prefix.shape[0]))
+    rid, rlp = Q.ref_topk(torch, lm_head, h_prefix, positions)
+    per = {}
+    for name, h in floor_hidden.items():
+        per[name] = dict(_q1_stats(lm_head, rid, rlp, h, positions), max_abs=float((h.float() - h_prefix.float()).abs().max()))
+    st = dict(_q1_stats(lm_head, rid, rlp, h_static, positions), max_abs=float((h_static.float() - h_prefix.float()).abs().max()))
+    out = {"rule": S.EQ_STATIC_RULE, "static_vs_prefix": st, "floor_per_backend": per, "floor_backend_errors": floor_errors}
+    if not per:
+        out.update({"pass": False, "harness_defect": "no SDPA backend ran for the floor (INVALID, PREREG §17)"})
+        return out
+    floor = {"D_pp": max(v["D_pp"] for v in per.values()), "KL": max(v["KL"] for v in per.values())}
+    out["floor"] = floor
+    out.update(Q.q1_rule(st, floor, floor))
+    return out
+
+
 def wire_and_content_check(model_dir, k, j, device, mode, max_len, expected_cfg, branch, ids, n_new, chunk, freeze_sha):
     """Run a short greedy generation through the real wire against an in-process echo stub and audit the wire:
     byte totals equal the hidden-state formula, the HELLO carries only control keys, the server saw only
@@ -178,7 +219,8 @@ def wire_and_content_check(model_dir, k, j, device, mode, max_len, expected_cfg,
 def local_checks(model_dir, k, j, device, expected_cfg, branch, ids, max_len, n_greedy, chunk, freeze_sha,
                  ref_hidden=None, ref_tokens=None, segments_only=False):
     _setup_torch()
-    out = {"mode_reference": "prefix", "mode_measured": "static", "k": k, "j": j, "n_check_tokens": len(ids), "segments_only": segments_only}
+    out = {"mode_reference": "prefix", "mode_measured": "static", "k": k, "j": j, "n_check_tokens": len(ids), "segments_only": segments_only,
+           "equivalence_rule": S.EQ_STATIC_RULE}
     dev = torch.device(device)
     if segments_only:
         # The capped edge cannot hold the whole model: compare its own head/tail segments prefix vs static, and
@@ -204,15 +246,31 @@ def local_checks(model_dir, k, j, device, expected_cfg, branch, ids, max_len, n_
             res[name] = {"prefix_bitwise_vs_e0_run_layers": bool(torch.equal(yp, y0)),
                          "static_max_abs_vs_prefix": float((ys.float() - yp.float()).abs().max()),
                          "static_decode_step_max_abs_vs_prefix": float((ys1.float() - yp1.float()).abs().max()),
-                         "within_tolerance": bool((ys.float() - yp.float()).abs().max() <= S.EQ_STATIC_MAX_ABS_BF16 * 4
-                                                  and (ys1.float() - yp1.float()).abs().max() <= S.EQ_STATIC_MAX_ABS_BF16 * 4)}
+                         # v2 criterion; descriptive only since v3 (PREREG §17)
+                         "within_v2_abs_tolerance": bool((ys.float() - yp.float()).abs().max() <= S.EQ_STATIC_MAX_ABS_BF16 * 4
+                                                         and (ys1.float() - yp1.float()).abs().max() <= S.EQ_STATIC_MAX_ABS_BF16 * 4)}
         out["segments"] = res
+        # Amended check B (PREREG §17): the edge chain embed -> head -> tail -> norm on the check tokens (one prefill
+        # chunk), static vs prefix, judged by the SDPA-backend floor rule through the edge's own LM head.
+        L = sl_p.n_layers
+        ids_t = torch.as_tensor(ids[:chunk], dtype=torch.long, device=dev).view(1, -1)
+
+        def chain(sl, mode):
+            @torch.inference_mode()
+            def f():
+                a = Segment(sl, list(range(k)), max_len, mode).forward(sl.embed(ids_t), 0)
+                return sl.norm(Segment(sl, list(range(L - j, L)), max_len, mode).forward(a, 0))[0]
+            return f
+        hp = chain(sl_p, "prefix")()
+        floor_h, floor_err = backend_floor_hidden(chain(sl_p, "prefix"))
+        hs = chain(sl_s, "static")()
+        out["static_floor_rule"] = static_floor_rule(sl_p.lm_head, hp, hs, floor_h, floor_err)
         out["ownership"] = ownership(sl_p, k, j)
         out["branch_in_use"] = {"attention": "flash_attn_with_kvcache" if e1_attention.kernel_available() and not e1_attention.FORCE_SDPA and dev.type == "cuda" else "sdpa_static_fallback",
                                 "cuda_graphs": "on" if (branch["cuda_graphs"] == "on" and dev.type == "cuda") else ("cpu_control_flow" if dev.type != "cuda" else "off"), "torch_compile": False}
         out["branch_matches_freeze"] = branch_matches(out["branch_in_use"], branch, device)
         out["wire"] = wire_and_content_check(model_dir, k, j, device, "prefix", max_len, expected_cfg, branch, ids, n_greedy, chunk, freeze_sha)
-        out["pass"] = bool(all(r["prefix_bitwise_vs_e0_run_layers"] and r["within_tolerance"] for r in res.values())
+        out["pass"] = bool(all(r["prefix_bitwise_vs_e0_run_layers"] for r in res.values()) and out["static_floor_rule"]["pass"]
                            and out["ownership"]["edge_slice_ok"] and out["branch_matches_freeze"]
                            and all(v for kk, v in out["wire"].items() if isinstance(v, bool) and kk != "tokens_or_text_on_wire"))
         return out
@@ -231,6 +289,7 @@ def local_checks(model_dir, k, j, device, expected_cfg, branch, ids, max_len, n_
     del r0, sl0, ssl0
     e1p = build_split(model_dir, k, j, device, "prefix", max_len, expected_cfg, branch)
     hp = e1p.teacher_forced_hidden(ids, chunk)
+    floor_h, floor_err = backend_floor_hidden(lambda: e1p.teacher_forced_hidden(ids, chunk))   # PREREG §17
     out["prefix_bitwise_vs_hf"] = bool(torch.equal(hp, ref_hidden))
     out["prefix_bitwise_vs_e0"] = bool(torch.equal(hp, h0))
     out["prefix_greedy_equals_hf"] = e1p.generate(ids, n_greedy, chunk, force_len=True) == ref_tokens
@@ -240,8 +299,9 @@ def local_checks(model_dir, k, j, device, expected_cfg, branch, ids, max_len, n_
     with torch.inference_mode():
         ap, as_ = e1s.sl.lm_head(hp).float().argmax(-1), e1s.sl.lm_head(hs).float().argmax(-1)
     out["static_max_abs_vs_prefix"] = float((hs.float() - hp.float()).abs().max())
-    out["static_within_tolerance"] = out["static_max_abs_vs_prefix"] <= S.EQ_STATIC_MAX_ABS_BF16
+    out["static_within_v2_abs_tolerance"] = out["static_max_abs_vs_prefix"] <= S.EQ_STATIC_MAX_ABS_BF16   # descriptive since v3
     out["static_argmax_equal_prefix_share"] = float((ap == as_).float().mean())
+    out["static_floor_rule"] = static_floor_rule(e1s.sl.lm_head, hp, hs, floor_h, floor_err)
     out["static_greedy_equals_hf"] = e1s.generate(ids, n_greedy, chunk, force_len=True) == ref_tokens
     out["branch_in_use"] = branch_in_use(e1s)
     out["branch_matches_freeze"] = branch_matches(out["branch_in_use"], branch, device)
@@ -249,7 +309,7 @@ def local_checks(model_dir, k, j, device, expected_cfg, branch, ids, max_len, n_
     out["ownership"]["server_has_no_embed_or_head"] = e1s.middle.seg.sl.embed is None and e1s.middle.seg.sl.lm_head is None
     out["wire"] = wire_and_content_check(model_dir, k, j, device, "prefix", max_len, expected_cfg, branch, ids, n_greedy, chunk, freeze_sha)
     out["pass"] = bool(out["prefix_bitwise_vs_hf"] and out["prefix_bitwise_vs_e0"] and out["prefix_greedy_equals_hf"]
-                       and out["static_within_tolerance"] and out["static_greedy_equals_hf"] and out["branch_matches_freeze"]
+                       and out["static_floor_rule"]["pass"] and out["static_greedy_equals_hf"] and out["branch_matches_freeze"]
                        and out["ownership"]["edge_slice_ok"] and out["ownership"]["server_slice_ok"] and out["ownership"]["server_has_no_embed_or_head"]
                        and all(v for kk, v in out["wire"].items() if isinstance(v, bool) and kk != "tokens_or_text_on_wire"))
     return out

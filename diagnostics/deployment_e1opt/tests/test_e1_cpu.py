@@ -195,6 +195,40 @@ class RealWeightsTest(unittest.TestCase):
         e1s = USplitEdge(sl, k, j, LocalMiddle(ssl, ssl.layer_ids, 512, "static"), 512, "static")
         self.assertEqual(e1s.generate(ids, 16, 16, force_len=True), ref.greedy(ids, 16))
 
+    def test_qwen3_0_6b_static_floor_rule_kernel_switch_vs_defect(self):
+        """PREREG §17 regression. A pure SDPA backend switch on the static path (as on the GB10, where the static
+        path's explicit mask cannot use SDPA's flash backend) fails the v2 absolute check B but passes the
+        backend-floor rule; a real static-cache defect (causal mask removed) fails the floor rule."""
+        import e1_equivalence as EQ
+        import e1_segment
+        from torch.nn.attention import SDPBackend, sdpa_kernel
+        from transformers import AutoTokenizer
+        tok = AutoTokenizer.from_pretrained(str(REAL))
+        text = " ".join(["The committee reviewed the budget, the schedule and the staffing plan before the vote."] * 8)
+        ids = tok.apply_chat_template([{"role": "user", "content": text}], add_generation_prompt=True, enable_thinking=False)
+        k, j, L = 2, 3, 512
+        e1_attention.set_branch("sdpa_static_fallback")
+        sl = edge_slice(str(REAL), k, j, "cpu", torch.bfloat16, None)
+        ssl = server_slice(str(REAL), k, j, "cpu", torch.bfloat16, None)
+
+        def run(mode):
+            impl = "e1_static" if mode == "static" else "sdpa"
+            sl.cfg._attn_implementation = impl; ssl.cfg._attn_implementation = impl
+            return USplitEdge(sl, k, j, LocalMiddle(ssl, ssl.layer_ids, L, mode), L, mode).teacher_forced_hidden(ids)
+        hp = run("prefix")
+        floor_h, floor_err = EQ.backend_floor_hidden(lambda: run("prefix"))
+        with sdpa_kernel([SDPBackend.MATH]):
+            hs = run("static")
+        self.assertGreater((hs.float() - hp.float()).abs().max().item(), S.EQ_STATIC_MAX_ABS_BF16)   # v2 check B fails
+        self.assertTrue(EQ.static_floor_rule(sl.lm_head, hp, hs, floor_h, floor_err)["pass"])
+        orig = e1_segment.static_causal_mask
+        e1_segment.static_causal_mask = lambda cp, ml, dt, dev: torch.zeros((1, 1, cp.numel(), ml), dtype=dt, device=dev)
+        try:
+            bad = run("static")
+        finally:
+            e1_segment.static_causal_mask = orig
+        self.assertFalse(EQ.static_floor_rule(sl.lm_head, hp, bad, floor_h, floor_err)["pass"])
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

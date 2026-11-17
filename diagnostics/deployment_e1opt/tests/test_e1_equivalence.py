@@ -47,7 +47,8 @@ class LocalChecks(unittest.TestCase):
         res = EQ.local_checks(self.model, 2, 2, "cpu", None, BRANCH_CPU, self.ids, 256, 12, 16, self.rec["freeze_sha256"])
         EQ.assert_no_timing_fields(res)
         self.assertTrue(res["prefix_bitwise_vs_hf"]); self.assertTrue(res["prefix_bitwise_vs_e0"]); self.assertTrue(res["prefix_greedy_equals_hf"])
-        self.assertTrue(res["static_within_tolerance"]); self.assertTrue(res["static_greedy_equals_hf"])
+        self.assertTrue(res["static_floor_rule"]["pass"]); self.assertTrue(res["static_greedy_equals_hf"])
+        self.assertEqual(res["equivalence_rule"], S.EQ_STATIC_RULE); self.assertIn("MATH", res["static_floor_rule"]["floor_per_backend"])
         self.assertEqual(res["branch_in_use"]["cuda_graphs"], "cpu_control_flow"); self.assertTrue(res["branch_matches_freeze"])
         self.assertTrue(res["ownership"]["edge_slice_ok"]); self.assertTrue(res["ownership"]["server_slice_ok"]); self.assertTrue(res["ownership"]["server_has_no_embed_or_head"])
         self.assertEqual(res["ownership"]["edge_layers"], [0, 1, 4, 5]); self.assertEqual(res["ownership"]["server_layers"], [2, 3])
@@ -64,8 +65,20 @@ class LocalChecks(unittest.TestCase):
     def test_segments_only(self):
         res = EQ.local_checks(self.model, 2, 2, "cpu", None, BRANCH_CPU, self.ids, 256, 8, 16, self.rec["freeze_sha256"], segments_only=True)
         EQ.assert_no_timing_fields(res)
-        self.assertTrue(res["segments"]["head"]["prefix_bitwise_vs_e0_run_layers"]); self.assertTrue(res["segments"]["tail"]["within_tolerance"])
+        self.assertTrue(res["segments"]["head"]["prefix_bitwise_vs_e0_run_layers"]); self.assertTrue(res["static_floor_rule"]["pass"])
         self.assertTrue(res["pass"])
+
+    def test_pass_predicate_enforces_the_floor_rule(self):
+        # PREREG §17: a failed floor rule fails the local check (in-host and segments-only); nothing else is relaxed
+        orig = EQ.static_floor_rule
+        EQ.static_floor_rule = lambda *a, **kw: dict(orig(*a, **kw), **{"pass": False})
+        try:
+            full = EQ.local_checks(self.model, 2, 2, "cpu", None, BRANCH_CPU, self.ids, 256, 8, 16, self.rec["freeze_sha256"])
+            seg = EQ.local_checks(self.model, 2, 2, "cpu", None, BRANCH_CPU, self.ids, 256, 8, 16, self.rec["freeze_sha256"], segments_only=True)
+        finally:
+            EQ.static_floor_rule = orig
+        self.assertTrue(full["prefix_bitwise_vs_hf"] and full["static_greedy_equals_hf"] and full["branch_matches_freeze"])
+        self.assertFalse(full["pass"]); self.assertFalse(seg["pass"])
 
     def test_cli_local_dev_writes_correctness_only(self):
         ids_f = Path(self.tmp) / "ids.json"; ids_f.write_text(json.dumps({"ids": self.ids}))
@@ -83,6 +96,44 @@ class LocalChecks(unittest.TestCase):
                             "--device", "cpu", "--role", "edge", "--class", "12", "--dev-k", "2", "--dev-j", "2", "--check-ids", str(ids_f), "--out", str(out)],
                            capture_output=True, text=True)
         self.assertNotEqual(r.returncode, 0)
+
+class StaticFloorRule(unittest.TestCase):
+    """The amended check B in isolation (synthetic hidden states through a fixed LM head)."""
+    @classmethod
+    def setUpClass(cls):
+        g = torch.Generator().manual_seed(0)
+        cls.head = torch.nn.Linear(64, 500, bias=False)
+        with torch.no_grad():
+            cls.head.weight.copy_(torch.randn(500, 64, generator=g))
+        cls.hp = torch.randn(400, 64, generator=g)
+        cls.noise = torch.randn(400, 64, generator=g)
+
+    def test_identical_static_passes_even_with_zero_floor(self):
+        r = EQ.static_floor_rule(self.head, self.hp, self.hp.clone(), {"MATH": self.hp.clone()}, {})
+        self.assertTrue(r["pass"]); self.assertEqual(r["static_vs_prefix"]["D_pp"], 0.0); self.assertEqual(r["KL_threshold"], S.E0.Q1_KL_EPS)
+
+    def test_static_within_backend_floor_passes(self):
+        r = EQ.static_floor_rule(self.head, self.hp, self.hp + 0.01 * self.noise, {"MATH": self.hp + 0.02 * self.noise.flip(0)}, {})
+        self.assertTrue(r["pass"], r)
+
+    def test_static_beyond_floor_fails(self):
+        r = EQ.static_floor_rule(self.head, self.hp, self.hp + 1.0 * self.noise, {"MATH": self.hp + 0.01 * self.noise.flip(0)}, {})
+        self.assertFalse(r["pass"]); self.assertGreater(r["D_split_pp"], r["D_threshold_pp"])
+
+    def test_floor_is_the_envelope_over_backends(self):
+        small, large = self.hp + 0.01 * self.noise.flip(0), self.hp + 0.5 * self.noise.flip(1)
+        r = EQ.static_floor_rule(self.head, self.hp, self.hp + 0.3 * self.noise, {"EFFICIENT_ATTENTION": small, "MATH": large}, {"FLASH_ATTENTION": "x"})
+        self.assertEqual(r["floor"]["D_pp"], r["floor_per_backend"]["MATH"]["D_pp"]); self.assertEqual(r["floor_backend_errors"], {"FLASH_ATTENTION": "x"})
+
+    def test_no_backend_ran_fails_closed(self):
+        r = EQ.static_floor_rule(self.head, self.hp, self.hp.clone(), {}, {"MATH": "err"})
+        self.assertFalse(r["pass"]); self.assertIn("harness_defect", r)
+
+    def test_backend_floor_hidden_records_unavailable_backends(self):
+        h, err = EQ.backend_floor_hidden(lambda: torch.nn.functional.scaled_dot_product_attention(*(torch.randn(1, 2, 4, 8),) * 3))
+        self.assertIn("MATH", h)
+        self.assertEqual(set(h) | set(err), set(S.EQ_FLOOR_SDPA_BACKENDS))
+
 
 
 class JointQ(unittest.TestCase):
