@@ -91,6 +91,8 @@ def reference(a):
     model_dir = pf["checkpoint"]["model_dir"]
     print(f"[reference] loading the unsplit model from {model_dir} on {device} ...", flush=True)
     hf = R.hf_model(model_dir, device)
+    load_mem = R.load_memory(device)
+    print(f"[reference] loaded directly onto {device}: {json.dumps(load_mem)}", flush=True)
     out = run_dir / "reference"
     rows = R.write_reference(hf, prompts, p, device, out)
     tok, chats = R.chat_prompts(model_dir, p, prompts)
@@ -101,7 +103,7 @@ def reference(a):
                                           "output_text": tok.decode(toks, skip_special_tokens=True) if tok else None})
     ok = len(rows) == len(prompts) and all(r["finite"] and not r["degenerate"] for r in rows)
     write_json(out / "reference.json", _meta(pf, spec_hash, device, R, {"stage": "2a-reference", "sequences": rows, "n_chat": len(chats),
-                                                                        "memory": R.mem_stats(device), "reference_is": S.CRITERIA["reference"]}))
+                                                                        "load_memory": load_mem, "memory": R.mem_stats(device), "reference_is": S.CRITERIA["reference"]}))
     gate_write(run_dir, "reference", ok, spec_hash, {"n_sequences": len(rows), "all_finite": all(r["finite"] for r in rows)})
     del hf
     sys.exit(0 if ok else EXIT_GATE)
@@ -120,6 +122,7 @@ def inhost(a):
     print(f"[inhost] loading both segments on {device} ...", flush=True)
     side = R.ServerSide(model_dir, device, p, expected, with_static=False)
     sl = R.edge_slice(model_dir, S.K, S.J, device, torch.bfloat16, expected)
+    load_mem = R.load_memory(device)
     sock = socket.socket(); sock.bind(("127.0.0.1", 0)); sock.listen(1)
     events, stop = [], threading.Event()
     th = threading.Thread(target=R.serve, args=(side, sock, spec_hash, events.append), kwargs={"stop": stop}, daemon=True)
@@ -129,7 +132,7 @@ def inhost(a):
     res = R.evaluate_config(e, _prompts(pf, a.dev), run_dir / "reference", p, run_dir / "correctness" / "inhost_prefix", "inhost prefix")
     mid.close()
     stop.set(); th.join(10); sock.close()
-    res.update(_meta(pf, spec_hash, device, R, {"stage": "2b-inhost", "mode": info, "memory": R.mem_stats(device),
+    res.update(_meta(pf, spec_hash, device, R, {"stage": "2b-inhost", "mode": info, "load_memory": load_mem, "memory": R.mem_stats(device),
                                                  "ownership": R.ownership(sl, S.K, S.J, side.sl.layer_ids)}))
     write_json(run_dir / "correctness" / "inhost_prefix.json", res)
     gate_write(run_dir, "inhost_prefix", res["pass"], spec_hash, {"checks": res.get("checks"), "bitwise": res["all_bitwise_equal_reference_hidden"]})
@@ -159,6 +162,7 @@ def twohost(a):
     prompts = _prompts(pf, a.dev)
     print(f"[twohost] loading the edge slice (embeddings, layers 0-15 and 48-63, norm, LM head) on {device} ...", flush=True)
     sl = R.edge_slice(model_dir, S.K, S.J, device, torch.bfloat16, expected)
+    load_mem = R.load_memory(device)
     own = R.ownership(sl, S.K, S.J)
     own["edge_layers_loaded_equal_spec"] = sl.layer_ids == sorted(S.EDGE_LAYERS)
     exit_code, static_done = 0, False
@@ -168,12 +172,14 @@ def twohost(a):
         si = mid.server_identity
         base = {"server_host": si.get("host"), "server_device": si.get("device"), "edge_host": socket.gethostname(),
                 "edge_device": R.device_identity(device), "spec_hash": spec_hash, "git_commit": pf["git"]["commit"],
+                "transport": os.environ.get("K16_TRANSPORT", "direct TCP to " + a.server.rsplit(":", 1)[0]),
                 "gpu_shared": bool(si.get("gpu_shared_at_start")) or bool((pf["gpu"].get("gpu") or {}).get("occupied"))}
         same_commit = si.get("git_commit") == pf["git"]["commit"]
         e, info = R.edge_split(sl, mid, "prefix", p)
         res = R.evaluate_config(e, prompts, run_dir / "reference", p, run_dir / "correctness" / "twohost_prefix", "twohost prefix")
         res.update(_meta(pf, spec_hash, device, R, {"stage": "2c-twohost", "mode": info, "server_identity": si, "ownership": own,
-                                                     "same_git_commit_on_both_hosts": same_commit, "memory": R.mem_stats(device)}))
+                                                     "same_git_commit_on_both_hosts": same_commit, "transport": base["transport"],
+                                                     "load_memory": load_mem, "memory": R.mem_stats(device)}))
         ok = bool(res["pass"] and own["edge_slice_ok"] and own["edge_layers_loaded_equal_spec"] and res.get("kv_positions_in_step_all"))
         write_json(run_dir / "correctness" / "twohost_prefix.json", res)
         gate_write(run_dir, "twohost_prefix", ok, spec_hash, {"checks": res.get("checks"), "kv_positions_in_step": res.get("kv_positions_in_step_all"),
@@ -350,8 +356,9 @@ def main(argv=None):
     sub = ap.add_subparsers(dest="cmd", required=True)
     for name in ("all", "reference", "inhost", "twohost", "summary"):
         s = sub.add_parser(name)
-        s.add_argument("--run-dir", default=None, required=name != "all"); s.add_argument("--out", default=os.environ.get("K16_OUT", "~/k16fit_runs"))
-        s.add_argument("--server", default=os.environ.get("K16_SERVER", f"asus-ESC4000-E11:{S.DEFAULT_PORT}"))
+        s.add_argument("--run-dir", default=None, required=name != "all"); s.add_argument("--out", default=S.default_out())
+        s.add_argument("--server", default=os.environ.get("K16_SERVER", f"127.0.0.1:{S.DEFAULT_PORT}"),
+                       help="local end of the SSH tunnel to the server's loopback port (launch_dgx_edge.sh opens it)")
         s.add_argument("--model-dir", default=None); s.add_argument("--gpu", default=os.environ.get("K16_GPU") or None)
         s.add_argument("--allow-shared", action="store_true", default=os.environ.get("K16_ALLOW_SHARED") == "1")
         s.add_argument("--no-static", action="store_true", default=os.environ.get("K16_NO_STATIC") == "1")

@@ -38,13 +38,18 @@ def needed_files(role, table=None):
 
 
 def locate(explicit=None):
-    """The checkpoint directory: --model-dir / K16_MODEL_DIR, else the Hugging Face cache snapshot of the pinned
-    revision. Returns (path or None, [places looked])."""
+    """The checkpoint directory: --model-dir / K16_MODEL_DIR, else a known lab location (k16_spec.KNOWN_MODEL_DIRS),
+    else the Hugging Face cache snapshot of the pinned revision, else a bounded search. Returns (path or None, [places
+    looked]). Whatever is found is then verified against the manifest; nothing is written into it."""
     tried = []
     for cand in (explicit, os.environ.get("K16_MODEL_DIR")):
         if cand:
             tried.append(cand)
             return (cand if (Path(cand) / "config.json").exists() else None), tried
+    for cand in S.KNOWN_MODEL_DIRS:
+        tried.append(cand)
+        if (Path(cand) / "config.json").exists():
+            return cand, tried
     hubs = [os.environ.get("HF_HUB_CACHE"), os.environ.get("HUGGINGFACE_HUB_CACHE"),
             os.path.join(os.environ["HF_HOME"], "hub") if os.environ.get("HF_HOME") else None,
             os.path.expanduser("~/.cache/huggingface/hub")]
@@ -55,14 +60,19 @@ def locate(explicit=None):
             return str(snap), tried
     # last resort: a directory named like the model whose config.json is byte-identical to the pinned revision's
     want = manifest()["files"]["config.json"]["sha256"]
-    roots = [r for r in (os.path.expanduser("~"), "/data", "/models", "/mnt", "/srv", "/opt", "/raid", "/workspace") if os.path.isdir(r)]
+    roots = [r for r in (os.path.expanduser("~"), "/data", "/models", "/raid", "/workspace", "/srv", "/opt", "/mnt") if os.path.isdir(r)]
     name = S.E0.SPLIT_REPO.split("/")[1]
-    tried.append(f"find {' '.join(roots)} -maxdepth 6 -path '*{name}*' -name config.json")
-    try:
-        out = subprocess.run(["find", *roots, "-maxdepth", "6", "-path", f"*{name}*", "-name", "config.json", "-not", "-path", "*/proc/*"],
-                             capture_output=True, text=True, timeout=120).stdout.splitlines()
-    except Exception:
-        out = []
+    tried.append(f"find {' '.join(roots)} -maxdepth 7 -path '*{name}*' -name config.json (40 s per root)")
+    out = []
+    for root in roots:                      # bounded: a slow or huge mount costs at most 40 s and keeps what it found
+        try:
+            r = subprocess.run(["find", root, "-maxdepth", "7", "-path", f"*{name}*", "-name", "config.json"], capture_output=True, text=True, timeout=40)
+            out += r.stdout.splitlines()
+        except subprocess.TimeoutExpired as e:
+            part = e.stdout.decode() if isinstance(e.stdout, bytes) else (e.stdout or "")
+            out += [x for x in part.splitlines() if x.endswith("config.json")]
+        except Exception:
+            continue
     for f in sorted(out):
         try:
             if sha256_file(f) == want and (Path(f).parent / "model.safetensors.index.json").exists():

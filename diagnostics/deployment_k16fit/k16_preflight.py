@@ -8,7 +8,8 @@ Checks, in this order, and stops (exit 3) at the end if any blocking check faile
   GPU          the role's GPU type is present; the requested GPU (or, by default, a free one) is not occupied
                by another compute process; a bf16 matmul and an SDPA call run on it
   memory       currently free device memory (unified memory: MemAvailable) >= expected peak + margin
-  network      server: the port is free; edge: the server answers on its port
+  network      server: the port is free on the loopback interface (the only one it may listen on);
+               edge: the server answers a HELLO with this experiment's identity (through the SSH tunnel)
 It never kills, signals or reconfigures any process. An occupied GPU is a STOP unless --allow-shared is given,
 and then only if the memory still suffices.
 
@@ -231,17 +232,22 @@ def collect(role, out_dir, model_dir=None, gpu=None, server=None, port=None, all
     add("output directory has >= 2 GB free", free_gb >= 2, f"{free_gb:.1f} GB free in {out_dir}")
     if role == "server":
         try:
-            s = socket.socket(); s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1); s.bind(("0.0.0.0", port)); s.close()
-            add(f"port {port} is free", True)
+            s = socket.socket(); s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1); s.bind((S.LISTEN_HOST, port)); s.close()
+            add(f"port {port} is free on {S.LISTEN_HOST}", True)
         except OSError as e:
-            add(f"port {port} is free", False, e)
+            add(f"port {port} is free on {S.LISTEN_HOST}", False, e)
+        if not dev:
+            ram = meminfo()["available_mib"]
+            add(f"host RAM available >= {KM.HOST_RAM_MIN_MIB} MiB (staging buffers while loading)", ram >= KM.HOST_RAM_MIN_MIB, f"{ram} MiB available")
     elif server:
-        host, prt = server.rsplit(":", 1)
+        name = f"server {server} answers HELLO as this experiment (through the tunnel)"
         try:
-            socket.create_connection((host, int(prt)), timeout=10).close()      # opened and closed; no message is sent
-            add(f"server {server} accepts connections", True)
-        except OSError as e:
-            add(f"server {server} accepts connections", False, f"{e}. Start the ASUS command first and wait for its READY line.")
+            import k16_runtime as R
+            si = R.ping(server, d, rec["spec_hash"], S.params(dev))
+            rec["server_identity"] = si
+            add(name, True, f"{si.get('host')} {(si.get('device') or {}).get('name')}")
+        except Exception as e:
+            add(name, False, f"{type(e).__name__}: {e}. Start the ASUS command first, wait for its READY line, and check the SSH tunnel.")
     rec["blockers"] = [c for c in rec["checks"] if c["blocking"] and not c["ok"]]
     rec["verdict"] = "CONTINUE" if not rec["blockers"] else "STOP"
     return rec

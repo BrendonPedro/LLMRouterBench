@@ -1,5 +1,7 @@
 # K16-HWFIT launcher helpers (sourced). Finds a Python that already has the required packages; installs nothing.
 K16_HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+K16_BASE="$(cd "$K16_HERE/../../.." && pwd)"          # the directory that holds the repository and this worktree
+export K16_OUT="${K16_OUT:-$K16_BASE/k16fit_runs}"    # run directories live beside the repository, never inside it
 K16_REQ='import os, sys, torch, transformers, safetensors, numpy
 ok = transformers.__version__ == "4.51.3" and (torch.cuda.is_available() or os.environ.get("K16_DEV") == "1")   # K16_DEV: CPU tests only
 print(f"torch {torch.__version__} cuda={torch.cuda.is_available()} transformers {transformers.__version__}")
@@ -12,6 +14,7 @@ k16_pick_python() {
     echo "K16_PY=$K16_PY is not usable: $out" >&2; return 1
   fi
   for c in "${VIRTUAL_ENV:+$VIRTUAL_ENV/bin/python}" "${CONDA_PREFIX:+$CONDA_PREFIX/bin/python}" \
+           "$K16_BASE"/LLMRouterBench*/.venv*/bin/python "$K16_BASE"/.venv*/bin/python "$K16_BASE"/venv*/bin/python "$K16_BASE"/*/.venv*/bin/python \
            "$HOME"/research/LLMRouterBench*/.venv*/bin/python "$HOME"/.cache/LLMRouterBench/venv*/bin/python \
            "$HOME"/venv*/bin/python "$HOME"/.venv*/bin/python "$HOME"/*/venv*/bin/python "$HOME"/*/.venv*/bin/python \
            "$HOME"/miniconda3/envs/*/bin/python "$HOME"/anaconda3/envs/*/bin/python "$HOME"/miniforge3/envs/*/bin/python \
@@ -26,8 +29,8 @@ k16_pick_python() {
 
 k16_run() {   # k16_run <role> <driver.py> [args...]: static/CPU validation first, then the driver; everything is logged
   local role="$1" driver="$2"; shift 2
-  export CUBLAS_WORKSPACE_CONFIG=:4096:8 PYTHONUNBUFFERED=1 TOKENIZERS_PARALLELISM=false
-  local out="${K16_OUT:-$HOME/k16fit_runs}"; mkdir -p "$out"
+  export CUBLAS_WORKSPACE_CONFIG=:4096:8 PYTHONUNBUFFERED=1 TOKENIZERS_PARALLELISM=false K16_IN_LAUNCHER=1
+  local out="$K16_OUT"; mkdir -p "$out"
   local log="$out/$(date -u +%Y%m%dT%H%M%SZ)_$(hostname)_${role}_console.log"
   {
     echo "[launch] K16-HWFIT $role on $(hostname) at $(date -u +%FT%TZ); console log: $log"
@@ -35,7 +38,9 @@ k16_run() {   # k16_run <role> <driver.py> [args...]: static/CPU validation firs
     PY=$(k16_pick_python) || exit 3
     echo "[launch] python: $PY ($("$PY" -I -c "$K16_REQ" 2>&1 | tail -1))"
     echo "[launch] ===== stage 0: CPU/static validation (tiny random model on the CPU; no GPU memory is used) ====="
-    if ! CUDA_VISIBLE_DEVICES="" K16_TEST_STRICT=0 "$PY" -I "$K16_HERE/tests/test_k16.py" 2>&1 | grep -v "Sliding Window"; then
+    if [ "${K16_DEV:-}" = 1 ] && [ "${K16_DEV_SKIP_SELFTEST:-}" = 1 ]; then
+      echo "[launch] stage 0 skipped: this launcher is being run BY the CPU test-suite (K16_DEV=1)"
+    elif ! CUDA_VISIBLE_DEVICES="" K16_TEST_STRICT=0 "$PY" -I "$K16_HERE/tests/test_k16.py" 2>&1 | grep -v "Sliding Window"; then
       echo "[launch] STOP: CPU/static validation failed on this host; nothing else was started."; exit 3
     fi
     "$PY" -I "$K16_HERE/$driver" all "$@"

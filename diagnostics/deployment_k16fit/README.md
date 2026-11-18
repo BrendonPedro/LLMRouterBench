@@ -12,6 +12,7 @@ and the wire, and moves the cut to k = 16.
 | holds | embeddings, layers 0-15, layers 48-63, final norm, LM head, sampling, tokenizer | layers 16-47 |
 | KV cache | layers 0-15 and 48-63 | layers 16-47 |
 | wire | sends the bf16 residual stream after layer 15 | returns the bf16 residual stream after layer 47 |
+| network | opens the SSH tunnel | listens on 127.0.0.1 only |
 
 Model: `Qwen/Qwen3-32B` at revision `9216db57`, bf16, verified on each host against
 `frozen/checkpoint_manifest.json` (size, safetensors headers, SHA-256 of every file the host loads).
@@ -32,7 +33,7 @@ New, in this directory only: `k16_spec.py` (constants, criterion, spec hash), `k
 | stage | where | what | stops the run if |
 |---|---|---|---|
 | 0 | both | CPU/static validation: `tests/test_k16.py` on the host's own Python | any test fails |
-| 1 | both | preflight: software, code revision, checkpoint, GPU type, GPU occupancy, free memory, port or peer | any blocking check fails |
+| 1 | both | preflight: software, code revision, checkpoint, GPU type, GPU occupancy, free memory incl. loading transients; server: loopback port free; edge: HELLO answered through the tunnel | any blocking check fails |
 | 2a | DGX | unsplit Hugging Face model on the GB10: the reference | not finite |
 | 2b | DGX | in-host k = 16 split over the real wire on loopback, reference mode | K16-CORRECT-v1 fails |
 | 2c | both | two-host split, reference mode | K16-CORRECT-v1 fails |
@@ -64,34 +65,58 @@ order on the server), which fails the rule with KL above 6 nats.
 
 ## Expected memory (`python -I k16_memory.py`; weights from the checkpoint's actual tensors)
 
-| process | weights GiB | KV GiB | expected peak GiB | required free GiB |
-|---|---|---|---|---|
-| ASUS server, layers 16-47 | 29.06 | 1.00 | 33.4 | 35.4 of 48 |
-| DGX edge, two-host stages | 31.96 | 1.00 | 37.5 | 41.5 |
-| DGX, unsplit reference (stage 2a) | 61.02 | 0.52 | 66.2 | 70.2 of about 119.7 |
-| DGX, in-host split check (stage 2b) | 61.02 | 1.00 | 66.0 | 70.0 |
+| process | weights GiB | KV GiB | loading transient GiB | expected peak GiB | required free GiB |
+|---|---|---|---|---|---|
+| ASUS server, layers 16-47 | 29.06 | 1.00 | 0.24 | 33.4 | 35.4 of 48 |
+| DGX edge, two-host stages | 31.96 | 1.00 | 2.90 | 38.9 | 42.9 |
+| DGX, unsplit reference (stage 2a) | 61.02 | 0.52 | 2.90 | 67.6 | 71.6 of about 119.7 |
+| DGX, in-host split check (stage 2b) | 61.02 | 1.00 | 2.90 | 67.5 | 71.5 |
 
 KV is preallocated for 4,096 tokens per owned layer, for the reference-mode cache and the static-mode cache.
 
+Loading never makes a full host copy. Every loader reads one tensor at a time from the safetensors shards straight
+onto the device: `split_runtime.Slice` for the split segments, and `k16_runtime.hf_model` for the unsplit reference
+(the Hugging Face `Qwen3ForCausalLM` is built on the meta device and each shard's tensors are assigned as its
+parameters; a test checks it is bit-identical to `from_pretrained`, in bf16). On the DGX Spark host and device
+memory are one pool, so the gate counts a host staging buffer plus a device copy of the largest tensor (2 x 1.45
+GiB). On the ASUS only the device copy counts, and the preflight separately requires 8 GiB of free host RAM. Each
+stage records what its load actually peaked at (`load_memory`: device peak, device transient, host peak RSS).
+
+## Transport
+
+The wire protocol has no authentication of its own, so the server listens on `127.0.0.1` only and refuses any other
+bind address. `launch_dgx_edge.sh` opens `ssh -N -L 127.0.0.1:29616:127.0.0.1:29616 $K16_SSH` from the DGX Spark,
+runs the experiment against the local end, and closes that tunnel when it exits. SSH authenticates both ends and
+encrypts the residual stream. No port is opened on the lab network. The tunnel runs with `BatchMode=yes`, so it
+needs a key or agent and can never hang on a prompt. Latency rows carry `transport`; the network component of a
+measurement includes the tunnel.
+
 ## Commands
+
+Lab paths: on the ASUS the repository is `/mnt/mydisk/brendon/LLMRouterBench` and the checkpoint is
+`/mnt/mydisk/brian/splitllm-cloud/models/Qwen3-32B/9216db5781bf21249d130ec9da846c4624c16137` (found automatically,
+never written to, verified against the manifest). The worktree is created beside the repository and run
+directories go to `k16fit_runs/` beside it.
 
 ASUS first, inside `tmux`:
 ```
-cd ~/research/LLMRouterBench && git fetch origin k16-hwfit-exploratory && REV=$(git rev-parse FETCH_HEAD) && { git worktree add --detach ../LLMRouterBench-k16fit $REV 2>/dev/null || git -C ../LLMRouterBench-k16fit checkout --detach $REV; } && bash ../LLMRouterBench-k16fit/diagnostics/deployment_k16fit/launch_asus_server.sh
+cd /mnt/mydisk/brendon/LLMRouterBench && git fetch origin k16-hwfit-exploratory && REV=$(git rev-parse FETCH_HEAD) && { git worktree add --detach ../LLMRouterBench-k16fit $REV 2>/dev/null || git -C ../LLMRouterBench-k16fit checkout --detach $REV; } && bash ../LLMRouterBench-k16fit/diagnostics/deployment_k16fit/launch_asus_server.sh
 ```
-Wait for `[server] READY`. Then on the DGX Spark, inside `tmux`:
+Wait for `[server] READY`. Then on the DGX Spark, inside `tmux` (`K16_SSH` is whatever `ssh <target>` reaches the
+ASUS from the DGX without a prompt; change the first path if the DGX clone lives elsewhere):
 ```
-cd ~/research/LLMRouterBench && git fetch origin k16-hwfit-exploratory && REV=$(git rev-parse FETCH_HEAD) && { git worktree add --detach ../LLMRouterBench-k16fit $REV 2>/dev/null || git -C ../LLMRouterBench-k16fit checkout --detach $REV; } && K16_SERVER=asus-ESC4000-E11:29616 bash ../LLMRouterBench-k16fit/diagnostics/deployment_k16fit/launch_dgx_edge.sh
+cd ~/research/LLMRouterBench && git fetch origin k16-hwfit-exploratory && REV=$(git rev-parse FETCH_HEAD) && { git worktree add --detach ../LLMRouterBench-k16fit $REV 2>/dev/null || git -C ../LLMRouterBench-k16fit checkout --detach $REV; } && K16_SSH=asus-ESC4000-E11 bash ../LLMRouterBench-k16fit/diagnostics/deployment_k16fit/launch_dgx_edge.sh
 ```
-If the DGX cannot resolve the server's name, use the `K16_SERVER=<address>:29616` line the ASUS command prints.
 
 Options (environment): `K16_PY` (Python with torch + transformers 4.51.3), `K16_MODEL_DIR`, `K16_GPU` (index or
 UUID; default: a free card of the role's type), `K16_ALLOW_SHARED=1` (run beside another process if memory
-suffices; timing rows are flagged `gpu_shared`), `K16_NO_STATIC=1`, `K16_KEEP_SERVER=1`, `K16_OUT`, `K16_PORT`.
-Exit codes: 0 complete, 3 preflight or memory STOP, 4 gate FAIL, 5 server saw no edge. The scripts install
+suffices; timing rows are flagged `gpu_shared`), `K16_NO_STATIC=1`, `K16_KEEP_SERVER=1`, `K16_OUT`, `K16_PORT`,
+and on the DGX `K16_LOCAL_PORT`, `K16_SSH_OPTS` (for example `-J jumphost`). With your own tunnel already open, set
+`K16_SERVER=127.0.0.1:<local port>` and leave `K16_SSH` unset.
+Exit codes: 0 complete, 3 preflight, memory or tunnel STOP, 4 gate FAIL, 5 server saw no edge. The scripts install
 nothing and never signal a process they did not start.
 
-## Outputs (`~/k16fit_runs/<utc>_<host>_<role>/`)
+## Outputs (`k16fit_runs/<utc>_<host>_<role>/` beside the repository)
 
 `preflight.json`, `gates/*.json`, `reference/`, `correctness/{inhost_prefix,twohost_prefix,twohost_static}.json`,
 `generation/chat.jsonl`, `latency/{prefix,static}.jsonl` + `_summary.json`, `summary.json`, `SUMMARY.md`,
@@ -101,7 +126,11 @@ in HELLO: the server refuses an edge on another code revision, criterion or mani
 
 ## Tests
 
-`<python> -I tests/test_k16.py` (CPU, about 90 s): partition, unmodified reused runtime, memory from tensors,
-manifest and checkpoint verification, GPU selection and memory gate on recorded inventories, the criterion with
-boundary cases, split = unsplit bitwise over the wire at k = 16 on a 64-layer model, KV ownership, wire byte
-count, HELLO refusals, the negative control, two-process end-to-end run, gate order, preflight STOP.
+`<python> -I tests/test_k16.py` (CPU, about 2 minutes, 16 tests): partition, unchanged cut and criterion, unmodified
+reused runtime, memory from tensors, manifest and checkpoint verification, the direct-to-device reference loader
+(bit-identical to `from_pretrained`; refuses a missing tensor or another dtype), GPU selection and memory gate on
+recorded inventories, the criterion with boundary cases, split = unsplit bitwise over the wire at k = 16 on a
+64-layer model, KV ownership, chunked prefill, wire byte count, HELLO refusals, a rounding-noise positive control,
+the wrong-layer-order negative control, two-process end-to-end run, gate order, preflight STOP, and the shipped
+launchers (loopback listener, refusal of a public bind, tunnel options, tunnel closed at exit; `ssh` is a local
+stand-in there).

@@ -94,6 +94,13 @@ def test_partition_is_k16():
     assert [p["n_in"] for p in ps] == [256] * 5 + [2048] * 5 and max(p["n_in"] for p in ps) + S.LATENCY["gen_tokens"] <= S.MAX_LEN
 
 
+def test_cut_and_criterion_are_unchanged():
+    """The correction of 2026-11-18 (loading, paths, transport) must not move the cut or the correctness rule."""
+    assert hashlib.sha256(S.canonical(S.CRITERIA).encode()).hexdigest() == "4d16bc0a726da897898d84d820e448263f244279dc5db71cdab1f24f247df030"
+    assert (S.K, S.J) == (16, 16) and S.CRITERIA["id"] == "K16-CORRECT-v1" and S.CRITERIA["fixed_utc"] == "2026-11-18"
+    assert S.LISTEN_HOST == "127.0.0.1" and S.MODEL_ID == "Qwen/Qwen3-32B@9216db5781bf21249d130ec9da846c4624c16137"
+
+
 def test_reused_runtime_is_unmodified():
     repo = HERE.parents[1]
     base = subprocess.run(["git", "rev-parse", "--verify", "--quiet", f"{S.BASE_TAG}^{{commit}}"], cwd=repo, capture_output=True, text=True)
@@ -151,6 +158,53 @@ def test_checkpoint_manifest_and_verify():
     (d / "model.safetensors").unlink()
     assert any("missing" in x for x in KC.verify(d, "server", man=m, table=table)["problems"])
     assert KC.locate(str(TMP / "nowhere"))[0] is None
+    # the Asus checkpoint location is known and is tried before any search
+    assert S.KNOWN_MODEL_DIRS == ["/mnt/mydisk/brian/splitllm-cloud/models/Qwen3-32B/9216db5781bf21249d130ec9da846c4624c16137"]
+    saved, env = list(S.KNOWN_MODEL_DIRS), os.environ.pop("K16_MODEL_DIR", None)
+    try:
+        S.KNOWN_MODEL_DIRS[:] = [str(TMP / "nowhere"), tiny_dir()]
+        assert KC.locate()[0] == tiny_dir()
+    finally:
+        S.KNOWN_MODEL_DIRS[:] = saved
+        if env is not None:
+            os.environ["K16_MODEL_DIR"] = env
+
+
+def test_reference_loads_straight_onto_the_device():
+    """k16_runtime.hf_model builds the unsplit model without a host copy. It must be the same model, bit for bit,
+    as transformers' own from_pretrained, in bfloat16, with nothing left on the meta device."""
+    from transformers import AutoModelForCausalLM
+    d = tiny_dir()
+    a = R.hf_model(d, "cpu")
+    b = AutoModelForCausalLM.from_pretrained(d, torch_dtype=torch.bfloat16, attn_implementation="sdpa").eval()
+    sa, sb = a.state_dict(), b.state_dict()
+    assert type(a) is type(b) and set(sa) == set(sb) and all(torch.equal(sa[k], sb[k]) and sa[k].dtype == torch.bfloat16 for k in sa)
+    assert not any(t.is_meta for t in list(a.parameters()) + list(a.buffers())) and not any(p.requires_grad for p in a.parameters())
+    assert a.config._attn_implementation == b.config._attn_implementation == "sdpa"
+    ids = torch.randint(1, 211, (1, 40), generator=torch.Generator().manual_seed(3))
+    with torch.inference_mode():
+        assert torch.equal(a.model(input_ids=ids).last_hidden_state, b.model(input_ids=ids).last_hidden_state)
+        assert torch.equal(a(input_ids=ids).logits, b(input_ids=ids).logits)
+    # a checkpoint that lacks a tensor, or carries another dtype, is refused
+    import safetensors.torch as st
+    bad = TMP / "bad_ckpt"; shutil.copytree(d, bad)
+    sd = st.load_file(str(bad / "model.safetensors"))
+    st.save_file({k: v for k, v in sd.items() if k != "model.layers.20.mlp.up_proj.weight"}, str(bad / "model.safetensors"))
+    try:
+        R.hf_model(str(bad), "cpu"); raise AssertionError("a checkpoint with a missing tensor was accepted")
+    except KeyError:
+        pass
+    st.save_file({k: (v.float() if k == "lm_head.weight" else v) for k, v in sd.items()}, str(bad / "model.safetensors"))
+    try:
+        R.hf_model(str(bad), "cpu"); raise AssertionError("a non-bf16 checkpoint was accepted")
+    except ValueError:
+        pass
+    # the memory gates count the loading transients: host staging + device copy share one pool on the GB10
+    w = KM.frozen_weights()
+    assert KM.expected("edge_reference")["load_transient"] == 2 * w["largest"]["edge"] == KM.expected("edge_twohost")["load_transient"]
+    assert KM.expected("server")["load_transient"] == w["largest"]["server"] and KM.HOST_RAM_MIN_MIB >= 4096
+    lm = R.load_memory("cpu")
+    assert lm["host_peak_rss_mib"] > 0 and lm["device_load_transient_mib"] is None
 
 
 ASUS = ("0, GPU-aaaa, NVIDIA RTX A6000, 49140, 41000, 8140\n1, GPU-bbbb, NVIDIA RTX A6000, 49140, 3, 49137\n"
@@ -391,7 +445,9 @@ def test_end_to_end_two_processes():
     ready, done = read_json(srun / "server_ready.json"), read_json(srun / "server_done.json")
     assert ready["ownership"]["equals_spec"] and done["exit"] == "shutdown" and ready["spec_hash"] == s["spec_hash"]
     ev = read_jsonl(srun / "server_events.jsonl")
-    assert sum(e["event"] == "hello_ok" for e in ev) == 3 and not any("tokens" in json.dumps(e) for e in ev)
+    assert sum(e["event"] == "hello_ok" for e in ev) == 4 and not any("tokens" in json.dumps(e) for e in ev)     # ping, prefix, static, final
+    assert ready["listen"].startswith("127.0.0.1:") and read_json(erun / "preflight.json")["server_identity"]["freeze_sha256"] == s["spec_hash"]
+    assert read_json(erun / "reference" / "reference.json")["load_memory"]["host_peak_rss_mib"] > 0
     assert (erun.parent / (erun.name + ".tgz")).exists()
     # a stage never runs behind a closed gate: twohost in a run directory without the in-host gate
     bare = TMP / "bare"; (bare / "gates").mkdir(parents=True)
@@ -425,14 +481,106 @@ def test_preflight_stop_starts_nothing():
     assert r.returncode == EXIT_STOP, r.stdout[-1500:]
     pf = read_json(run / "preflight.json")
     assert pf["verdict"] == "STOP" and {b["check"] for b in pf["blockers"]} >= {"checkpoint directory found"}
-    assert any("accepts connections" in b["check"] for b in pf["blockers"])                    # no server was listening either
+    assert any("answers HELLO" in b["check"] for b in pf["blockers"])                          # no server was listening either
     assert [x["stage"] for x in read_json(run / "stages.json")] == ["preflight"] and not (run / "reference").exists()
     # a stage called directly without a CONTINUE preflight refuses too
     r = subprocess.run(PY + [str(HERE / "k16_edge.py"), "reference", "--dev", "--run-dir", str(run)], capture_output=True, text=True)
     assert r.returncode == EXIT_STOP and not (run / "reference").exists()
 
 
-SLOW = {"test_end_to_end_two_processes", "test_end_to_end_failed_gate_stops_before_latency", "test_preflight_stop_starts_nothing"}
+FAKE_SSH = r'''#!%s
+# Test stand-in for `ssh -N ... -L 127.0.0.1:LP:127.0.0.1:RP target`: records its arguments and relays TCP like the forward.
+import os, socket, sys, threading
+open(os.environ["FAKE_SSH_LOG"], "a").write(" ".join(sys.argv[1:]) + "\n")
+if os.environ.get("FAKE_SSH_FAIL"):
+    sys.stderr.write("Permission denied (publickey).\n"); sys.exit(255)
+spec = sys.argv[sys.argv.index("-L") + 1].split(":")
+lp, rp = int(spec[1]), int(spec[3])
+srv = socket.create_server(("127.0.0.1", lp))
+def pump(a, b):
+    try:
+        while True:
+            d = a.recv(1 << 16)
+            if not d:
+                break
+            b.sendall(d)
+    except OSError:
+        pass
+    for s in (a, b):
+        try:
+            s.shutdown(socket.SHUT_RDWR)
+        except OSError:
+            pass
+while True:
+    c, _ = srv.accept()
+    try:
+        r = socket.create_connection(("127.0.0.1", rp))
+    except OSError:
+        c.close(); continue
+    threading.Thread(target=pump, args=(c, r), daemon=True).start()
+    threading.Thread(target=pump, args=(r, c), daemon=True).start()
+'''
+
+
+def test_launchers_loopback_server_and_ssh_tunnel():
+    """The shipped launch path: ASUS launcher (loopback listener) and DGX launcher (its own SSH tunnel, closed at exit).
+    `ssh` is a stand-in that relays TCP on this machine; the options the launcher passes to it are checked."""
+    if os.environ.get("K16_IN_LAUNCHER") == "1":
+        return "SKIP: running inside a launcher's stage 0"
+    fake = TMP / "bin"; fake.mkdir()
+    (fake / "ssh").write_text(FAKE_SSH % sys.executable); (fake / "ssh").chmod(0o755)
+    out, sshlog = TMP / "launch_out", TMP / "ssh_args.log"
+    port, lport = free_port(), free_port()
+    env = dict(os.environ, K16_DEV="1", K16_DEV_SKIP_SELFTEST="1", K16_PY=sys.executable, K16_OUT=str(out), FAKE_SSH_LOG=str(sshlog),
+               PATH=f"{fake}:{os.environ['PATH']}")
+    for k in ("K16_SERVER", "K16_SSH", "K16_PORT", "K16_LOCAL_PORT", "K16_MODEL_DIR"):
+        env.pop(k, None)
+    # no ssh target and no server address: refuse before anything starts
+    r = subprocess.run(["bash", str(HERE / "launch_dgx_edge.sh"), "--dev"], env=env, capture_output=True, text=True)
+    assert r.returncode == EXIT_STOP and "K16_SSH" in r.stderr, r.stderr
+    # a tunnel that cannot be opened: refuse before anything starts
+    r = subprocess.run(["bash", str(HERE / "launch_dgx_edge.sh"), "--dev"], env=dict(env, K16_SSH="me@asus", FAKE_SSH_FAIL="1", K16_LOCAL_PORT=str(lport)),
+                       capture_output=True, text=True)
+    assert r.returncode == EXIT_STOP and "did not come up" in r.stderr and not list(out.glob("*_edge")), r.stderr
+    # a public bind is refused by the server driver
+    r = subprocess.run(PY + [str(HERE / "k16_server.py"), "all", "--dev", "--model-dir", tiny_dir(), "--host-bind", "0.0.0.0", "--out", str(out)],
+                       capture_output=True, text=True)
+    assert r.returncode == EXIT_STOP and "REFUSED" in r.stdout and not list(out.glob("*_server")), r.stdout
+    srv = subprocess.Popen(["bash", str(HERE / "launch_asus_server.sh"), "--dev", "--model-dir", tiny_dir(), "--port", str(port), "--wait-s", "240"],
+                           env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    try:
+        end = time.time() + 120
+        while time.time() < end and not list(out.glob("*_server/server_ready.json")):
+            assert srv.poll() is None, srv.stdout.read()
+            time.sleep(0.3)
+        ready = read_json(next(out.glob("*_server/server_ready.json")))
+        assert ready["listen"] == f"127.0.0.1:{port}"
+        r = subprocess.run(["bash", str(HERE / "launch_dgx_edge.sh"), "--dev", "--device", "cpu", "--model-dir", tiny_dir()],
+                           env=dict(env, K16_SSH="me@asus", K16_PORT=str(port), K16_LOCAL_PORT=str(lport)), capture_output=True, text=True)
+        assert r.returncode == 0, r.stdout[-3000:] + r.stderr[-1500:]
+        assert srv.wait(60) == 0
+    finally:
+        if srv.poll() is None:
+            srv.terminate()
+    args = sshlog.read_text().splitlines()[-1]
+    assert f"-L 127.0.0.1:{lport}:127.0.0.1:{port} me@asus" in args and "-N" in args.split(), args
+    assert all(o in args for o in ("BatchMode=yes", "ExitOnForwardFailure=yes", "ServerAliveInterval=30", "Compression=no")), args
+    erun = next(out.glob("*_edge"))
+    s = read_json(erun / "summary.json")
+    assert s["gates"]["twohost_prefix"] == s["gates"]["latency_prefix"] == "PASS", s["gates"]
+    rows = read_jsonl(erun / "latency" / "prefix.jsonl")
+    assert rows and all(x["transport"].startswith("ssh tunnel") and x["ok"] for x in rows)
+    assert f"127.0.0.1:{lport}" in r.stdout and "SSH tunnel up" in r.stdout
+    time.sleep(0.5)
+    try:                                           # the launcher closed its own tunnel: nothing listens on the local end any more
+        socket.create_connection(("127.0.0.1", lport), timeout=2).close()
+        raise AssertionError("the tunnel is still open after the launcher exited")
+    except OSError:
+        pass
+    assert list(out.glob("*_edge_tunnel.log")) and list(out.glob("*_edge_console.log")) and list(out.glob("*_server_console.log"))
+
+
+SLOW = {"test_launchers_loopback_server_and_ssh_tunnel", "test_end_to_end_two_processes", "test_end_to_end_failed_gate_stops_before_latency", "test_preflight_stop_starts_nothing"}
 
 
 def main():

@@ -56,6 +56,12 @@ PRIMARY_MODE = "prefix"                   # reference mode: E0's computation; ev
 OPTIONAL_MODE = "static"                  # E1-OPT's static-cache mode; never timed unless it passes the same criterion
 TRANSFORMERS_REQUIRED = E0.TRANSFORMERS_VERSION   # 4.51.3: the runtime calls that release's Qwen3 internals
 DEFAULT_PORT = 29616                      # not E0/E1's 29500
+# Transport: the server listens on its loopback interface ONLY. The edge reaches it through an SSH tunnel opened from
+# the DGX Spark (launch_dgx_edge.sh), so the link is authenticated and encrypted by SSH and no port is exposed on the
+# lab network. The wire protocol itself has no authentication, which is why a non-loopback bind is refused.
+LISTEN_HOST = "127.0.0.1"
+# Checkpoint locations known on the lab machines (read-only; verified against the manifest like any other).
+KNOWN_MODEL_DIRS = [f"/mnt/mydisk/brian/splitllm-cloud/models/Qwen3-32B/{E0.SPLIT_REVISION}"]      # Asus main server
 MAX_LEN = 4096                            # KV preallocated per owned layer (tokens); longest request is 2048 + 256
 PREFILL_CHUNK = E0.PREFILL_CHUNK          # 2048
 
@@ -114,6 +120,12 @@ HASHED_SOURCES = (
 _ROOTS = {"k16": K16_DIR, "e1": E1_DIR, "e0": E0_DIR}
 
 
+def default_out():
+    """Run directory root: K16_OUT, else a sibling of the repository (so /mnt/mydisk/brendon/k16fit_runs on the Asus)."""
+    import os
+    return os.environ.get("K16_OUT") or str(K16_DIR.parents[2] / "k16fit_runs")
+
+
 def sha256_file(path):
     h = hashlib.sha256()
     with open(path, "rb") as f:
@@ -149,7 +161,7 @@ def spec(dev=False):
             "criteria": CRITERIA, "check_groups": list(CHECK_GROUPS), "workload_ids_sha256": E0.WORKLOAD_IDS_SHA256,
             "chat_prompts": CHAT_PROMPTS, "latency": LATENCY, "params": params(dev),
             "memory_margins_mib": {"server": SERVER_MARGIN_MIB, "edge": EDGE_MARGIN_MIB, "activation_allowance": ACTIVATION_ALLOWANCE},
-            "protocol_version": E1.PROTOCOL_VERSION}
+            "protocol_version": E1.PROTOCOL_VERSION, "listen_host": LISTEN_HOST, "transport": "ssh tunnel from the edge to the server's loopback"}
 
 
 def spec_hash(dev=False):

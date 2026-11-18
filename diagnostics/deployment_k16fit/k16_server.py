@@ -3,11 +3,14 @@
   all     preflight (separate process) -> serve. This is what launch_asus_server.sh runs.
   serve   memory gate -> load layers 16-47 -> listen -> serve the edge until it requests shutdown
 
+The server listens on its loopback interface only (the wire has no authentication of its own); the edge reaches
+it through an SSH tunnel that launch_dgx_edge.sh opens from the DGX Spark. A non-loopback bind is refused.
 The server holds only its own layers and their KV caches. It receives the bf16 residual stream after layer 15
 and returns the one after layer 47. It exits when the edge's last connection asks for shutdown, when no edge
 connects for --wait-s seconds, or on Ctrl-C; in every case it frees the GPU and writes server_done.json.
 It never touches another process.
 """
+import ipaddress
 import json
 import os
 import signal
@@ -59,6 +62,7 @@ def serve(a):
     print(f"[server] loading layers {S.SERVER_LAYERS[0]}-{S.SERVER_LAYERS[-1]} from {model_dir} on {device} ...", flush=True)
     t0 = time.time()
     side = R.ServerSide(model_dir, device, p, None if a.dev else S.E0.QWEN3_32B_CONFIG, with_static=not a.no_static)
+    load_mem = R.load_memory(device)
     if a.dev_sabotage:
         if not a.dev:
             sys.exit("--dev-sabotage needs --dev")
@@ -76,13 +80,13 @@ def serve(a):
              "torch": torch.__version__, "torch_cuda": torch.version.cuda, "dev": a.dev, "gpu_shared_at_start": bool((gpu or {}).get("occupied"))}
     ready = {"experiment": S.NAME, "status": S.STATUS, "utc": utc(), "spec_hash": spec_hash, "port": port, "addresses": pf["host"]["addresses"],
              "identity": side.identity(spec_hash, extra), "ownership": own, "load_wall_s_not_a_result": round(time.time() - t0, 1),
-             "memory_after_load": R.mem_stats(device), "expected_memory_mib": {k: (v if k == "stage" else round(v / KM.MIB, 1)) for k, v in KM.expected("server").items()}}
+             "listen": f"{a.host_bind}:{port}", "transport": S.spec(a.dev)["transport"], "load_memory": load_mem, "memory_after_load": R.mem_stats(device), "expected_memory_mib": {k: (v if k == "stage" else round(v / KM.MIB, 1)) for k, v in KM.expected("server").items()}}
     write_json(run_dir / "server_ready.json", ready)
     addr = (pf["host"]["addresses"] or [socket.gethostname()])[0]
-    print(f"[server] READY on port {port}; static mode: {side.static}", flush=True)
-    print(f"[server] memory after load: {json.dumps(ready['memory_after_load'])}", flush=True)
-    print("[server] now paste on the DGX Spark:\n"
-          f"    K16_SERVER={addr}:{port} bash ~/research/LLMRouterBench-k16fit/diagnostics/deployment_k16fit/launch_dgx_edge.sh", flush=True)
+    print(f"[server] READY on {a.host_bind}:{port} (loopback only; reach it through an SSH tunnel); static mode: {side.static}", flush=True)
+    print(f"[server] load: {json.dumps(load_mem)}", flush=True)
+    print("[server] now run the DGX command. Its K16_SSH must be an ssh target of this machine that works from the DGX without a prompt, e.g.\n"
+          f"    K16_SSH={os.environ.get('USER', 'USER')}@{addr}" + (f" K16_PORT={port}" if port != S.DEFAULT_PORT else ""), flush=True)
     log = lambda ev: append_jsonl(run_dir / "server_events.jsonl", ev)
     reason = "interrupted"
     try:
@@ -122,14 +126,22 @@ def main(argv=None):
     sub = ap.add_subparsers(dest="cmd", required=True)
     for name in ("all", "serve"):
         s = sub.add_parser(name)
-        s.add_argument("--run-dir", default=None); s.add_argument("--out", default=os.environ.get("K16_OUT", "~/k16fit_runs"))
+        s.add_argument("--run-dir", default=None); s.add_argument("--out", default=S.default_out())
         s.add_argument("--model-dir", default=None); s.add_argument("--gpu", default=os.environ.get("K16_GPU") or None)
-        s.add_argument("--port", type=int, default=int(os.environ.get("K16_PORT", S.DEFAULT_PORT))); s.add_argument("--host-bind", default="0.0.0.0")
+        s.add_argument("--port", type=int, default=int(os.environ.get("K16_PORT", S.DEFAULT_PORT))); s.add_argument("--host-bind", default=S.LISTEN_HOST)
         s.add_argument("--wait-s", type=float, default=float(os.environ.get("K16_SERVER_WAIT_S", 14400)))
         s.add_argument("--allow-shared", action="store_true", default=os.environ.get("K16_ALLOW_SHARED") == "1")
         s.add_argument("--no-static", action="store_true", default=os.environ.get("K16_NO_STATIC") == "1")
         s.add_argument("--dev", action="store_true"); s.add_argument("--device", default="cpu"); s.add_argument("--dev-sabotage", action="store_true")
     a = ap.parse_args(argv)
+    try:
+        loopback = ipaddress.ip_address(a.host_bind).is_loopback
+    except ValueError:
+        loopback = a.host_bind == "localhost"
+    if not loopback:
+        print(f"[server] REFUSED: --host-bind {a.host_bind} is not a loopback address. The wire is unauthenticated; the server listens on "
+              "loopback only and the edge connects through an SSH tunnel.", flush=True)
+        sys.exit(EXIT_STOP)
     {"all": run_all, "serve": serve}[a.cmd](a)
 
 

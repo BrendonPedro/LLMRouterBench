@@ -22,6 +22,7 @@ import e0_memory as M0  # noqa: E402
 MIB = 1 << 20
 DTYPE_BYTES = {"BF16": 2, "F16": 2, "F32": 4, "F64": 8, "I64": 8, "I32": 4, "I16": 2, "I8": 1, "U8": 1, "BOOL": 1}
 STAGES = ("server", "edge_twohost", "edge_reference", "edge_inhost")
+HOST_RAM_MIN_MIB = 8192            # discrete-GPU host: staging buffers, pinned wire buffers, Python; checked by the preflight
 
 
 def tensor_table():
@@ -96,24 +97,29 @@ def expected(stage, weights=None, cfg=None, max_len=S.MAX_LEN, chunk=S.PREFILL_C
     head_eval = min(S.E0.HEAD_CHUNK, longest_seq) * V * (2 + 4 + 4)      # teacher-forced LM-head chunk: bf16 logits, fp32, log-softmax
     wire = chunk * H * 2
     caches = 2 if static else 1                                         # prefix cache, plus the optional static cache
+    # Loading transients. Every loader reads one tensor at a time straight onto the device (split_runtime.Slice and
+    # k16_runtime.hf_model): a host staging buffer of that tensor, and for Slice a second device copy while it is
+    # written into the parameter. On the GB10 host and device share one pool, so both count (2 x the largest
+    # tensor). On a discrete GPU only the device copy counts here; the host side is HOST_RAM_MIN_MIB in the preflight.
+    load_edge, load_server = 2 * w["largest"]["edge"], w["largest"]["server"]
     # static mode runs SDPA with an explicit [n, max_len] mask, which materialises the attention scores of a prefill chunk
     scores = 2 * cfg["num_attention_heads"] * chunk * max_len * 2 if static else 0
     c = {"stage": stage}
     if stage == "server":
         c.update(weights=w["server"], kv=n_server_layers * kv_tl * max_len * caches, activations=int(step * S.ACTIVATION_ALLOWANCE) + scores,
-                 load_transient=w["largest"]["server"], wire=wire)
+                 load_transient=load_server, wire=wire)
     elif stage == "edge_twohost":
         c.update(weights=w["edge"], kv=n_edge_layers * kv_tl * max_len * caches, activations=int(step * S.ACTIVATION_ALLOWANCE) + max(head_eval, scores),
-                 load_transient=w["largest"]["edge"], wire=wire)
+                 load_transient=load_edge, wire=wire)
     elif stage == "edge_reference":
         full = M0.transient_bytes(cfg, longest_seq, longest_seq)
         scores = cfg["num_attention_heads"] * longest_seq * longest_seq * 2      # if SDPA falls back to the math kernel
         c.update(weights=w["all"], kv=(n_edge_layers + n_server_layers) * kv_tl * longest_seq,
                  activations=int((full + scores) * S.ACTIVATION_ALLOWANCE) + head_eval + longest_seq * H * 2,
-                 load_transient=w["largest"]["edge"], wire=0)
+                 load_transient=load_edge, wire=0)
     else:
         c.update(weights=w["all"], kv=(n_edge_layers + n_server_layers) * kv_tl * max_len,
-                 activations=int(step * S.ACTIVATION_ALLOWANCE) + head_eval, load_transient=w["largest"]["edge"], wire=2 * wire)
+                 activations=int(step * S.ACTIVATION_ALLOWANCE) + head_eval, load_transient=load_edge, wire=2 * wire)
     c["fixed"] = (M0.CUDA_CONTEXT_MIB + M0.ALLOCATOR_SLACK_MIB) * MIB
     c["total"] = sum(c[x] for x in ("weights", "kv", "activations", "load_transient", "wire", "fixed"))
     margin = S.SERVER_MARGIN_MIB if stage == "server" else S.EDGE_MARGIN_MIB

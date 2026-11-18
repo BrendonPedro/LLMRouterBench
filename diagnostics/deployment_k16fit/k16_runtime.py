@@ -213,6 +213,18 @@ def connect(server, sl, mode, spec_hash, p, final=False, timeout_s=600):
     return mid
 
 
+def ping(server, model_dir, spec_hash, p, timeout_s=20):
+    """HELLO / HELLO_OK / BYE with no tensor and no model: proves the whole path to the server (the SSH tunnel
+    included) and that the server is this experiment on this spec hash. Returns the server identity."""
+    import types
+    cfg = E0RT.load_config(model_dir)
+    stub = types.SimpleNamespace(cfg=cfg, n_layers=cfg.num_hidden_layers, device=torch.device("cpu"))
+    mid = connect(server, stub, "prefix", spec_hash, p, timeout_s=timeout_s)
+    si = mid.server_identity
+    mid.close()
+    return si
+
+
 def request_shutdown(server, sl, spec_hash, p):
     mid = connect(server, sl, "prefix", spec_hash, p, final=True, timeout_s=30)
     mid.close()
@@ -242,8 +254,48 @@ def kv_invariant(steps):
 # Unsplit reference (Hugging Face model, one device)                           #
 # --------------------------------------------------------------------------- #
 def hf_model(model_dir, device):
-    from transformers import AutoModelForCausalLM
-    return AutoModelForCausalLM.from_pretrained(model_dir, torch_dtype=torch.bfloat16, attn_implementation="sdpa").to(device).eval()
+    """The unsplit Hugging Face Qwen3ForCausalLM, bf16, SDPA, with every tensor read from the safetensors shards
+    straight onto `device`. The model is built on the meta device (no host allocation) and each shard's tensors are
+    assigned as its parameters, so the peak is the weights plus one tensor in transit. Nothing is ever held as a
+    full host copy, which matters on the DGX Spark where host and device memory are the same pool.
+    Fails closed: every parameter must come from the checkpoint, be bfloat16 and live on `device`."""
+    from safetensors.torch import load_file
+    dev = torch.device(device)
+    cfg = E0RT.load_config(model_dir)                    # AutoConfig with attn_implementation "sdpa"
+    with torch.device("meta"):
+        m = E0RT.mq.Qwen3ForCausalLM(cfg)
+    expected, loaded = set(m.state_dict().keys()), set()
+    for shard in sorted(set(E0RT.weight_index(model_dir).values())):
+        sd = load_file(str(shard), device=str(dev) if dev.type == "cuda" else "cpu")
+        if any(v.dtype != torch.bfloat16 for v in sd.values()):
+            raise ValueError(f"{shard}: checkpoint tensors are not bfloat16")
+        res = m.load_state_dict(sd, strict=False, assign=True)
+        if res.unexpected_keys:
+            raise KeyError(f"{shard}: tensors the model does not have: {res.unexpected_keys[:5]}")
+        loaded |= set(sd)
+        del sd
+    if expected != loaded:
+        raise KeyError(f"parameters missing from the checkpoint: {sorted(expected - loaded)[:5]}")
+    m.model.rotary_emb = E0RT.mq.Qwen3RotaryEmbedding(config=cfg, device=dev)      # its buffer is not in the checkpoint
+    tensors = list(m.named_parameters()) + list(m.named_buffers())
+    bad = [n for n, t in tensors if t.is_meta or t.device.type != dev.type] + [n for n, t in m.named_parameters() if t.dtype != torch.bfloat16]
+    if bad:
+        raise RuntimeError(f"unsplit model is not fully on {dev} in bfloat16: {bad[:5]}")
+    return m.requires_grad_(False).eval()
+
+
+def host_peak_rss_mib():
+    """Largest resident set of this process so far (MiB): the host-memory side of a load."""
+    import resource
+    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0
+
+
+def load_memory(device):
+    """Call right after a load: what the load itself peaked at, on the device and in host memory."""
+    d = mem_stats(device)
+    return {"device_allocated_after_load_mib": d.get("allocated_mib"), "device_peak_allocated_during_load_mib": d.get("peak_allocated_mib"),
+            "device_load_transient_mib": None if "allocated_mib" not in d else d["peak_allocated_mib"] - d["allocated_mib"],
+            "host_peak_rss_mib": host_peak_rss_mib()}
 
 
 @torch.inference_mode()
