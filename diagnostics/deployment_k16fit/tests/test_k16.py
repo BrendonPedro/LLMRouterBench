@@ -99,6 +99,10 @@ def test_cut_and_criterion_are_unchanged():
     assert hashlib.sha256(S.canonical(S.CRITERIA).encode()).hexdigest() == "4d16bc0a726da897898d84d820e448263f244279dc5db71cdab1f24f247df030"
     assert (S.K, S.J) == (16, 16) and S.CRITERIA["id"] == "K16-CORRECT-v1" and S.CRITERIA["fixed_utc"] == "2026-11-18"
     assert S.LISTEN_HOST == "127.0.0.1" and S.MODEL_ID == "Qwen/Qwen3-32B@9216db5781bf21249d130ec9da846c4624c16137"
+    # the spec hash of the completed two-host run of 2026-11-18: the unsplit baseline must be matched to it, so no
+    # file the hash covers may change (k16_baseline.py and the tests are outside it)
+    assert S.spec_hash() == "ca6599bcc32466b5f884c11a0a6cc893aa4a71444c75435dc59b54050b44ea25"
+    assert not any("baseline" in rel for _, rel in S.HASHED_SOURCES)
 
 
 def test_reused_runtime_is_unmodified():
@@ -465,6 +469,23 @@ def test_end_to_end_two_processes():
     assert ready["listen"].startswith("127.0.0.1:") and read_json(erun / "preflight.json")["server_identity"]["freeze_sha256"] == s["spec_hash"]
     assert read_json(erun / "reference" / "reference.json")["load_memory"]["host_peak_rss_mib"] > 0
     assert (erun.parent / (erun.name + ".tgz")).exists()
+    # matched unsplit baseline for this split run: same requests, same clocks, same summary code, then the comparison
+    brun = TMP / "e2e_baseline"
+    r = subprocess.run(PY + [str(HERE / "k16_baseline.py"), "all", "--dev", "--device", "cpu", "--model-dir", tiny_dir(), "--run-dir", str(brun),
+                             "--split-run", str(erun)], capture_output=True, text=True)
+    assert r.returncode == 0, r.stdout[-2500:] + r.stderr[-1500:]
+    brows, cmp_ = read_jsonl(brun / "baseline" / "unsplit.jsonl"), read_json(brun / "comparison.json")
+    assert [(x["prompt_id"], x["rep"], x["warmup"]) for x in brows] == [(x["prompt_id"], x["rep"], x["warmup"]) for x in rows]     # same order too
+    assert all(x["ok"] and len(x["token_ns"]) == 8 and x["configuration"] == "unsplit" and x["spec_hash"] == s["spec_hash"] for x in brows)
+    assert all(st["server_compute_ns"] == 0 and st["net_ns"] == 0 for x in brows for st in x["steps"])
+    assert all(x["token_ns"] == sorted(x["token_ns"]) and [st["phase"] for st in x["steps"]] == ["prefill"] + ["decode"] * 7 for x in brows)
+    if STRICT:      # the unsplit model repeats the tokens of the split run's reference
+        assert all(x["first_tokens_equal_split_run_reference"] for x in brows)
+    assert all(cmp_["matched"].values()) and set(cmp_["groups"]) == {"short", "long"}
+    g = cmp_["groups"]["short"]
+    assert g["unsplit"]["tpot_ms_median"] > 0 and set(g) == {"unsplit", "split_prefix", "split_static"}
+    assert abs(g["split_prefix"]["per_token_ratio_split_over_unsplit"] - g["split_prefix"]["tpot_ms_median"] / g["unsplit"]["tpot_ms_median"]) < 1e-9
+    assert (brun / "COMPARISON.md").exists() and read_json(brun / "baseline" / "unsplit_summary.json")["params"]["gen_tokens"] == 8
     # a stage never runs behind a closed gate: twohost in a run directory without the in-host gate
     bare = TMP / "bare"; (bare / "gates").mkdir(parents=True)
     shutil.copy(erun / "preflight.json", bare / "preflight.json"); shutil.copy(gate_path(erun, "reference"), gate_path(bare, "reference"))
@@ -488,6 +509,11 @@ def test_end_to_end_failed_gate_stops_before_latency():
     assert s["gates"]["inhost_prefix"] == "PASS" and s["gates"]["twohost_prefix"] == "FAIL", s["gates"]
     assert s["gates"]["latency_prefix"] == "not run" and s["gates"]["generation"] == "not run" and s["latency"] == {}
     assert not (erun / "latency").exists() and not (erun / "generation").exists()
+    # no baseline is run for, and nothing is compared with, a split run that failed its gate
+    brun = TMP / "bad_baseline"
+    r = subprocess.run(PY + [str(HERE / "k16_baseline.py"), "all", "--dev", "--device", "cpu", "--model-dir", tiny_dir(), "--run-dir", str(brun),
+                             "--split-run", str(erun)], capture_output=True, text=True)
+    assert r.returncode == EXIT_GATE and "REFUSED" in r.stdout and not (brun / "baseline").exists() and not (brun / "preflight.json").exists(), r.stdout[-800:]
 
 
 def test_preflight_stop_starts_nothing():

@@ -124,6 +124,19 @@ nothing and never signal a process they did not start.
 carries the spec hash (constants + criterion + every source file + the checkpoint manifest), which also crosses
 in HELLO: the server refuses an edge on another code revision, criterion or manifest.
 
+## Matched unsplit baseline (`k16_baseline.py`, DGX Spark only)
+
+The split run's reference is a correctness reference, not a latency measurement. `launch_dgx_baseline.sh` times the
+whole model on the GB10 with the split's own latency stage: the reference runtime (`k16_runtime.hf_model`), the same
+ten prompts, warm-ups, repetitions and seeded order, 256 forced tokens, the same stamps and the same summary code.
+It then writes `comparison.json` and `COMPARISON.md` (per-token ratio split / unsplit; below 1 means the split is
+faster). The comparison is refused unless the split run's two-host correctness and latency gates passed on the same
+spec hash, edge host and checkpoint. `k16_baseline.py` is outside the spec hash, so the hash of the completed run
+(`ca6599bc...`) is unchanged. Needs about 72 GiB free on the DGX; the Asus is not used.
+```
+K16_SPLIT_RUN=<split run directory> bash launch_dgx_baseline.sh        # add K16_ALLOW_SHARED=1 if the GPU is shared
+```
+
 ## Tests
 
 `<python> -I tests/test_k16.py` (CPU, about 2 minutes, 16 tests): partition, unchanged cut and criterion, unmodified
