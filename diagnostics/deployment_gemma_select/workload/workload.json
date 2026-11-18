@@ -1,0 +1,852 @@
+{
+ "benchmarks": [
+  "mmlupro",
+  "gpqa",
+  "livemathbench"
+ ],
+ "correctness": [
+  "livemathbench:87",
+  "mmlupro:987",
+  "livemathbench:49",
+  "livemathbench:19",
+  "livemathbench:88",
+  "mmlupro:811",
+  "mmlupro:35",
+  "gpqa:75",
+  "mmlupro:158",
+  "mmlupro:386"
+ ],
+ "experiment": "GEMMA-SELECT",
+ "queries": {
+  "gpqa:100": {
+   "dataset": "gpqa",
+   "prompt_sha256": "ec1f5c01f64799ed732b4a0dcb716aa6d99f9881426ec8af3f51c0a5302966bf"
+  },
+  "gpqa:102": {
+   "dataset": "gpqa",
+   "prompt_sha256": "c7f6355735261223d79f5885436481165c3c1b092129dd3d9b499d1bef4aaf3f"
+  },
+  "gpqa:104": {
+   "dataset": "gpqa",
+   "prompt_sha256": "c97411d7f1eff2ffc74490fd3aad7a2eeb11c4625027dca21fc40589be93be1c"
+  },
+  "gpqa:114": {
+   "dataset": "gpqa",
+   "prompt_sha256": "58bee8d09895f249c24b06ae4669f4f136e77558884e27edfd796f18f3995ac7"
+  },
+  "gpqa:119": {
+   "dataset": "gpqa",
+   "prompt_sha256": "d5c786dba17490e4abe90fff70a4837281297b1a9230432bd68e729f358d8f85"
+  },
+  "gpqa:12": {
+   "dataset": "gpqa",
+   "prompt_sha256": "c3a52796fb75c0c4f81be7af1b7e553f51d4e4e22c8638847192529f40bff754"
+  },
+  "gpqa:120": {
+   "dataset": "gpqa",
+   "prompt_sha256": "8219becc7a3c34d2d3d11588c201d18933a71a8309f1c6bcaeb657b9e4113fa6"
+  },
+  "gpqa:122": {
+   "dataset": "gpqa",
+   "prompt_sha256": "7ba497c83802f39007b16839a3acb50d2e4ccc6e55243d298e68b3beb4ff5b8e"
+  },
+  "gpqa:126": {
+   "dataset": "gpqa",
+   "prompt_sha256": "b397ba659e103150a0f6787759b840083f44ed70d72add6d6deab3dda4df0d27"
+  },
+  "gpqa:130": {
+   "dataset": "gpqa",
+   "prompt_sha256": "606116e5212801fd2eea1400dcb224267c6c3b120a8c821ec0c5615c6d658355"
+  },
+  "gpqa:134": {
+   "dataset": "gpqa",
+   "prompt_sha256": "300b9ffe3a1363f2d9ced6dc575222eb62cc556c58f3dabe23c2276b9a53cd28"
+  },
+  "gpqa:138": {
+   "dataset": "gpqa",
+   "prompt_sha256": "88254e543df257858c9b6c7ba74776e501c3647e1c15cbf712c1d48234beebd5"
+  },
+  "gpqa:140": {
+   "dataset": "gpqa",
+   "prompt_sha256": "600fad75657f7e3efcddf82c6de1606258e9c0d0ce93b5bfa58ae755c3ddf964"
+  },
+  "gpqa:144": {
+   "dataset": "gpqa",
+   "prompt_sha256": "bc233e1bb92aeb0d1f79e48a468a264d27d5c673f767c681cc39d46f652dd60b"
+  },
+  "gpqa:146": {
+   "dataset": "gpqa",
+   "prompt_sha256": "c07a26e0d28cd136a05c2947deecf8370aa4012e0aacb46e185c9fa607a93dd7"
+  },
+  "gpqa:149": {
+   "dataset": "gpqa",
+   "prompt_sha256": "cdc5a36eb90064f562908e762890e73217221984457a61eb58c2b8ed29353067"
+  },
+  "gpqa:15": {
+   "dataset": "gpqa",
+   "prompt_sha256": "e7ff34f66af57bd16f21d3b060d54ee8102b6cedda7291a6d8778f7fd349a908"
+  },
+  "gpqa:150": {
+   "dataset": "gpqa",
+   "prompt_sha256": "a0ab849509ede365e7bbd7620e70de0555361a251b4c6be7c5d8755ae0fc7f98"
+  },
+  "gpqa:155": {
+   "dataset": "gpqa",
+   "prompt_sha256": "d56439be59d64387a9e6644bac2fc9f8f739203a6c3695541eea8a65c4931c0e"
+  },
+  "gpqa:157": {
+   "dataset": "gpqa",
+   "prompt_sha256": "6c4c77eb5804c7f2324222e5e6695fd84b1961ee10a984ac4ba439e2ed031439"
+  },
+  "gpqa:16": {
+   "dataset": "gpqa",
+   "prompt_sha256": "7a9778bfb9e4a655c8e91cc882b9f26f372da890eeb27127c814acc57d4f1608"
+  },
+  "gpqa:160": {
+   "dataset": "gpqa",
+   "prompt_sha256": "5d53c7a697bff1d7258530c3610f746848fa87e98e7d6fbd66fad8207eef65e4"
+  },
+  "gpqa:162": {
+   "dataset": "gpqa",
+   "prompt_sha256": "735f51bdb710e7d79f7d8156624f2be388dc8b10cb3c0f5017245a7b2e0e6474"
+  },
+  "gpqa:163": {
+   "dataset": "gpqa",
+   "prompt_sha256": "b00fd2fe8cba6c4844068c6ccd303ba635e8f19cc635e48f5ce74e4f9ac827cb"
+  },
+  "gpqa:164": {
+   "dataset": "gpqa",
+   "prompt_sha256": "8efbff8e7d50a4cf8c3eae559784cdcfe5598a9c7df87f9e33cb8f763ab59c95"
+  },
+  "gpqa:167": {
+   "dataset": "gpqa",
+   "prompt_sha256": "fff0f9933e950c7811587f2bbd8bb1b4f9077dc32078cb62afa364ac3953b2ac"
+  },
+  "gpqa:168": {
+   "dataset": "gpqa",
+   "prompt_sha256": "1622377e430e54cc18ef6717a88b8286ccdde1ce7e14381b8f58fbae003ebc12"
+  },
+  "gpqa:17": {
+   "dataset": "gpqa",
+   "prompt_sha256": "656c8227c14f52130d001e430f8e45d99476aec18b5d576efdceafd284bc6f65"
+  },
+  "gpqa:170": {
+   "dataset": "gpqa",
+   "prompt_sha256": "40a431cfb622f1b7fccb39a9000655b44b63c5a8b2bb51c52ec5e8f038b75732"
+  },
+  "gpqa:178": {
+   "dataset": "gpqa",
+   "prompt_sha256": "dc1b8a6a770dae8a1a3926453003b748efa08f3331309ce40489220f09b3e79e"
+  },
+  "gpqa:179": {
+   "dataset": "gpqa",
+   "prompt_sha256": "d09c8fd733cea12e88fff3a0f23cd64c9e74810743fda64882a3ec53afcced71"
+  },
+  "gpqa:188": {
+   "dataset": "gpqa",
+   "prompt_sha256": "87c37ec97076a5c43adc3ca44f9ec83c367a5f40d5db6cff9ebec2945b11894b"
+  },
+  "gpqa:193": {
+   "dataset": "gpqa",
+   "prompt_sha256": "22a9d0b94c4fa2760ab6ecb051ee3f59ad2b2fe5e95267c1c2acb43f31d20400"
+  },
+  "gpqa:195": {
+   "dataset": "gpqa",
+   "prompt_sha256": "377ccd7e5006479bf42a71e56bc49430cf1303e8ee25f07615bdd0c2a142db71"
+  },
+  "gpqa:197": {
+   "dataset": "gpqa",
+   "prompt_sha256": "3852af5ec791cd17bcedf1dee3232697216ed2739ca9f85094d45caf32aed3de"
+  },
+  "gpqa:22": {
+   "dataset": "gpqa",
+   "prompt_sha256": "b710fd0a6a1b601a1e6c2c02d6146f7f5d99f7cfdfad087dbc257e9e80a5e00d"
+  },
+  "gpqa:27": {
+   "dataset": "gpqa",
+   "prompt_sha256": "8b0b2f7562de5470b952b0b05221f222c13e263fde5d64f4dd512d72a3948ed8"
+  },
+  "gpqa:3": {
+   "dataset": "gpqa",
+   "prompt_sha256": "bd8f4cb9738c54544c572668c0ae77fcb1aadbf3ff9d966f41730195b29da6b9"
+  },
+  "gpqa:31": {
+   "dataset": "gpqa",
+   "prompt_sha256": "a3fa3285c7e8d7e9fa2ecd55cf6310b430f8890563e3d6b79185fc620c6b94ef"
+  },
+  "gpqa:33": {
+   "dataset": "gpqa",
+   "prompt_sha256": "eae9c8758503435a0d06c0bfbf7524d2d40525a0ed5ffb4d82f744ba58c0e805"
+  },
+  "gpqa:36": {
+   "dataset": "gpqa",
+   "prompt_sha256": "cec40988dd41ed9d3b5d1f8065dde7363ee7db12a4a48b0030de46528a4bf59d"
+  },
+  "gpqa:39": {
+   "dataset": "gpqa",
+   "prompt_sha256": "a594c51006b42c847680360b2a865302654fabedf8277312dbf060764f85121b"
+  },
+  "gpqa:4": {
+   "dataset": "gpqa",
+   "prompt_sha256": "0b28758afbc5d0d01cf0f5847da875641c36d389e1d1ca47691df1eef6ec59e6"
+  },
+  "gpqa:42": {
+   "dataset": "gpqa",
+   "prompt_sha256": "2ae28de1fa61a9006d6f72337fd41a3f144dc8d9ce45debf2468ed063709f7c4"
+  },
+  "gpqa:45": {
+   "dataset": "gpqa",
+   "prompt_sha256": "5d8938398e499e8a70df86bcf53c1ddbd1f2fed7664e77795d5552edfe7d7699"
+  },
+  "gpqa:46": {
+   "dataset": "gpqa",
+   "prompt_sha256": "10cbe3d72496adbecced74125f2e226883b0df5680ee6d29fca3bc0d767c71ff"
+  },
+  "gpqa:56": {
+   "dataset": "gpqa",
+   "prompt_sha256": "069473a0ead78758c76197beb1bc7d3fa201bd746fc0e7db89d4ef3501900df8"
+  },
+  "gpqa:57": {
+   "dataset": "gpqa",
+   "prompt_sha256": "ef2cef7843ed1a11b36b6b0478d0a34e2a84fe512402b530f2c04d9b235d2ce9"
+  },
+  "gpqa:58": {
+   "dataset": "gpqa",
+   "prompt_sha256": "aa4d678c99f5759cf65ec96f5e26ce05a5292bd768260aa10f1b815cdbe0868c"
+  },
+  "gpqa:63": {
+   "dataset": "gpqa",
+   "prompt_sha256": "2726786410aedbe670536342d699f04a49b990dc06b55356babe29f24f8563f6"
+  },
+  "gpqa:64": {
+   "dataset": "gpqa",
+   "prompt_sha256": "5e4aa7b3e39783fc75f94464065f6ecc6b41d2e87200fb47f39c29beb66c65e8"
+  },
+  "gpqa:68": {
+   "dataset": "gpqa",
+   "prompt_sha256": "48b25344693bb39fff5aaccfdf62123c0d9d057102ede70c092122e28ac912a3"
+  },
+  "gpqa:70": {
+   "dataset": "gpqa",
+   "prompt_sha256": "2a24ec7d9270acf939979e8c3667d8fcff2e279205b6bf06bc77465fc1fbaf2d"
+  },
+  "gpqa:72": {
+   "dataset": "gpqa",
+   "prompt_sha256": "75433c43cd979017ca8136cf301ae71d8c5ec4901cebd8aa0403bf2f6f995a4e"
+  },
+  "gpqa:75": {
+   "dataset": "gpqa",
+   "prompt_sha256": "09985fb3057e6b3de9797515ff31f3bd3270fc920ad80ec8fb51829fc0c24c01"
+  },
+  "gpqa:81": {
+   "dataset": "gpqa",
+   "prompt_sha256": "767d2f3f1c5e1002b5df886aac7e41f9352fcb2b5e6f1e07c055093f62a3a487"
+  },
+  "gpqa:83": {
+   "dataset": "gpqa",
+   "prompt_sha256": "2b8d1769fbfdc945987b70ca4814ee5565e79993b847cfe2a60ed18bdcb78488"
+  },
+  "gpqa:85": {
+   "dataset": "gpqa",
+   "prompt_sha256": "ddd562e2f6e301bc4d732d95c156bca78e98dfc79a10ee1dcdf8c658e8742b57"
+  },
+  "gpqa:93": {
+   "dataset": "gpqa",
+   "prompt_sha256": "9619c569c44df9ea0b07248e3ad06cf2fb50d82dcfbc45aece9c290d24d83c2d"
+  },
+  "gpqa:99": {
+   "dataset": "gpqa",
+   "prompt_sha256": "0a4a4649b3552fc7849fb940ffceccf98b499ddbddca02a85f28afcf05b96c7a"
+  },
+  "livemathbench:1": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "4275d83804b1a0f58b46f3629e6eda6ff66114fa646cb03846ef33a945032848"
+  },
+  "livemathbench:100": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "9b83bd361dc8d052ccd30bdf4c8cf942f43f01e8c83528d64f724f678554bb7f"
+  },
+  "livemathbench:108": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "e500356f4e379bbe12423785b42cfb3db2ad34eeb762e5793ad4a2682fc559cb"
+  },
+  "livemathbench:11": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "537f3be4d2319b7e29df3263efc403107a907978798287a2a4e583ff9cb2a720"
+  },
+  "livemathbench:115": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "66317e309363d90b1d31674b78cf1f8af09c030dfcad4f83ff0b333e17fbd85b"
+  },
+  "livemathbench:118": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "15801471893bd45a73ac595a1ea801265b8e2367810a6e7d8733c9f5911405ec"
+  },
+  "livemathbench:14": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "769c9f709c5f7049b2304df2c22f22d623ed6be14cd21bc663393ee836065650"
+  },
+  "livemathbench:18": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "8161880619224db916b7a3035458ca7a8d4992b123d829c3be30af55c1b61f22"
+  },
+  "livemathbench:19": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "506278c4276d0d0783860952e708e305234c8b60fc7c84c64f0ee217719eada5"
+  },
+  "livemathbench:20": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "f1adb8adc6213ff2bdd3a3bdef3778dd669b5ad35a17c5e46c4d022bc6ac28eb"
+  },
+  "livemathbench:21": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "af7d338dfec038a86fe0f89991b51ca5335f21b42e5dc1420952eeed2912f2c0"
+  },
+  "livemathbench:24": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "55b83fc5cb6e99353e42fda7b431e9e4dfe84afc15814e4d693664f776bb0e00"
+  },
+  "livemathbench:25": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "6b98f60379336b6e764650cb506f32ece63d4f1a470c58fb12b747fb24968864"
+  },
+  "livemathbench:28": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "038c977395434a23b81b469546cdc5ba0362e81e6973aaf6b92ebdef4fac6357"
+  },
+  "livemathbench:3": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "eab73760eb203c1dd28226fcfbe8618fd02c57862143d345000d3dff6cf56a2d"
+  },
+  "livemathbench:38": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "305f2568fdb9fc1f09887daf1392e4728e91704b92cba849a9ba480d35b781cf"
+  },
+  "livemathbench:39": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "cb2723b0024bb971f3a0eae4f3f32a5ae13c4caa384cb92788a96a64c3a1f64c"
+  },
+  "livemathbench:42": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "b685e92608e4d7091b306ac0f85db56072081bdbb827c0a72b80b2c003d8cb49"
+  },
+  "livemathbench:44": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "5fec99d3fa029164adb39f61a8621a95b77c335d6f8306eab0ffbb52d223914e"
+  },
+  "livemathbench:46": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "ce67d3a873a8f9d380c4ce06ad835d74f229179ddbb7304bc9063bf6be73c838"
+  },
+  "livemathbench:49": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "da6aa0b3b253157c1439c4a0b0725c10fa0f9a4c7a9b3d6e26810be30e61bce5"
+  },
+  "livemathbench:52": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "befd0501e0bb4e29c9bb381a82f8307837ab8e1ad417f33083cc8ac42016c923"
+  },
+  "livemathbench:53": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "93cc01d9c972bd0dde2c44e584fd7c1ce11d42f3ff0d6861df50040bb919eee0"
+  },
+  "livemathbench:57": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "f4d27dff384ad85ac401ac76510f3140cfa2f3232b6f3eed14949d6a2e27df08"
+  },
+  "livemathbench:58": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "c72b9f0501d83e7c981f1c6f5eebaa9b74c27789265fc4fb5c2a7f4da0228b94"
+  },
+  "livemathbench:59": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "7991c302eed61a2e93207cc09a81351a073960c1d352f7f3371817e6bc60d773"
+  },
+  "livemathbench:63": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "2ab4f5caad0f1338b31d5741a5fdbeb1a71f98f18370742bdbc29030d31d96a4"
+  },
+  "livemathbench:67": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "34e730c77218ed4cdd5bf4d4bd140268b68a6771c1b1a091147b7264f6adc574"
+  },
+  "livemathbench:69": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "dbc07a92715eac04996f1d09bc8495c7f8f1ae2f7aa49caaf9663fc6ba4bfa9e"
+  },
+  "livemathbench:7": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "0905ffe8828b8966d7aca1a110f043d233247946915548a085bce09d9507ca82"
+  },
+  "livemathbench:79": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "bf1c63c4a6d1c324c96c87a7a57f5eeb47967a3904b2d9ea64afe48bd1ce32f4"
+  },
+  "livemathbench:83": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "36bff754c4f4c1a84addb2a9ac5f9dbbe65a7642cb8fa1a2d17cfceba4d8b5f1"
+  },
+  "livemathbench:84": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "53265154b87dd8c7bacedac18f986f0af5d02af478fd1d431f7ab04943788c18"
+  },
+  "livemathbench:86": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "be5b5e3a17049ef0af4ca948d20fd9220f0c4fa8d8d67c140a5274a467cd8da7"
+  },
+  "livemathbench:87": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "c54168b95a4593dc68aa0840211ddfbf835d525fae7a7459da1d48694bc8f293"
+  },
+  "livemathbench:88": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "4d66f503c541bf2a83efa27141c04b0f20c448ab77d3813c91d0b0c5c7651491"
+  },
+  "livemathbench:91": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "d5c39a2a05b84429f34337c6f34f7e0d88348536c3c43f42f20b83b7ae97dd33"
+  },
+  "livemathbench:93": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "e78c1a095523e9d3624c92cc7cd7789f9f539b1f2b65242964c0ec29accfcc2d"
+  },
+  "livemathbench:97": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "fe391ba1f6b734ffa02eae6c0cbe5611322c03af2bb05288c506f6568e87582a"
+  },
+  "livemathbench:98": {
+   "dataset": "livemathbench",
+   "prompt_sha256": "392a4d9a5a26739107064b81e01eff439aea5fcc9d9a6167adbaa173e8a31a41"
+  },
+  "mmlupro:104": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "4109e6c59b85c4efb21c562932b4216e676b684cde99738d7812f69bf2f85cb7"
+  },
+  "mmlupro:11": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "53825d0b8cfe22624d994f1f9cca2ba5c4baae366963862918c4ce8154647e17"
+  },
+  "mmlupro:118": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "7689022775d3870943d1f40890014dbbaa99b79ff2a138b6a314e0266974b26f"
+  },
+  "mmlupro:119": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "2e89e666e56e3c26d886a140b68051755e712e67105e8f2cba192f1ffcf50af8"
+  },
+  "mmlupro:129": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "ca89ab811a490a1acbc82a647a31d5b427d42f8846ad3863a9c4977b9468fb7e"
+  },
+  "mmlupro:130": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "e0dec5059f8e8ca9cbb1bb35db45ba2fd8f35265137d7298c0cae02c3bdb5d58"
+  },
+  "mmlupro:134": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "238927ce07612ac8bb91860b6e7a85fe4add94439452e19161c57ea81f6a62fb"
+  },
+  "mmlupro:158": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "e7de94f3feca13e59d0e27da51a1b944f681626fa448737e53a05976d43ca847"
+  },
+  "mmlupro:188": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "2cd13d5b658209607dd85909d96f41c516adc7533291a1ea57422ac87205fe76"
+  },
+  "mmlupro:200": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "7f3d44167ca2ee1165b805e6a81c03afc2e6bb9bbaad7c157de38bf58cba50f4"
+  },
+  "mmlupro:212": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "600fe8e5222cd3ded87b3f0f320a32aeae69103ec62f329f0100815c6ebdc56a"
+  },
+  "mmlupro:232": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "1087719ced3a5c1e8275ce92327bba7fcc6f2242e90c6f7f9f3f25c93077b95f"
+  },
+  "mmlupro:242": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "b7801656445ea18cca70a008e34fc9c55fa8c350a06e87f82bed668098f255a2"
+  },
+  "mmlupro:243": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "b18417789d26febd7b6bdc5b508b4e032e03c5e09b57ae0b0a6526d472ab8125"
+  },
+  "mmlupro:273": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "3e573510a1d3a571649d80450a7db50b839f0996646ed5f0dcb0217da0199b88"
+  },
+  "mmlupro:313": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "ad25d75373cb0b0af2f4a1ddc4e685fc9b32cd5b3bda838023061636ccc5d175"
+  },
+  "mmlupro:315": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "42396a3fdd58984494923f1e9c30dcdec796cb3c741dc95d93a338562b87db51"
+  },
+  "mmlupro:35": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "6d0bd42f05b8f6af60fce0b726f38ddc40a771e7d92dfec40c050b65f486675b"
+  },
+  "mmlupro:357": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "2a73771c737854206ac97cc3ddd227c119723446f655b9483dd12b1db563da93"
+  },
+  "mmlupro:368": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "e9c3e850ae1238b4010d32d8d1e3a69d05d5d3081f859f6c827a31a46e756be0"
+  },
+  "mmlupro:386": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "2083497c16de01f2a0f60f7f6b80f80439dd6a8676c68ac34c4bb6439492872f"
+  },
+  "mmlupro:425": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "fb9dbb80e89d005615638f2c4d07c80d4c93d3050d4f666f147ecebf1337295b"
+  },
+  "mmlupro:430": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "4b19e2ec90fda531a83396a86b415dd557a03e080664197e57e80480b7c292ba"
+  },
+  "mmlupro:446": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "b7b1e39456d3d9fbf76cedf6a825619f22a3f467fb25ff3c49dbed3ef7fbd5c1"
+  },
+  "mmlupro:448": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "9da988bdd2e350ba38d18d0dd4442edfcc03edef6c7c5e6e9a7442991fdfe382"
+  },
+  "mmlupro:482": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "9a404ff3b97c815e316668ba58023e4b93ac64ecb55bb5332ed063c096b465ec"
+  },
+  "mmlupro:483": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "4ea1b4c77d9b5e096a6de05808c8825cae237238ddbffe73290ad4624ca6f475"
+  },
+  "mmlupro:491": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "a5256739b2f977a700074abe3a7a07c50f91c8c7b1293f480558276c267b17ac"
+  },
+  "mmlupro:511": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "19d3a46cc247896495db135041ffb13742019d833705bad117514490a5ab3e71"
+  },
+  "mmlupro:514": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "ed6b7c083b7c7f6e086132a6f522397490e97d892adf0ffea8b854dd72d25c8d"
+  },
+  "mmlupro:519": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "b658bfc00fd27fe8cbabfb4fa555d778cb9faef5f7103de1a65123ba6277bdc8"
+  },
+  "mmlupro:520": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "cf5b118bbf2c69ca090d24994112280e7eabcc249951109c708873c4175e0d6a"
+  },
+  "mmlupro:529": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "61ac07d2478b77636159d60ac9e5d8efc606097fdc2a0368fe8d9bb88aaa992b"
+  },
+  "mmlupro:546": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "c7e8797606077d5d242e9648f44832c2ae7f5f1cb8f754085ff32b1b903d1d35"
+  },
+  "mmlupro:552": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "f787270d28d29ff9253b18021b4c1a142fc2b2217193f2299e48ae0e2dd0a750"
+  },
+  "mmlupro:554": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "31ce4db47012daae9c7187f9c56aa36a26748c9c1ad550450eae945125088bd8"
+  },
+  "mmlupro:557": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "47064c7cad02b25f02dbec35b9bdb8f11c9feb3deef859ab07a323c6de4f8d23"
+  },
+  "mmlupro:56": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "41024e38e6ead3fa4b814cab61e0fce69e1ff329fce31c54f926e07d6d4cd323"
+  },
+  "mmlupro:574": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "4c1d91f5a1ef41ad1b7225f33bd431bd6afb9c7bc7cd1e0eb4cb87e738fe71f5"
+  },
+  "mmlupro:609": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "8ef9767adb10c30313b8a88424a3ff44f3e29b9c574bef22b4c793970c266c63"
+  },
+  "mmlupro:648": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "e17c9dc8197971ebd22ff344d2f840212f779c3c9274a697ccae65101a8b5098"
+  },
+  "mmlupro:660": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "2064985d6bda4723efd054d5bd4a160e1730896a58d8fed49b166b0d12b698e0"
+  },
+  "mmlupro:661": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "c1edb7448d620eacf2cedf2d4e8fff0206bb3607b524e3c0e4ac36ce1583aeff"
+  },
+  "mmlupro:695": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "080139730c9cb8f5cc92280ea90a83ee50397f8baf9209422ed3810f29d2ebd9"
+  },
+  "mmlupro:703": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "d164f592044b2bed49a1dc952c48dc039277fc859a5e0976d6c6b856bdff5ddd"
+  },
+  "mmlupro:714": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "a6c50f964157aa075f5e3dba879f93504fabe8dc5426771626778cb2b5c860c0"
+  },
+  "mmlupro:789": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "9f34bc45898aab2cb170e41bcbba032aa1751ca0ee45232ce2c6206d4ab9cb5a"
+  },
+  "mmlupro:791": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "e0a2b1d24910baf02485ad8a10386ff48c28add97d24247835152db0ef7ea727"
+  },
+  "mmlupro:795": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "0c13e7013d0132aff18646f94267e77ac8c2bdf4824f518d201d38c2c263c8c5"
+  },
+  "mmlupro:796": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "72b16c72d68ba47c7efd015131eded679a322a1a33f4f43b6b1d8bb1c6aa250b"
+  },
+  "mmlupro:811": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "7b0de50ee21e60b07c551bd70478585661b8faa4f9f5c0d506d582931f85403b"
+  },
+  "mmlupro:813": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "8906a33221a3bf6a624fbb57ea1d8429449e828d9967a02982e8e42d4cb34882"
+  },
+  "mmlupro:837": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "64f87494d562e820a90d06b1a60ca25861a248ab6cbb367072223b4bfb4279d7"
+  },
+  "mmlupro:843": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "41990a3924f50d16914a5ca987f5f31d8a1ee7427a2d153ec932803856490827"
+  },
+  "mmlupro:859": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "68ab11f8ab6934a7e564469b89e06ed0ebbae87fdba826ccadd43d0197970b46"
+  },
+  "mmlupro:87": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "7aaf38fbabe8610d5f3643d056ac0fbc10eb3d92527a5bf5cf17b26eb9b166cc"
+  },
+  "mmlupro:874": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "e99d5552cb7f1e505ffb45a512b1c749b156581e8372b79572838a6ea63ffd7f"
+  },
+  "mmlupro:936": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "37ec1140ae9bb4600cae1b41b0a5d25cb96c4906dc10bc5c6ac4eda121041e78"
+  },
+  "mmlupro:955": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "7126418c0bb15eecfd6dab411fd272ec4bca644cf707258e704e4a9eb4ab807c"
+  },
+  "mmlupro:987": {
+   "dataset": "mmlupro",
+   "prompt_sha256": "3491a554dc13336788c9bf47dbe1456df6ec0bc2e993099932ab732b869e60b4"
+  }
+ },
+ "sample_sha256": "2c4df49360f997c3e35593030da40111c2826f068f03b1401284a394d9716955",
+ "schema": "gemma-select/1",
+ "sentinel": [
+  "livemathbench:69",
+  "gpqa:126",
+  "gpqa:85",
+  "mmlupro:448",
+  "mmlupro:796",
+  "mmlupro:491",
+  "livemathbench:59",
+  "gpqa:168",
+  "mmlupro:35",
+  "mmlupro:483",
+  "mmlupro:695",
+  "mmlupro:936",
+  "livemathbench:18",
+  "mmlupro:243",
+  "mmlupro:546",
+  "gpqa:130",
+  "livemathbench:38",
+  "gpqa:157",
+  "gpqa:58",
+  "livemathbench:57",
+  "gpqa:83",
+  "livemathbench:42",
+  "gpqa:119",
+  "gpqa:122"
+ ],
+ "utility": [
+  "mmlupro:514",
+  "gpqa:100",
+  "livemathbench:69",
+  "gpqa:126",
+  "mmlupro:519",
+  "mmlupro:315",
+  "livemathbench:14",
+  "mmlupro:811",
+  "gpqa:150",
+  "gpqa:85",
+  "mmlupro:520",
+  "mmlupro:448",
+  "gpqa:179",
+  "gpqa:4",
+  "gpqa:160",
+  "mmlupro:386",
+  "mmlupro:874",
+  "livemathbench:1",
+  "livemathbench:97",
+  "mmlupro:796",
+  "mmlupro:134",
+  "gpqa:36",
+  "mmlupro:119",
+  "gpqa:45",
+  "mmlupro:491",
+  "gpqa:155",
+  "mmlupro:56",
+  "livemathbench:59",
+  "gpqa:146",
+  "mmlupro:795",
+  "gpqa:149",
+  "livemathbench:88",
+  "livemathbench:39",
+  "gpqa:81",
+  "gpqa:168",
+  "mmlupro:446",
+  "livemathbench:28",
+  "gpqa:12",
+  "mmlupro:35",
+  "mmlupro:483",
+  "gpqa:178",
+  "mmlupro:695",
+  "gpqa:72",
+  "mmlupro:609",
+  "mmlupro:129",
+  "livemathbench:44",
+  "mmlupro:212",
+  "mmlupro:660",
+  "livemathbench:24",
+  "mmlupro:936",
+  "gpqa:33",
+  "gpqa:138",
+  "livemathbench:118",
+  "livemathbench:84",
+  "livemathbench:58",
+  "gpqa:167",
+  "gpqa:120",
+  "mmlupro:714",
+  "gpqa:144",
+  "livemathbench:79",
+  "mmlupro:791",
+  "livemathbench:7",
+  "mmlupro:661",
+  "mmlupro:188",
+  "gpqa:134",
+  "gpqa:114",
+  "gpqa:140",
+  "mmlupro:843",
+  "mmlupro:813",
+  "mmlupro:837",
+  "gpqa:63",
+  "livemathbench:18",
+  "mmlupro:554",
+  "mmlupro:243",
+  "gpqa:197",
+  "livemathbench:63",
+  "livemathbench:25",
+  "mmlupro:703",
+  "gpqa:188",
+  "livemathbench:98",
+  "gpqa:162",
+  "mmlupro:425",
+  "mmlupro:789",
+  "mmlupro:546",
+  "gpqa:130",
+  "mmlupro:529",
+  "gpqa:31",
+  "mmlupro:104",
+  "livemathbench:38",
+  "gpqa:22",
+  "gpqa:157",
+  "gpqa:56",
+  "livemathbench:53",
+  "gpqa:17",
+  "gpqa:58",
+  "mmlupro:987",
+  "mmlupro:158",
+  "mmlupro:648",
+  "mmlupro:87",
+  "mmlupro:242",
+  "gpqa:16",
+  "gpqa:163",
+  "gpqa:42",
+  "livemathbench:57",
+  "mmlupro:574",
+  "mmlupro:552",
+  "gpqa:46",
+  "livemathbench:3",
+  "gpqa:70",
+  "livemathbench:67",
+  "mmlupro:273",
+  "gpqa:64",
+  "mmlupro:200",
+  "gpqa:93",
+  "mmlupro:511",
+  "gpqa:3",
+  "mmlupro:368",
+  "livemathbench:115",
+  "livemathbench:11",
+  "gpqa:195",
+  "gpqa:193",
+  "gpqa:68",
+  "livemathbench:91",
+  "gpqa:83",
+  "livemathbench:93",
+  "livemathbench:42",
+  "gpqa:75",
+  "gpqa:99",
+  "gpqa:170",
+  "gpqa:27",
+  "livemathbench:19",
+  "gpqa:102",
+  "mmlupro:11",
+  "mmlupro:232",
+  "mmlupro:955",
+  "gpqa:57",
+  "gpqa:39",
+  "livemathbench:52",
+  "mmlupro:357",
+  "gpqa:104",
+  "livemathbench:87",
+  "livemathbench:46",
+  "livemathbench:100",
+  "gpqa:119",
+  "mmlupro:557",
+  "livemathbench:86",
+  "gpqa:122",
+  "gpqa:164",
+  "livemathbench:21",
+  "mmlupro:859",
+  "mmlupro:130",
+  "livemathbench:83",
+  "mmlupro:430",
+  "mmlupro:482",
+  "livemathbench:108",
+  "mmlupro:313",
+  "gpqa:15",
+  "mmlupro:118",
+  "livemathbench:49",
+  "livemathbench:20"
+ ]
+}
