@@ -3,7 +3,10 @@
   <python with torch + transformers> -I -B tests/test_gsel.py
 """
 import json
+import os
 import re
+import shutil
+import signal
 import socket
 import struct
 import subprocess
@@ -104,6 +107,21 @@ class Identity(unittest.TestCase):
         with self.assertRaises(C.Stop):
             C.check_credential(site)
 
+    def test_site_file_never_names_an_excluded_gpu(self):
+        d = T.tmpdir()
+        self.assertEqual(C.load_site(T.site_file(d, "server", d, gpu_uuid="GPU-bb", excluded_gpu_uuids=["GPU-aa"]), "server")["gpu_uuid"], "GPU-bb")
+        with self.assertRaises(C.Stop):
+            C.load_site(T.site_file(d, "server", d, gpu_uuid="GPU-AA", excluded_gpu_uuids=["gpu-aa"]), "server")
+        with self.assertRaises(C.Stop):
+            C.load_site(T.site_file(d, "server", d, excluded_gpu_uuids="GPU-aa"), "server")       # must be a list
+        with self.assertRaises(C.Stop):
+            C.load_site(T.site_file(d, "server", d, gpu_uuid="GPU-bb"), "server", selecting=True)   # a template has no GPU yet
+        legacy = json.loads(Path(T.site_file(d, "server", d)).read_text())
+        del legacy["excluded_gpu_uuids"]
+        (d / "legacy.json").write_text(json.dumps(legacy))
+        with self.assertRaises(C.Stop):
+            C.load_site(d / "legacy.json", "server")                                             # the key is required
+
     def test_role_check(self):
         site = {"expected_hostname": "h", "gpu_uuid": "GPU-aa"}
         rows = [{"uuid": "aa", "name": "NVIDIA RTX A6000", "total_mib": 49140, "used_mib": 1, "free_mib": 49139}]
@@ -143,6 +161,40 @@ class Resources(unittest.TestCase):
             C.memory_gate("edge", {"device": "cuda", "gpu_uuid": "GPU-cc"}, 90 << 30, rows, mem)  # more than the RAM available
         self.assertTrue(C.memory_gate("edge", {"device": "cuda", "gpu_uuid": "GPU-cc"}, 30 << 30, rows, mem)["pass"])
         self.assertGreater(mem["swap_used"], 9 << 30)
+
+    def test_server_gpu_is_selected_by_the_fixed_rule(self):
+        rows = C.parse_gpu_rows("GPU-aa, NVIDIA RTX A6000, 49140, 37787, 11353, 0\nGPU-bb, NVIDIA RTX A6000, 49140, 11379, 37761, 1\n"
+                                "GPU-cc, NVIDIA RTX A6000, 49140, 2148, 46992, 2\nGPU-dd, NVIDIA RTX A6000, 49140, 9140, 40000, 3\n"
+                                "GPU-ee, Some Other GPU, 81920, 0, 81920, 4")
+        self.assertEqual([r["index"] for r in rows], [0, 1, 2, 3, 4])
+        need = C.need_bytes(9_322_794_056)                                       # the server half of the real config: 12,137 MiB
+        self.assertEqual(need >> 20, 12137)
+        apps = "GPU-bb, 5, 9220\nGPU-cc, 6, 1660\nGPU-cc, 7, 400"
+        chosen, seen = C.select_gpu(rows, apps, need, excluded=["GPU-bb"])
+        self.assertEqual(chosen["uuid"], "dd")                                   # no other process beats more free memory
+        why = {c["uuid"]: c["reason"] for c in seen}
+        self.assertIn("11353 MiB < required 12137", why["aa"])
+        self.assertEqual((why["bb"], why["ee"], why["cc"], why["dd"]), ("excluded by the site file", "not the server GPU model", None, None))
+        self.assertEqual(C.select_gpu(rows, apps + "\nGPU-dd, 8, 300\nGPU-dd, 9, 300\nGPU-dd, 10, 300", need, ["GPU-bb"])[0]["uuid"], "cc")
+        self.assertEqual(C.select_gpu(rows, apps + "\nGPU-dd, 8, 300\nGPU-dd, 9, 300", need, ["GPU-bb"])[0]["uuid"], "cc")   # tie on processes: more free
+        self.assertIsNone(C.select_gpu(rows, apps, need, excluded=["GPU-bb", "GPU-cc", "GPU-dd"])[0])
+        self.assertIsNone(C.select_gpu(rows, None, need, excluded=["GPU-bb"])[0])                # processes could not be counted
+        self.assertFalse(any("pid" in c or "process_name" in c for c in seen))
+
+    def test_device_gate_per_role(self):
+        mem = C.meminfo("MemTotal: 125000000 kB\nMemAvailable: 78544896 kB\nMemFree: 880640 kB\nSwapTotal: 16000000 kB\nSwapFree: 6353000 kB\n")
+        low, whole, half = 860 << 20, 61609 << 20, 28696 << 20                   # a device figure of this size was recorded on the edge with 74,911 MiB available
+        rec = C.device_gate("edge", False, whole, low, mem)                      # whole model on unified memory: available RAM decides
+        self.assertTrue(rec["ram_figure_applied"] and not rec["device_figure_applied"])
+        self.assertEqual(rec["device_free_bytes"], low)
+        with self.assertRaises(C.Stop):
+            C.device_gate("edge", False, 80 << 30, 100 << 30, mem)               # not enough available RAM, whatever the device says
+        with self.assertRaises(C.Stop):
+            C.device_gate("edge", True, half, low, mem)                          # split half: the runtime applies the device figure itself
+        self.assertTrue(C.device_gate("edge", True, half, 30 << 30, mem)["device_figure_applied"])
+        with self.assertRaises(C.Stop):
+            C.device_gate("server", True, 12137 << 20, 11353 << 20, mem)
+        self.assertFalse(C.device_gate("server", True, 12137 << 20, 46992 << 20, mem)["ram_figure_applied"])
 
     def test_other_processes_are_counted_never_named(self):
         apps = "GPU-bb, 111, 1660\nGPU-bb, 222, 33322\nGPU-aa, 333, 9220\nGPU-bb, 444, 500"
@@ -309,6 +361,9 @@ class WholeModel(unittest.TestCase):
         save_file(t, f)
         with self.assertRaises(RuntimeError):
             self.W.load_model(d / "m", "float32", "cpu", "eager")
+        import gsel_bench as GB                                                 # the preflight sees it without reading a weight
+        self.assertEqual((GB.whole_model_key_check(d / "m")["missing"], GB.whole_model_key_check(self.dir)["missing"]), (1, 0))
+        self.assertEqual(GB.whole_model_key_check(d / "nowhere"), {"error": "FileNotFoundError"})
 
 
 class Pipeline(unittest.TestCase):
@@ -334,7 +389,11 @@ class Pipeline(unittest.TestCase):
 
     def test_full_dev_pipeline(self):
         B = T.bench
-        self.assertIn("GO", B("preflight", "--dev", "--role", "edge", "--site", self.edge).stdout)
+        r = B("preflight", "--dev", "--role", "edge", "--site", self.edge)
+        self.assertIn("GO", r.stdout)
+        self.assertIn("expected keys missing from the checkpoint 0, shape mismatches 0", r.stdout)
+        keys = C.read_json(self.erun / "preflight.json")["whole_model_keys"]
+        self.assertEqual((keys["missing"], keys["shape_mismatch"], keys["not_expected_in_file"]), (0, 0, 0))
         self.assertIn("GO", B("preflight", "--dev", "--role", "server", "--site", self.server).stdout)
         B("serve", "--dev", "--site", self.server)
         B("profile", "--dev", "--role", "server", "--site", self.server)
@@ -344,7 +403,9 @@ class Pipeline(unittest.TestCase):
         ref = C.read_json(self.erun / "reference.json")
         self.assertEqual(ref["screen_decision"]["decision"], "EDGE")
         self.assertTrue(all(i["self_consistent"] and i["finite"] for i in ref["items"]))
-        B("reference", "--dev", "--site", self.edge, expect=1)                         # written once
+        r = B("reference", "--dev", "--site", self.edge, expect=3)                     # written once: a stop, not a failed attempt
+        self.assertIn("complete", r.stderr)
+        self.assertFalse(list(self.erun.glob("failure_*")))
         self.assertIn("PASS", B("correctness", "--dev", "--site", self.edge).stdout)
         B("profile", "--dev", "--role", "edge", "--site", self.edge)
         r = B("timed", "--dev", "--site", self.edge, "--block", "Es", expect=3)        # block order is fixed
@@ -369,6 +430,18 @@ class Pipeline(unittest.TestCase):
         self.assertIn("bound", s)
         self.assertNotIn("host", json.dumps(s))                                        # the summary carries no host record
         self.assertNotIn("uuid", json.dumps(s))
+        self.assertTrue(s["site_consistent"])
+        B("correctness", "--dev", "--site", self.edge, expect=3)                       # complete stages are final
+        B("profile", "--dev", "--role", "edge", "--site", self.edge, expect=3)
+        # a stage run with another site file makes the run INCOMPLETE
+        import gsel_bench as GB
+        other = self.root / "run_edge_other_site"
+        shutil.copytree(self.erun, other)
+        done = json.loads((other / "timed_S2.done.json").read_text())
+        done["site_sha256"] = "0" * 64
+        (other / "timed_S2.done.json").write_text(json.dumps(done))
+        s2 = GB.summarise(other, self.srun, dev=True, n_boot=200)
+        self.assertEqual((s2["site_consistent"], s2["blocks_complete"], s2["outcome"]), (False, False, "INCOMPLETE"))
         # tampering with a completed block is detected
         f = self.erun / "timed_Es.jsonl"
         f.write_text(f.read_text().replace('"n": 0', '"n": 0 '))
@@ -420,6 +493,135 @@ class Pipeline(unittest.TestCase):
         s = B.summarise(root2 / "run_edge", None, dev=True)
         self.assertEqual((s["outcome"], s["failed_attempts"]["correctness"]), ("SPLIT_INFEASIBLE", 2))
         self.assertEqual(s["screen_decision"]["decision"], "EDGE")
+
+    def test_gpu_selection_binds_the_site_and_is_fixed_once_a_server_stage_ran(self):
+        root = T.tmpdir()
+        fake = {"gpu_rows": "GPU-aa, NVIDIA RTX A6000, 49140, 37787, 11353, 0\nGPU-bb, NVIDIA RTX A6000, 49140, 11379, 37761, 1\n"
+                            "GPU-cc, NVIDIA RTX A6000, 49140, 2148, 46992, 2", "gpu_apps": "GPU-bb, 5, 9220\nGPU-cc, 6, 1660"}
+        free = socket.socket()
+        free.bind(("127.0.0.1", 0))
+        tpl = T.site_file(root, "server", self.model, port=free.getsockname()[1], excluded_gpu_uuids=["GPU-bb"], double=fake)
+        free.close()
+        pinned = root / "pinned.json"
+        r = T.bench("select-gpu", "--dev", "--site", tpl, "--out", pinned)
+        self.assertIn("GPU index 1: free 37761 MiB, other compute processes 1: excluded by the site file", r.stdout)
+        self.assertIn("selected GPU index 0", r.stdout)                                 # no other process on it; 1 MiB needed in dev
+        site = json.loads(pinned.read_text())
+        self.assertEqual((site["gpu_uuid"], oct(pinned.stat().st_mode & 0o777)), ("GPU-aa", "0o600"))
+        sel = C.read_json(root / "run_server" / C.GPU_SELECTION)
+        self.assertEqual((sel["selected"]["uuid"], sel["site_sha256"]), ("aa", C.sha256_file(pinned)))
+        self.assertNotIn("process_name", json.dumps(sel))
+        # before any server stage ran, the selection may be replaced; the earlier record and site file are kept
+        (root / "other.json").write_text("{}")
+        r = T.bench("select-gpu", "--dev", "--site", tpl, "--out", root / "other.json", expect=3)
+        self.assertIn("written once", r.stderr)
+        first = C.sha256_file(root / "run_server" / C.GPU_SELECTION)
+        T.bench("select-gpu", "--dev", "--site", tpl, "--out", pinned)
+        self.assertEqual(C.sha256_file(root / "run_server" / (C.GPU_SELECTION + ".superseded-1")), first)
+        self.assertTrue((root / "pinned.json.superseded-1").exists())
+        sel = C.read_json(root / "run_server" / C.GPU_SELECTION)
+        self.assertEqual((sel["earlier_selections_set_aside"], sel["site_sha256"]), (1, C.sha256_file(pinned)))
+        T.bench("preflight", "--dev", "--role", "server", "--site", pinned)           # a preflight loads nothing and fixes nothing
+        T.bench("select-gpu", "--dev", "--site", tpl, "--out", pinned)
+        self.assertTrue((root / "pinned.json.superseded-2").exists())
+        T.bench("profile", "--dev", "--role", "server", "--site", pinned)             # the pinned site is accepted; a server stage has run
+        r = T.bench("select-gpu", "--dev", "--site", tpl, "--out", root / "again.json", expect=3)
+        self.assertIn("fixed for this run", r.stderr)
+        self.assertFalse((root / "again.json").exists())
+        self.assertEqual(C.read_json(root / "run_server" / "profile_server.json")["gpu_selection"]["selection_sha256"],
+                         C.sha256_file(root / "run_server" / C.GPU_SELECTION))
+        moved = dict(site, gpu_uuid="GPU-cc")                                          # chasing memory on another GPU is refused
+        (root / "moved.json").write_text(json.dumps(moved))
+        r = T.bench("serve", "--dev", "--site", root / "moved.json", expect=3)
+        self.assertIn("not the one selected", r.stderr)
+        self.assertFalse(list((root / "run_server").glob("server_started.*")))
+        root2 = T.tmpdir()
+        tpl2 = T.site_file(root2, "server", self.model, port=site["port"], excluded_gpu_uuids=["GPU-bb"], double=fake)
+        T.bench("select-gpu", "--dev", "--site", tpl2, "--out", root2 / "p.json")
+        T.bench("serve", "--dev", "--site", root2 / "p.json")                          # a started server fixes the selection as well
+        self.assertTrue((root2 / "run_server" / "server_started.1.json").exists() and (root2 / "run_server" / "server_record.1.json").exists())
+        T.bench("select-gpu", "--dev", "--site", tpl2, "--out", root2 / "q.json", expect=3)
+        full = T.site_file(T.tmpdir(), "server", self.model, port=site["port"], excluded_gpu_uuids=["GPU-aa", "GPU-bb", "GPU-cc"], double=fake)
+        r = T.bench("select-gpu", "--dev", "--site", full, "--out", root / "none.json", expect=3)
+        self.assertIn("BLOCKED", r.stderr)
+        self.assertFalse((root / "none.json").exists())
+
+    def test_reference_attempt_that_died_is_set_aside(self):
+        root = T.tmpdir()
+        site = T.site_file(root, "edge", self.model, port=self.listener.getsockname()[1])
+        run = root / "run_edge"
+        run.mkdir()
+        (run / "reference_logits_0.pt").write_bytes(b"partial")
+        (run / "reference_logits_1.pt").write_bytes(b"partial")
+        T.bench("reference", "--dev", "--site", site)
+        self.assertEqual((run / "reference_logits_0.pt.crashed-1").read_bytes(), b"partial")
+        self.assertTrue((run / "reference_logits_1.pt.crashed-1").exists())
+        ref = C.read_json(run / "reference.json")
+        self.assertEqual((ref["died_attempts_set_aside"], len(ref["items"])), (1, 10))
+        self.assertIn("PASS", T.bench("correctness", "--dev", "--site", site).stdout)
+
+    def test_server_that_does_not_answer_is_a_stop_not_an_attempt(self):
+        import gsel_bench as GB
+        root = T.tmpdir()
+        site = T.site_file(root, "edge", self.model, port=self.listener.getsockname()[1])
+        down = T.site_file(root, "edge", self.model, port=self.listener.getsockname()[1], double={"server_down": True})
+        T.bench("reference", "--dev", "--site", site)
+        for _ in range(3):
+            r = T.bench("correctness", "--dev", "--site", down, expect=3)
+            self.assertIn("does not answer", r.stderr)
+        self.assertFalse(list((root / "run_edge").glob("failure_*")))
+        self.assertEqual(GB.summarise(root / "run_edge", None, dev=True)["outcome"], "INCOMPLETE")
+        self.assertIn("PASS", T.bench("correctness", "--dev", "--site", site).stdout)
+        r = T.bench("timed", "--dev", "--site", down, "--block", "S1", "--limit", 2, expect=3)
+        self.assertIn("does not answer", r.stderr)
+        self.assertFalse((root / "run_edge" / "timed_S1.jsonl").exists())
+
+    def test_wall_clock_limit_ends_a_command_as_a_died_attempt(self):
+        import gsel_bench as GB
+        import time
+        GB.arm(1)
+        with self.assertRaises(TimeoutError):
+            time.sleep(3)
+        signal.alarm(0)
+        self.assertEqual(set(S.LIMITS_S), {"select-gpu", "preflight", "profile", "reference", "correctness"})
+        root = T.tmpdir()
+        site = T.site_file(root, "edge", self.model, port=self.listener.getsockname()[1])
+        code = (f"import sys; sys.path.insert(0, {str(GS)!r}); import gsel_spec as S, gsel_bench as B; S.LIMITS_S['reference'] = 1; "
+                f"B.main(['reference', '--dev', '--site', {str(site)!r}])")
+        r = subprocess.run([sys.executable, "-I", "-B", "-c", code], capture_output=True, text=True, env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"))
+        self.assertNotEqual(r.returncode, 0)
+        rec = C.read_json(root / "run_edge" / "failure_reference.1.json")
+        self.assertEqual(rec["error_type"], "TimeoutError")
+
+    def test_in_process_gate_checks_the_one_visible_device(self):
+        import types
+        import uuid
+        import torch
+        import gsel_bench as GB
+        real = (torch.cuda.device_count, torch.cuda.get_device_properties, torch.cuda.mem_get_info)
+        dev_id = uuid.UUID(int=7)                                                # the device reports a UUID object, the site a string
+        state = {"n": 1, "uuid": dev_id, "free": 860 << 20}
+        torch.cuda.device_count = lambda: state["n"]
+        torch.cuda.get_device_properties = lambda i: types.SimpleNamespace(uuid=state["uuid"], is_integrated=True)
+        torch.cuda.mem_get_info = lambda i: (state["free"], 122570 << 20)
+        try:
+            edge = {"device": "cuda", "role": "edge", "gpu_uuid": "GPU-" + str(dev_id).upper()}
+            rec = GB.gpu_gate(edge, 1 << 20)                                     # whole model: a low device figure does not block
+            self.assertEqual((rec["device_free_bytes"], rec["device_figure_applied"], rec["is_integrated"]), (860 << 20, False, True))
+            with self.assertRaises(C.Stop):
+                GB.gpu_gate(edge, 28696 << 20, split_half=True)                  # split half: it does
+            with self.assertRaises(C.Stop):
+                GB.gpu_gate(dict(edge, role="server"), 12137 << 20, split_half=True)
+            state["free"] = 46992 << 20
+            self.assertTrue(GB.gpu_gate(dict(edge, role="server"), 12137 << 20, split_half=True)["device_figure_applied"])
+            with self.assertRaises(C.Stop):
+                GB.gpu_gate(dict(edge, gpu_uuid="GPU-" + str(uuid.UUID(int=8))), 1 << 20)   # another device
+            state["n"] = 3
+            with self.assertRaises(C.Stop):
+                GB.gpu_gate(edge, 1 << 20)                                       # more than one device visible
+            self.assertEqual(GB.gpu_gate({"device": "cpu", "role": "edge"}, 1 << 40), {"device": "cpu"})
+        finally:
+            torch.cuda.device_count, torch.cuda.get_device_properties, torch.cuda.mem_get_info = real
 
     def test_dev_only_switches_are_refused_in_target_mode(self):
         r = T.bench("timed", "--site", self.edge, "--block", "S1", "--limit", 2, expect=3)

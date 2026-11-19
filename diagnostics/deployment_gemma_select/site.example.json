@@ -4,11 +4,12 @@
  "source_root": "directory holding the 54 pinned split source files (read only)",
  "model_dir": "directory holding the seven pinned checkpoint files",
  "device": "cuda",
- "gpu_uuid": "GPU-... of the one GPU this role may use",
+ "gpu_uuid": "edge: GPU-... of its GPU. server: null in the template; select-gpu writes the pinned copy",
  "port": 0,
  "credential_file": "server: the key list; edge: the client key. Outside source_root, mode 0600",
  "client_id": "the client id the credential pair was generated for",
  "run_dir": "output directory outside the repository",
  "adapter_path": "the private adapter file (sha256 pinned in gsel_spec.py)",
- "ports_in_use_by_others": []
+ "ports_in_use_by_others": [],
+ "excluded_gpu_uuids": []
 }

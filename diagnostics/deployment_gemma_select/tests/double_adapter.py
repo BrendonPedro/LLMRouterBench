@@ -23,6 +23,9 @@ class Double(AD.SplitAdapter):
     def server_profile(self, q, n_decode):
         return {"q": q, "prefill_s": 1e-4 * q, "decode_s": [1e-4] * n_decode}
 
+    def server_ready(self):
+        return not self.opt.get("server_down")
+
     def connect(self, require_server=True):
         model, _ = W.load_model(self.site["model_dir"], "float32", "cpu", "eager")
         self.runner, self.eos = W.WholeRunner(model, "cpu"), W.eos_ids(self.site["model_dir"])

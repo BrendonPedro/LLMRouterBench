@@ -1,7 +1,7 @@
-# GEMMA-SELECT runbook
+# GEMMA-SELECT runbook (version 2)
 
 Three machines: **EDGE** (DGX Spark), **SERVER** (one RTX A6000), **DESK** (analysis host, no GPU).
-Host-specific values (paths, host names, GPU identifier, port) are in a private site file per host, never in this
+Host-specific values (paths, host names, GPU identifiers, port) are in a private site file per host, never in this
 repository. `$GS` is this directory in a checkout at the tag. `$PY` is a Python with torch, CUDA and a transformers
 version that has the Gemma 4 classes, the same one for every command on a host. Always `-I -B`.
 
@@ -10,15 +10,19 @@ Rules for every step:
 - `BLOCKED` means not enough free memory now. Nothing was loaded. Wait and run the same command again later.
   Never stop, signal or ask about anyone else's job.
 - Never start a second copy of a command that is running. Never delete or edit an output.
+- The machines are shared. Every command measures free memory itself, immediately before it loads. An earlier
+  reading is never reused.
 
 ## 0. Once per host
 
 ```
-git clone --branch gemma-select-prereg-v1 --depth 1 <repository> <checkout>      # HEAD is the tag
+git clone --branch gemma-select-prereg-v2 <repository or bundle file> <checkout>      # HEAD is the tag
 export GS=<checkout>/diagnostics/deployment_gemma_select
 export PY=<python>      SITE=<private site file for this host>
 ```
-Place the private adapter file where the site file says. Fill the site file from `site.example.json`.
+Place the private adapter file where the site file says. Fill the site files from `site.example.json`. The SERVER
+file starts as a template with `"gpu_uuid": null` and with `excluded_gpu_uuids` naming every GPU that carries another
+service of the lab.
 
 Credentials: generate one pair of the experiment's own on SERVER with the split source's credential generator, into a
 new directory outside the source (exact command in the private runbook). It prints two file names and no secret. Copy
@@ -27,10 +31,14 @@ the client key file to EDGE over SSH, mode 0600. Both files are deleted at clean
 ## 1. SERVER, terminal S1
 
 ```
+$PY -I -B $GS/gsel_bench.py select-gpu --site <template> --out $SITE   # prints every GPU and "selected GPU index N"
 $PY -I -B $GS/gsel_bench.py preflight --role server --site $SITE     # expect: "preflight server: GO ... port free"
 $PY -I -B $GS/gsel_bench.py profile   --role server --site $SITE     # expect: "profile_server.json written"
 $PY -I -B $GS/gsel_bench.py serve     --site $SITE                   # stays in the foreground; expect a line with "ready": true
 ```
+`select-gpu` is run immediately before the preflight. If the selected GPU fills up before the profile has run, run
+`select-gpu` again with the same arguments. Once the profile or the server has started, the GPU is fixed for the run:
+if it later lacks memory, the answer is BLOCKED and waiting, never another GPU.
 Leave `serve` running until step 4. Preflight hashes the 16 GB checkpoint, which takes a few minutes.
 
 ## 2. EDGE, terminal E1: the SSH forward
@@ -53,12 +61,27 @@ $PY -I -B $GS/gsel_bench.py timed --site $SITE --block S2
 ```
 Run them in this order, one at a time, inside `tmux`. Each is a fresh process. The harness refuses any other order.
 
+The EDGE preflight also prints a whole-model class check, made without reading a weight. It must show 0 missing
+keys and 0 shape mismatches. If it shows anything else, or could not run, do not start `reference`: the edge baseline
+would fail to load, and that has to be settled before any GPU stage.
+
+Memory on EDGE. The preflight prints available and free RAM. A whole model (reference, Es, Em) needs its amount in
+available RAM. A split half (correctness, profile, S1, S2) also needs its amount on the device's own count, which
+follows free RAM and excludes page cache. If a split stage says BLOCKED on the device figure, wait. Do not drop
+caches and do not ask anyone to free memory.
+
 Stop conditions:
 - `correctness: FAIL`: final. Go to step 4. No timing.
-- A command dies with a Python error after its checks passed: a `failure_*.json` is written. Run the same command once
-  more, later. Two failures of `reference` end the experiment (NOT_EVALUABLE). Two failures of starting or running the
-  split end it (SPLIT_INFEASIBLE).
+- `STOP: the experiment's server does not answer ...`: check terminal S1 and the forward, then run the same command
+  again. It is not counted as an attempt.
+- A command dies with a Python error after its checks passed, or reaches its wall-clock limit: a `failure_*.json` is
+  written. Run the same command once more, later. After a split command died, wait 20 minutes first, so that the
+  server has dropped the dead session. Two failures of `reference` end the experiment (NOT_EVALUABLE). Two failures
+  of starting or running the split end it (SPLIT_INFEASIBLE).
 - A timed block dies: run the same block again. Its partial file is kept. After two repeats the harness refuses.
+- Wall-clock limits are built in: preflight and profiles 1 hour, reference and correctness 2 hours, a timed block
+  600 s per query plus 1 hour. As a last resort against a hang inside a device call, start each command under
+  `timeout --signal=INT --kill-after=120 <limit plus 10 minutes>`.
 
 ## 4. Cleanup
 

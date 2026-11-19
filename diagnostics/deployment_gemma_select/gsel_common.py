@@ -22,7 +22,9 @@ SOURCE_NAMES = ("Dockerfile", "Makefile", "Procfile", "docker-compose.yml", "doc
 SKIP_DIRS = (".git", "__pycache__", ".venv", "venv", "env", ".env", "node_modules", ".cache", ".mypy_cache", ".pytest_cache",
              "wandb", ".ipynb_checkpoints", "site-packages")
 SITE_KEYS = ("role", "expected_hostname", "source_root", "model_dir", "device", "gpu_uuid", "port", "credential_file", "client_id",
-             "run_dir", "adapter_path", "ports_in_use_by_others")
+             "run_dir", "adapter_path", "ports_in_use_by_others", "excluded_gpu_uuids")
+GPU_SELECTION = "gpu_selection.json"
+SERVER_STAGE_OUTPUTS = ("profile_server.json", "server_started.*.json", "server_record.*.json")
 
 
 class Stop(SystemExit):
@@ -200,12 +202,13 @@ def parse_gpu_rows(text):
         if len(f) < 5:
             continue
         num = lambda x: int(x) if x.isdigit() else None  # noqa: E731  (unified memory reports [N/A])
-        rows.append({"uuid": norm_uuid(f[0]), "name": f[1], "total_mib": num(f[2]), "used_mib": num(f[3]), "free_mib": num(f[4])})
+        rows.append({"uuid": norm_uuid(f[0]), "name": f[1], "total_mib": num(f[2]), "used_mib": num(f[3]), "free_mib": num(f[4]),
+                     "index": num(f[5]) if len(f) > 5 else None})
     return rows
 
 
 def gpu_rows():
-    rc, out = run(["nvidia-smi", "--query-gpu=uuid,name,memory.total,memory.used,memory.free", "--format=csv,noheader,nounits"])
+    rc, out = run(["nvidia-smi", "--query-gpu=uuid,name,memory.total,memory.used,memory.free,index", "--format=csv,noheader,nounits"])
     return parse_gpu_rows(out) if rc == 0 else []
 
 
@@ -221,9 +224,38 @@ def parse_apps(text, uuid, own_pids=()):
     return {"other_processes": n, "other_mib": mib}
 
 
-def gpu_others(uuid, own_pids=()):
+def apps_text():
     rc, out = run(["nvidia-smi", "--query-compute-apps=gpu_uuid,pid,used_memory", "--format=csv,noheader,nounits"])
-    return parse_apps(out, uuid, own_pids) if rc == 0 else {"other_processes": None, "other_mib": None}
+    return out if rc == 0 else None
+
+
+def gpu_others(uuid, own_pids=()):
+    out = apps_text()
+    return parse_apps(out, uuid, own_pids) if out is not None else {"other_processes": None, "other_mib": None}
+
+
+def select_gpu(rows, apps, need, excluded=()):
+    """The server GPU, chosen once before the first server stage (PREREG §11). Eligible: a GPU of the server model that
+    the site file does not exclude and that has `need` bytes free now. Among the eligible: fewest compute processes of
+    others, then most free memory, then lowest index. Returns (chosen row or None, every row with its reason)."""
+    excluded = {norm_uuid(u) for u in excluded}
+    considered = []
+    for r in rows:
+        o = parse_apps(apps, r["uuid"]) if apps is not None else {"other_processes": None, "other_mib": None}
+        if S.SERVER_GPU_NAME not in r["name"]:
+            why = "not the server GPU model"
+        elif r["uuid"] in excluded:
+            why = "excluded by the site file"
+        elif o["other_processes"] is None:
+            why = "other processes could not be counted"
+        elif r["free_mib"] is None or r["free_mib"] * (1 << 20) < need:
+            why = f"free {r['free_mib']} MiB < required {need >> 20} MiB"
+        else:
+            why = None
+        considered.append(dict(r, **o, eligible=why is None, reason=why))
+    ok = sorted((c for c in considered if c["eligible"]),
+                key=lambda c: (c["other_processes"], -c["free_mib"], c["index"] if c["index"] is not None else 1 << 30, c["uuid"]))
+    return (ok[0] if ok else None), considered
 
 
 def meminfo(text=None):
@@ -231,7 +263,7 @@ def meminfo(text=None):
     m = {}
     for row in text.splitlines():
         k, v, *_ = row.split()
-        if k.rstrip(":") in ("MemTotal", "MemAvailable", "SwapTotal", "SwapFree"):
+        if k.rstrip(":") in ("MemTotal", "MemAvailable", "MemFree", "SwapTotal", "SwapFree"):
             m[k.rstrip(":")] = int(v) * 1024
     m["swap_used"] = m.get("SwapTotal", 0) - m.get("SwapFree", 0)
     return m
@@ -259,6 +291,25 @@ def memory_gate(role, site, need, rows=None, mem=None):
     return rec
 
 
+def device_gate(role, split_half, need, device_free, mem=None):
+    """The check inside the process, after the device is initialised and before any weight is read (PREREG §11).
+    Server (discrete GPU): the device's own free memory. Edge (unified memory): available RAM, read again now. The
+    device's own figure excludes reclaimable page cache there, so for a whole model it is recorded and not applied.
+    For a split half it is applied as well, because the split runtime applies it itself and would refuse to load."""
+    mem = meminfo() if mem is None else mem
+    avail = mem.get("MemAvailable") or 0
+    rec = {"need_bytes": need, "device_free_bytes": device_free, "ram_available_bytes": avail, "ram_free_bytes": mem.get("MemFree"),
+           "device_figure_applied": role == "server" or bool(split_half), "ram_figure_applied": role == "edge"}
+    short = []
+    if rec["device_figure_applied"] and device_free < need:
+        short.append(f"device reports {device_free >> 20} MiB free < required {need >> 20} MiB")
+    if rec["ram_figure_applied"] and avail < need:
+        short.append(f"RAM available {avail >> 20} MiB < required {need >> 20} MiB")
+    if short:
+        raise Stop("BLOCKED, " + "; ".join(short) + " (nothing was loaded; try later, never ask anyone to free memory)")
+    return rec
+
+
 def port_free(port):
     s = socket.socket()
     try:
@@ -274,13 +325,20 @@ def port_free(port):
 # --------------------------------------------------------------------------- #
 # Site file, host role, freeze                                                 #
 # --------------------------------------------------------------------------- #
-def load_site(path, role):
+def load_site(path, role, selecting=False):
+    """`selecting`: the template handed to select-gpu, whose gpu_uuid is still empty."""
     site = read_json(path)
     missing = [k for k in SITE_KEYS if k not in site]
     if missing:
         raise Stop(f"site file lacks {missing}")
     if site["role"] != role:
         raise Stop(f"site file is for role {site['role']}, command is for {role}")
+    if not isinstance(site["excluded_gpu_uuids"], list):
+        raise Stop("excluded_gpu_uuids must be a list (it may be empty)")
+    if selecting and site["gpu_uuid"]:
+        raise Stop("select-gpu takes a template whose gpu_uuid is empty")
+    if not selecting and site["gpu_uuid"] and norm_uuid(site["gpu_uuid"]) in {norm_uuid(u) for u in site["excluded_gpu_uuids"]}:
+        raise Stop("the site's GPU is one the site file excludes")
     if int(site["port"]) in [int(p) for p in site["ports_in_use_by_others"]]:
         raise Stop("the site's port is one the site lists as used by another service")
     cred = Path(site["credential_file"]).resolve()
@@ -297,6 +355,36 @@ def check_credential(site):
     if p.stat().st_mode & 0o077:
         raise Stop("credential file must have mode 0600")
     return {"present": True, "mode_ok": True}
+
+
+def check_selection(site, run_dir):
+    """Server: the pinned GPU must be the one select-gpu chose for this run, and stays that one (PREREG §11)."""
+    f = Path(run_dir) / GPU_SELECTION
+    if not f.is_file():
+        raise Stop("no GPU has been selected for this run (run select-gpu first)")
+    sel = read_json(f)
+    if norm_uuid(sel["selected"]["uuid"]) != norm_uuid(site["gpu_uuid"]):
+        raise Stop("the site's GPU is not the one selected for this run")
+    return {"selected_utc": sel["utc_start"], "selection_sha256": sha256_file(f)}
+
+
+def server_stage_began(run_dir):
+    """True once a server stage that loads the model has written anything. From then on the selected GPU is fixed."""
+    return any(list(Path(run_dir).glob(p)) for p in SERVER_STAGE_OUTPUTS)
+
+
+def set_aside(run_dir, pattern, label="crashed"):
+    """Outputs of an attempt that died (or a selection that was replaced) are kept under another name, never deleted
+    (PREREG §12). Returns the number given to them, 0 if there were none."""
+    left = sorted(p for p in Path(run_dir).glob(pattern) if f".{label}-" not in p.name)
+    if not left:
+        return 0
+    n = 1
+    while list(Path(run_dir).glob(f"{pattern}.{label}-{n}")):
+        n += 1
+    for p in left:
+        p.rename(p.with_name(p.name + f".{label}-{n}"))
+    return n
 
 
 def host_facts():

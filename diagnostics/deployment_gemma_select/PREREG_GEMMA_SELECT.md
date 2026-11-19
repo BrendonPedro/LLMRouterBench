@@ -1,9 +1,29 @@
 # GEMMA-SELECT: an Edge-versus-Split deployment decision for Gemma-4 E4B. Pre-registration
 
-**Frozen by the tag `gemma-select-prereg-v1`.** No GPU has executed any code of this experiment before that tag, and
+**Frozen by the tag `gemma-select-prereg-v2`.** No GPU has executed any code of this experiment before that tag, and
 no GPU result exists. Every number below was fixed before any result. The decision files (this text, `gsel_spec.py`,
 `gsel_stats.py`, `gsel_workload.py`, `gsel_whole.py`, `gsel_adapter.py`, `workload/workload.json`) are never edited
 after the tag. A change of any rule is a new pre-registration under a new tag.
+
+## 0. Version 2: what changed from `gemma-select-prereg-v1`, and why
+
+Version 1 was frozen on 19 November 2026 and was never executed on a GPU. Its tag is unchanged and stays published.
+An audit of v1 against records of the same two machines, made before any GPU run, found that v1 could not be executed
+as written. Version 2 replaces it. **No decision rule changed:** the question, the hypotheses, the three
+configurations, the workload and its order, the correctness thresholds, the measurements, the deadlines, the margin,
+the bootstrap, the stability band, the bound and the outcome definitions are those of v1, and `gsel_stats.py`,
+`gsel_workload.py`, `gsel_whole.py` and `workload/workload.json` are byte-identical to v1.
+
+| # | Change | Reason |
+|---|---|---|
+| 1 | Edge, check inside the process before a whole-model load: available RAM is read again, and the device's own free-memory figure is recorded but not applied (section 11) | On unified memory that figure excludes reclaimable page cache. Records of the exploratory Qwen3 run on this edge machine (18 November) show it reporting 860 MiB free with 74,911 MiB of RAM available, after which a model of 62,489 MiB loaded. Under v1 the edge-matched baseline would have been BLOCKED indefinitely |
+| 2 | The device's figure is still applied to a split half | The split runtime applies it itself and refuses to load otherwise. The harness asks first, so that a shortfall is BLOCKED and not a failed attempt of the split |
+| 3 | The server GPU is chosen by a fixed rule (`select-gpu`), pinned, and fixed for the run once a server stage has run. The site file lists GPUs that are never eligible. A stage run with another site file makes the run INCOMPLETE (sections 11, 12) | The machines are shared and free memory changes by the hour. v1 left the choice to a hand-written site file and did not check that it stayed the same |
+| 4 | A reference attempt that died is set aside and may be repeated. A second start of a completed stage is a stop, not a failed attempt (section 12) | In v1 the partial files of a died reference attempt made every repeat fail, which would have ended in NOT_EVALUABLE for a reason unrelated to the model |
+| 5 | A split stage starts only if the experiment's server answers through the forward. If it does not, that is a stop before anything is loaded (section 12) | In v1 a forward that was down counted as a failed attempt of the split, and two of them as SPLIT_INFEASIBLE |
+| 6 | Wall-clock limits per command (section 12) | v1 bounded a query (600 s) and a socket operation, but not a command that hangs |
+| 7 | The private adapter gained the readiness call that change 5 uses. Its pin changed | |
+| 8 | Both preflights check the adapter pin. The edge preflight also reports, without reading a weight, whether the checkpoint header holds every key and shape the whole-model class expects under the installed library | So that a load that would fail is seen before any GPU stage. The report is advisory and changes no verdict |
 
 ## 1. Relation to the other experiments
 
@@ -12,6 +32,7 @@ after the tag. A change of any rule is a new pre-registration under a new tag.
 | E0 (`e0-prereg-v1`) | Staged screen of a Qwen3-32B split against quantised edge models, emulated edge budgets | Method reference only: deadline utility, the 3.0-point margin, the paired stratified bootstrap. No E0 code is imported. Its query sample and the benchmark evaluators are reused unchanged |
 | E1-OPT (`e1opt-prereg-v1`) | Optimised Qwen3 split runtime | None. Untouched |
 | GEMMA-SPLIT (`gemma-split-prereg-v1`) | Capture of an existing, running Gemma split deployment | Abandoned at its Stage 0 with STOP_INCOMPLETE. It produced no measurement. It asked a different question, about a running service. Nothing of it is imported. Two identity hashes established during its Stage 0 (checkpoint and split source) are reused as pins |
+| GEMMA-SELECT v1 (`gemma-select-prereg-v1`) | The first freeze of this experiment | Replaced by this version before any GPU run (section 0). It produced no output |
 | Exploratory Qwen3 two-host run of 18 November | Split against the unsplit model | None |
 
 Gemma results are never pooled with, or reported as a continuation of, Qwen3 numbers.
@@ -87,6 +108,7 @@ users of the machines are not ours to run. None is used, and none may be added u
 
 Each command first checks the tag, the site file, the host role, the source and checkpoint hashes and the free memory.
 
+0. **GPU selection** on the server (CPU only; section 11).
 1. **Preflight** on each host (CPU only).
 2. **Server profile**: the server half alone (secondary bound).
 3. **Serve**: the experiment's server instance, left running.
@@ -159,9 +181,21 @@ ones. E0's first bound (datasheet server speed) is not used, because the server 
 - **Before every load:** the weight bytes of what is loaded are computed from the checkpoint header. Required free
   memory is 1.25 times that plus 1 GiB for a split half (the split runtime's own rule) and 2 times that plus 1 GiB for
   a whole model (it is read into RAM and then moved to the device). The server needs it free on its one pinned GPU and
-  in RAM. The edge needs it in available RAM. The device is asked again inside the process before any weight is read.
-  Short of memory: BLOCKED, nothing is loaded, try later. BLOCKED is not a result.
-- The server process sees exactly one GPU, pinned by identifier in the private site file.
+  in RAM. The edge needs it in available RAM. Short of memory: BLOCKED, nothing is loaded, try later. BLOCKED is not
+  a result.
+- **Again inside the process, before any weight is read.** Server: the device's own free-memory figure. Edge: its
+  memory is unified, and the device's own figure excludes reclaimable page cache (section 0, change 1). So available
+  RAM is read again and decides for a whole model, and the device's figure is recorded. For a split half the device's
+  figure must pass as well, because the split runtime applies it itself.
+- **The server GPU is chosen by `select-gpu`**, before the first server stage. Eligible: a GPU of the server
+  model that the private site file does not exclude and that has the server half's required memory free at that
+  moment. Among the eligible: the fewest compute processes of other users, then the most free memory, then the lowest
+  index. The choice is written into the site file and recorded. Until a server stage that loads the model (the server
+  profile or the server itself) has written an output, the selection may be made again, and the earlier record is
+  kept. From then on it is fixed: every server command refuses a site file that names another GPU, and a selected GPU
+  that later lacks memory is BLOCKED, not replaced. The site file lists the GPUs that carry other services of the
+  lab. They are never eligible.
+- The server process sees exactly one GPU, the selected one.
 - Loopback binds only. Own port, checked against the ports the site file lists as used by others. Own credentials,
   outside the source directory, mode 0600.
 - No process of any user is signalled, and nobody is asked to free memory. Outputs record how many other compute
@@ -173,8 +207,16 @@ ones. E0's first bound (datasheet server speed) is not used, because the server 
 - **Stability:** median completion time of the second split pass over the first, on the sentinel queries, must lie
   in [0.90, 1.10]. Otherwise UNSTABLE.
 - **Repeats:** a block that dies is kept under another name and repeated from its start, at most twice. A completed
-  block is final.
-- **Environment:** every edge stage must report the same library versions.
+  block is final. A reference attempt that dies is kept under another name in the same way. Starting a completed
+  stage again is a stop and changes nothing.
+- **Wall-clock limits:** GPU selection 10 minutes; preflight and each profile 1 hour; reference and correctness
+  2 hours each; a timed block 600 s per query plus 1 hour (27.7 hours for 160 queries, 5 hours for the sentinel
+  pass). A command that reaches its limit is an attempt that died.
+- **Server not answering:** a split stage first asks the experiment's server, through the forward, whether it is
+  ready. If it does not answer, the command stops before anything is loaded. That is a fault of the setup, not an
+  attempt of the split, and it is not counted.
+- **Environment:** every edge stage must report the same library versions, and every stage of a host the same site
+  file. Otherwise INCOMPLETE.
 - Outputs are written once. Scores and the summary are computed by the frozen code.
 
 | Outcome | Meaning |
@@ -185,7 +227,7 @@ ones. E0's first bound (datasheet server speed) is not used, because the server 
 | SPLIT_INFEASIBLE | The split could not be started or run in our configuration in two attempts after passed preflights |
 | NOT_EVALUABLE | Em could not be loaded in two attempts, or no cell reached the 0.05 floor |
 | UNSTABLE | The two split passes differ by more than 10% |
-| INCOMPLETE | A stage is missing, a block exceeded its repeats, or the environment changed |
+| INCOMPLETE | A stage is missing, a block exceeded its repeats, or the environment or a site file changed |
 
 All are reportable results. None is rerun under this tag, except that BLOCKED attempts do not count.
 
@@ -209,6 +251,10 @@ equal-quality case and says so wherever it is reported.
 - The split's authors report CPU tests on one host only. Its behaviour on these GPUs is unknown to us.
 - The GPUs are shared, the link is an SSH forward over a wireless interface on the edge side, and blocks are not
   simultaneous.
+- Before this tag the complete command sequence was run on a CPU with the unmodified split runtime on both sides and
+  a random model of the runtime's wire dimensions, under the library versions of both hosts. It showed that the
+  drivers run and that the split reproduces the whole model on random weights. It is not a Gemma result, and no
+  timing from it is used.
 
 ## 15. Integrity
 

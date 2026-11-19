@@ -1,5 +1,6 @@
 """GEMMA-SELECT drivers (PREREG §5; exact order in RUNBOOK.md).
 
+  select-gpu   --site TEMPLATE --out F         server, CPU only, once: choose the GPU by the fixed rule and pin it in F
   preflight    --role edge|server --site F    CPU only: identity, hashes, load estimate, free-memory gate
   serve        --site F                        server: the split's server half until Ctrl-C
   profile      --role edge|server --site F    one segment alone (secondary bound)
@@ -15,6 +16,7 @@ the free memory. --dev is for CPU tests with a test double only; dev outputs are
 import argparse
 import json
 import os
+import signal
 import sys
 import time
 from pathlib import Path
@@ -29,6 +31,14 @@ import gsel_workload as WL  # noqa: E402
 NEED = {"server": ("server_float32", S.LOAD_FACTOR), "split_edge": ("edge_float32", S.LOAD_FACTOR),
         "Em": ("whole_float32", S.WHOLE_LOAD_FACTOR), "Es": ("whole_bfloat16", S.WHOLE_LOAD_FACTOR)}
 STATE = {"run_dir": None, "hdr": None}
+
+
+def arm(seconds):
+    """Wall-clock limit of a command (PREREG §12). Reaching it ends the command as an attempt that died."""
+    def stop(*_):
+        raise TimeoutError(f"wall-clock limit of {int(seconds)} s reached")
+    signal.signal(signal.SIGALRM, stop)
+    signal.alarm(int(seconds))
 
 
 def versions():
@@ -49,7 +59,9 @@ def prepare(a, role, loads=(), deep=False):
     if site.get("gpu_uuid") and str(site["device"]).startswith("cuda"):
         os.environ["CUDA_VISIBLE_DEVICES"] = site["gpu_uuid"]          # no other GPU is visible to this process
     host = C.check_role(role, site, dev=a.dev)
-    src = ck = est = gate = None
+    src = ck = est = gate = sel = None
+    if role == "server" and (not a.dev or (Path(site["run_dir"]) / C.GPU_SELECTION).exists()):
+        sel = C.check_selection(site, site["run_dir"])
     if not a.dev:
         src = C.check_source(site["source_root"])
         ck = C.check_checkpoint(site["model_dir"], deep=deep)
@@ -57,7 +69,7 @@ def prepare(a, role, loads=(), deep=False):
         if loads:
             gate = C.memory_gate(role, site, max(C.need_bytes(est[NEED[load][0]], NEED[load][1]) for load in loads))
     hdr = {"schema": S.SCHEMA, "experiment": S.NAME, "freeze": fz, "dev": bool(a.dev), "role": role, "site_sha256": site["_sha256"],
-           "host": host, "utc_start": C.utc(), "source": src, "checkpoint": ck, "estimate": est, "memory_gate": gate,
+           "host": host, "utc_start": C.utc(), "source": src, "checkpoint": ck, "estimate": est, "memory_gate": gate, "gpu_selection": sel,
            "versions": versions(), "others_on_gpu_start": C.gpu_others(site.get("gpu_uuid"), (os.getpid(),))}
     STATE.update(run_dir=Path(site["run_dir"]), hdr=hdr)
     return site, Path(site["run_dir"]), hdr
@@ -75,21 +87,22 @@ def record_failure(cmd, exc):
                                                        error=str(exc)[:300]))
 
 
-def gpu_gate(site, need):
-    """After torch is imported and before any weight is loaded: the device itself must report the memory as free."""
+def gpu_gate(site, need, split_half=False):
+    """After torch is imported and before any weight is read: one visible GPU, the site's, and the memory check of
+    gsel_common.device_gate (server: the device's free memory; edge: available RAM read again, and for a split half
+    the device's figure as well)."""
     import torch
     dev = site["device"]
     if not str(dev).startswith("cuda"):
         return {"device": "cpu"}
     if torch.cuda.device_count() != 1:
         raise C.Stop("exactly one GPU must be visible to this process")
-    uuid = C.norm_uuid(getattr(torch.cuda.get_device_properties(0), "uuid", ""))
-    if site.get("gpu_uuid") and uuid != C.norm_uuid(site["gpu_uuid"]):
+    p = torch.cuda.get_device_properties(0)
+    if site.get("gpu_uuid") and C.norm_uuid(getattr(p, "uuid", "")) != C.norm_uuid(site["gpu_uuid"]):
         raise C.Stop("the visible GPU is not the site's GPU")
     free, total = torch.cuda.mem_get_info(0)
-    if free < need:
-        raise C.Stop(f"BLOCKED, device reports {free >> 20} MiB free < required {need >> 20} MiB (nothing was loaded)")
-    return {"device": dev, "free_bytes": free, "total_bytes": total, "need_bytes": need}
+    return dict(C.device_gate(site["role"], split_half, need, free), device=dev, total_bytes=total,
+                is_integrated=bool(getattr(p, "is_integrated", False)))
 
 
 def need_for(hdr, load):
@@ -101,9 +114,85 @@ def finish(hdr, site, **body):
 
 
 # --------------------------------------------------------------------------- #
+def cmd_select_gpu(a):
+    """Server, CPU only: the GPU is chosen by the fixed rule and pinned in a new site file. Until a server stage has
+    written an output, a selection may be replaced by a new one (the earlier record and site file are kept, renamed).
+    After that it is fixed for the run."""
+    fz = C.freeze_check(a.dev)
+    site = C.load_site(a.site, "server", selecting=True)
+    rd, out = Path(site["run_dir"]), Path(a.out)
+    host = C.host_facts()
+    if not a.dev and host["hostname"] != site["expected_hostname"]:
+        raise C.Stop("this host is not the one the site file names")
+    old = C.read_json(rd / C.GPU_SELECTION) if (rd / C.GPU_SELECTION).exists() else None
+    if old is not None and C.server_stage_began(rd):
+        raise C.Stop("a server stage has run on the selected GPU: the selection is fixed for this run")
+    old_site = Path(old["site_path"]) if old is not None else None
+    if out.exists() and out.resolve() != old_site:
+        raise C.Stop("the output site file exists: outputs are written once")
+    if old_site is not None and old_site.exists() and C.sha256_file(old_site) != old["site_sha256"]:
+        raise C.Stop("the earlier pinned site file was changed by hand")
+    if a.dev:
+        need = 1 << 20
+    else:
+        C.check_checkpoint(site["model_dir"], deep=False)
+        need = C.need_bytes(C.estimate_bytes(site["model_dir"])["server_float32"], S.LOAD_FACTOR)
+    mem = C.meminfo()
+    fake = (site.get("double") or {}) if a.dev else {}                       # CPU tests only: recorded probe text in place of the probe
+    rows = C.parse_gpu_rows(fake["gpu_rows"]) if "gpu_rows" in fake else C.gpu_rows()
+    chosen, considered = C.select_gpu(rows, fake.get("gpu_apps", "") if "gpu_rows" in fake else C.apps_text(), need, site["excluded_gpu_uuids"])
+    for c in considered:
+        print(f"GPU index {c['index']}: free {c['free_mib']} MiB, other compute processes {c['other_processes']}: "
+              + ("eligible" if c["eligible"] else c["reason"]) + ("  <- SELECTED" if chosen is not None and c["uuid"] == chosen["uuid"] else ""))
+    if chosen is None or (mem.get("MemAvailable") or 0) < need:
+        raise C.Stop(f"BLOCKED, no eligible GPU with {need >> 20} MiB free now (nothing was selected or loaded; try later, "
+                     "never ask anyone to free memory)")
+    superseded = 0
+    if old is not None:                                                      # replaced before any server stage: kept under another name
+        superseded = C.set_aside(rd, C.GPU_SELECTION, label="superseded")
+        if old_site.exists():
+            old_site.rename(old_site.with_name(old_site.name + f".superseded-{superseded}"))
+    pinned = {k: v for k, v in site.items() if not k.startswith("_")}
+    pinned["gpu_uuid"] = "GPU-" + chosen["uuid"]
+    out.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(out, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(json.dumps(pinned, indent=1) + "\n")
+    C.write_json(rd / C.GPU_SELECTION, {"schema": S.SCHEMA, "experiment": S.NAME, "freeze": fz, "dev": bool(a.dev), "host": host,
+                                        "utc_start": C.utc(), "template_sha256": site["_sha256"], "site_sha256": C.sha256_file(out),
+                                        "site_path": str(out.resolve()), "earlier_selections_set_aside": superseded,
+                                        "need_bytes": need, "ram_available_bytes": mem.get("MemAvailable"), "considered": considered,
+                                        "selected": chosen, "rule": "fewest other compute processes, then most free memory, then lowest index"})
+    print(f"selected GPU index {chosen['index']} ({chosen['free_mib']} MiB free, required {need >> 20} MiB); pinned in {out}")
+
+
+def whole_model_key_check(model_dir):
+    """CPU only, no weight read: the keys the whole-model class expects under the installed library against the keys
+    and shapes in the checkpoint header. Advisory: a preflight line and a record, never a verdict."""
+    try:
+        import torch
+        import transformers
+        import gsel_whole as W
+        cfg = json.loads((Path(model_dir) / "config.json").read_text())
+        cls = getattr(transformers, (cfg.get("architectures") or [None])[0])
+        with torch.device("meta"):
+            model = cls(cls.config_class.from_pretrained(model_dir, local_files_only=True))
+        want = {k: list(v.shape) for k, v in model.state_dict().items()}
+        have = C.safetensors_header(Path(model_dir) / "model.safetensors")
+        missing = sorted(k for k in want if k not in have and not k.endswith(W.TIED_OK))
+        shape = sorted(k for k in want if k in have and list(have[k]["shape"]) != want[k])
+        return {"expected": len(want), "missing": len(missing), "shape_mismatch": len(shape), "not_expected_in_file": len(set(have) - set(want)),
+                "first_missing": missing[:5], "first_shape_mismatch": shape[:5], "transformers": transformers.__version__}
+    except Exception as e:                                                  # advisory only: it never stops a preflight
+        return {"error": type(e).__name__}
+
+
 def cmd_preflight(a):
     site, rd, hdr = prepare(a, a.role, deep=True)
     C.check_credential(site)
+    if not a.dev and C.sha256_file(site["adapter_path"]) != S.ADAPTER_SHA256:
+        raise C.Stop("the adapter file is not the pinned one")
+    keys = whole_model_key_check(site["model_dir"]) if a.role == "edge" else None
     gates, blocked = {}, []
     for load in (("server",) if a.role == "server" else ("split_edge", "Em", "Es")):
         try:
@@ -113,7 +202,7 @@ def cmd_preflight(a):
             blocked.append(load)
     listening = not C.port_free(site["port"])
     port_ok = (not listening) if a.role == "server" else listening
-    rec = finish(hdr, site, gates=gates, port={"listening": listening, "ok": port_ok},
+    rec = finish(hdr, site, gates=gates, port={"listening": listening, "ok": port_ok}, whole_model_keys=keys,
                  verdict="GO" if not blocked and port_ok else "BLOCKED")
     name = "preflight.json"
     n = 1
@@ -124,6 +213,13 @@ def cmd_preflight(a):
     need = {k: v.get("need_bytes", 0) >> 20 for k, v in gates.items()}
     print(f"preflight {a.role}: {rec['verdict']}  required MiB {need}  port {'listening' if listening else 'free'}"
           + ("" if port_ok else "  (server: the port must be free; edge: the SSH forward must be up)"))
+    if a.role == "edge":
+        m = C.meminfo()
+        print(f"RAM now: available {(m.get('MemAvailable') or 0) >> 20} MiB, free {(m.get('MemFree') or 0) >> 20} MiB. The split half also "
+              "needs its amount free on the device's own count, which follows free RAM, not available RAM.")
+        print("whole-model class check (no weight read): " + (f"could not run ({keys['error']})" if "error" in keys else
+              f"expected keys missing from the checkpoint {keys['missing']}, shape mismatches {keys['shape_mismatch']}")
+              + ". If it could not run or a number is not 0, do not start `reference`: report it first.")
     sys.exit(0 if rec["verdict"] == "GO" else 3)
 
 
@@ -132,11 +228,12 @@ def cmd_serve(a):
     if not C.port_free(site["port"]):
         raise C.Stop("the site's port is already in use")
     adapter, info = AD.load(site, "server", a.dev)
-    gpu = gpu_gate(site, need_for(hdr, "server"))
-    served = adapter.serve()
+    gpu = gpu_gate(site, need_for(hdr, "server"), split_half=True)
     n = 1
-    while (rd / f"server_record.{n}.json").exists():
+    while (rd / f"server_started.{n}.json").exists() or (rd / f"server_record.{n}.json").exists():
         n += 1
+    C.write_json(rd / f"server_started.{n}.json", dict(hdr, adapter=info, gpu_gate=gpu))   # from here on the selected GPU is fixed
+    served = adapter.serve()
     C.write_json(rd / f"server_record.{n}.json", finish(hdr, site, adapter=info, gpu_gate=gpu, served=served))
     print(f"server record written: server_record.{n}.json")
 
@@ -144,8 +241,10 @@ def cmd_serve(a):
 def cmd_profile(a):
     load = "server" if a.role == "server" else "split_edge"
     site, rd, hdr = prepare(a, a.role, loads=(load,))
+    if (rd / f"profile_{a.role}.json").exists():
+        raise C.Stop(f"profile_{a.role}.json is complete: outputs are written once")
     adapter, info = AD.load(site, a.role, a.dev)
-    gpu = gpu_gate(site, need_for(hdr, load))
+    gpu = gpu_gate(site, need_for(hdr, load), split_half=True)
     lengths = S.PROFILE_LENGTHS if not a.dev else (4, 8, 16)
     steps = S.PROFILE_DECODE_STEPS if not a.dev else 3
     rows = []
@@ -175,6 +274,9 @@ def _ids_sha(ids):
 
 def cmd_reference(a):
     site, rd, hdr = prepare(a, "edge", loads=("Em",))
+    if (rd / "reference.json").exists():
+        raise C.Stop("reference.json is complete: outputs are written once")
+    died = C.set_aside(rd, "reference_logits_*.pt")                        # an earlier attempt died: its files are kept, renamed
     import torch
     import gsel_whole as W
     gpu = gpu_gate(site, need_for(hdr, "Em"))
@@ -198,22 +300,35 @@ def cmd_reference(a):
                       "self_consistent": [int(x) for x in top.indices[:, 0]] == toks, "finite": bool(torch.isfinite(rows).all()),
                       "logits_file": f.name, "logits_sha256": C.sha256_file(f)})
     C.write_json(rd / "reference.json", finish(hdr, site, gpu_gate=gpu, model=minfo, items=items, eos=W.eos_ids(site["model_dir"]),
-                 memory=W.cuda_memory(site["device"]),
+                 memory=W.cuda_memory(site["device"]), died_attempts_set_aside=died,
                  screen_decision={"stage": 1, "decision": "EDGE",
                                   "basis": "the split's model is the whole float32 model, which loaded on the edge: quality lead "
                                            "0.0 points < 3.0 by identity (PREREG §6)"}))
     print(f"reference.json written ({len(items)} prompts); screen decision recorded: EDGE at Stage 1")
 
 
+def server_must_answer(adapter):
+    """A split stage starts only if the experiment's own server answers through the forward. Otherwise it is a stop
+    of the operator's setup, before anything is loaded, and not an attempt of the split."""
+    if not adapter.server_ready():
+        raise C.Stop("the experiment's server does not answer ready through the forward (nothing was loaded; check the "
+                     "server terminal and the SSH forward, then run the same command again)")
+
+
 def cmd_correctness(a):
     site, rd, hdr = prepare(a, "edge", loads=("split_edge",))
+    if (rd / "correctness.json").exists():
+        raise C.Stop("correctness.json is complete: outputs are written once")
+    if not (rd / "reference.json").exists():
+        raise C.Stop("reference must complete before correctness")
     ref = C.read_json(rd / "reference.json")
     if ref["dev"] != bool(a.dev) or ref["freeze"] != hdr["freeze"]:
         raise C.Stop("reference.json belongs to another freeze or mode")
     import torch
     import gsel_whole as W
     adapter, info = AD.load(site, "edge", a.dev)
-    gpu = gpu_gate(site, need_for(hdr, "split_edge"))
+    server_must_answer(adapter)
+    gpu = gpu_gate(site, need_for(hdr, "split_edge"), split_half=True)
     tok = W.load_tokenizer(site["model_dir"])
     conn = adapter.connect()
     if sorted(conn["eos"]) != ref["eos"]:
@@ -274,15 +389,18 @@ def cmd_timed(a):
     max_new, cutoff = S.MAX_NEW_TOKENS, S.QUERY_CUTOFF_S
     if a.dev:
         queries, max_new = queries[:a.limit or 4], a.max_new or 8
-    gpu = gpu_gate(site, need_for(hdr, load))
+    arm(len(queries) * S.QUERY_CUTOFF_S + S.TIMED_SLACK_S)
     if cfg == "S":
         adapter, info = AD.load(site, "edge", a.dev)
+        server_must_answer(adapter)
+        gpu = gpu_gate(site, need_for(hdr, load), split_half=True)
         conn = adapter.connect()
         if sorted(conn["eos"]) != eos:
             raise C.Stop("the split runtime's EOS set differs from generation_config.json")
         gen = lambda ids, n, cb: adapter.generate(ids, n, on_token=cb, stop_on_eos=True)  # noqa: E731
         mem = adapter.memory
     else:
+        gpu = gpu_gate(site, need_for(hdr, load))
         model, info = W.load_model(site["model_dir"], S.WHOLE_DTYPE[cfg][0], site["device"], S.WHOLE_DTYPE[cfg][1])
         runner = W.WholeRunner(model, site["device"])
         gen = lambda ids, n, cb: runner.generate(ids, n, eos, on_token=cb, stop=AD.Cutoff)  # noqa: E731
@@ -387,7 +505,14 @@ def summarise(edge_run, server_run, dev=False, n_boot=None):
     if len(freezes) != 1:
         raise C.Stop("outputs come from more than one freeze")
     out["environment_consistent"] = len(envs) == 1                          # one interpreter and library set for every edge stage
-    complete = all(b in blocks for b in S.BLOCKS) and out["environment_consistent"]
+    edge_sites = {x["site_sha256"] for x in (ref, corr)} | {blocks[b][0]["site_sha256"] for b in blocks}
+    server_sites = set()
+    if (rd / "profile_edge.json").exists():
+        edge_sites.add(C.read_json(rd / "profile_edge.json")["site_sha256"])
+    for f in (sorted(Path(server_run).glob("server_record.*.json")) + sorted(Path(server_run).glob("profile_server.json")) if server_run else []):
+        server_sites.add(C.read_json(f)["site_sha256"])
+    out["site_consistent"] = len(edge_sites) == 1 and len(server_sites) <= 1   # one site file, so one GPU, per host for the whole run
+    complete = all(b in blocks for b in S.BLOCKS) and out["environment_consistent"] and out["site_consistent"]
     cells, stab, quality, latency = [], {"stable": False, "ratio": None, "n": 0}, {}, {}
     if complete:
         per = {b: {r["key"]: r for r in blocks[b][1]} for b in ("S1", "Es", "Em")}
@@ -446,7 +571,7 @@ def cmd_summary(a):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sp = ap.add_subparsers(dest="cmd", required=True)
-    for name, fn in (("preflight", cmd_preflight), ("serve", cmd_serve), ("profile", cmd_profile), ("reference", cmd_reference),
+    for name, fn in (("select-gpu", cmd_select_gpu), ("preflight", cmd_preflight), ("serve", cmd_serve), ("profile", cmd_profile), ("reference", cmd_reference),
                      ("correctness", cmd_correctness), ("timed", cmd_timed), ("score", cmd_score), ("summary", cmd_summary)):
         p = sp.add_parser(name)
         p.add_argument("--dev", action="store_true")
@@ -454,6 +579,8 @@ def main(argv=None):
             p.add_argument("--role", required=True, choices=S.ROLES)
         if name not in ("score", "summary"):
             p.add_argument("--site", required=True)
+        if name == "select-gpu":
+            p.add_argument("--out", required=True)
         if name == "timed":
             p.add_argument("--block", required=True, choices=S.BLOCKS)
             p.add_argument("--limit", type=int)
@@ -472,6 +599,8 @@ def main(argv=None):
     if (getattr(a, "limit", None) or getattr(a, "max_new", None)) and not a.dev:
         raise C.Stop("--limit and --max-new are dev only")
     try:
+        if a.cmd in S.LIMITS_S:
+            arm(S.LIMITS_S[a.cmd])
         a.fn(a)
     except (SystemExit, KeyboardInterrupt):
         raise

@@ -33,6 +33,10 @@ class SplitAdapter:
         raise NotImplementedError
 
     # ---- edge host ----
+    def server_ready(self):
+        """True if the experiment's own server answers ready through the forward. Loads nothing and never raises."""
+        raise NotImplementedError
+
     def connect(self, require_server=True):
         """Load the edge half; with require_server, the experiment's own server must answer ready. Returns {"eos": [...]}."""
         raise NotImplementedError

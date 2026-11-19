@@ -50,7 +50,7 @@ def site_file(root, role, model_dir, port=1, **extra):
     cred.chmod(0o600)
     site = {"role": role, "expected_hostname": "test-host", "source_root": str(root / "src"), "model_dir": str(model_dir), "device": "cpu",
             "gpu_uuid": None, "port": port, "credential_file": str(cred), "client_id": "t", "run_dir": str(root / f"run_{role}"),
-            "adapter_path": str(GS / "tests" / "double_adapter.py"), "ports_in_use_by_others": [9, 10]}
+            "adapter_path": str(GS / "tests" / "double_adapter.py"), "ports_in_use_by_others": [9, 10], "excluded_gpu_uuids": []}
     site.update(extra)
     p = root / f"site_{role}_{len(list(root.glob('site_*')))}.json"
     p.write_text(json.dumps(site))

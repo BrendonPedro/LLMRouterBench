@@ -3,8 +3,8 @@
 Nothing here identifies a machine, a user or a path. Host-specific values live in a private site file (site.example.json).
 """
 NAME = "GEMMA-SELECT"
-TAG = "gemma-select-prereg-v1"
-PROTOCOL_VERSION = 1
+TAG = "gemma-select-prereg-v2"
+PROTOCOL_VERSION = 2            # v1 (tag gemma-select-prereg-v1) was never executed on a GPU; PREREG section 0 lists the changes
 SCHEMA = "gemma-select/1"
 
 # ---- model and split implementation (identity only; neither is redistributed) ----
@@ -23,7 +23,7 @@ CUT = 24                                   # edge: layers [0, 24); server: layer
 SPLIT_DTYPE = "float32"                    # as implemented by the split runtime (eager attention)
 SOURCE_MANIFEST_SHA256 = "cc030037a1e5a1625860838d73bbd381a15e7bfa49c8aab154af681b5112ce7f"   # 54 source files
 SOURCE_N_FILES = 54
-ADAPTER_SHA256 = "151cad644147217a5cdba3f1430a4402076827340924b35591b5aaa7c029a04e"        # the private adapter file, pinned at the freeze
+ADAPTER_SHA256 = "0d6b871a8a47b84f6fd6117527454fe6ac3b00d7f21bcd3383d6777a5dffa1ba"        # the private adapter file, pinned at the freeze
 
 # ---- roles (model names only; hostnames and device ids are in the site file) ----
 EDGE_ARCH = "aarch64"
@@ -78,6 +78,10 @@ LOAD_FACTOR = 1.25                         # split halves: required free memory 
 WHOLE_LOAD_FACTOR = 2.0                    # whole model: 2 x weight bytes + 1 GiB (it is read into RAM, then moved to the device)
 LOAD_HEADROOM_BYTES = 1 << 30
 MAX_BLOCK_REPEATS = 2
+
+# ---- wall-clock limits (seconds). A command that reaches its limit is an attempt that died. ----
+LIMITS_S = {"select-gpu": 600, "preflight": 3600, "profile": 3600, "reference": 7200, "correctness": 7200}
+TIMED_SLACK_S = 3600                       # a timed block: queries x QUERY_CUTOFF_S + this (loading and warm-up)
 
 OUTCOMES = ("SCREEN_CONFIRMED", "SCREEN_CONTRADICTED", "CORRECTNESS_FAIL", "SPLIT_INFEASIBLE", "NOT_EVALUABLE", "UNSTABLE",
             "INCOMPLETE")

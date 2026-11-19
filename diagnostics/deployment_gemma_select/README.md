@@ -5,6 +5,9 @@ deadline-utility rule of E0. Protocol: `PREREG_GEMMA_SELECT.md`. Execution: `RUN
 
 It is not E0, not E1-OPT and not GEMMA-SPLIT v1 (`../deployment_gemma_split`, abandoned at STOP_INCOMPLETE, untouched).
 
+This is version 2 (tag `gemma-select-prereg-v2`). Version 1 (`gemma-select-prereg-v1`) was never executed on a GPU;
+section 0 of the protocol lists what changed. No decision rule changed.
+
 | File | Role |
 |---|---|
 | `gsel_spec.py` | every fixed parameter and pin |
