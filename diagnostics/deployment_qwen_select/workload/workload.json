@@ -1,0 +1,1335 @@
+{
+ "benchmarks": [
+  "mmlupro",
+  "gpqa",
+  "livemathbench"
+ ],
+ "correctness": [
+  "livemathbench:68",
+  "livemathbench:54",
+  "livemathbench:55",
+  "livemathbench:48",
+  "livemathbench:22",
+  "gpqa:110",
+  "gpqa:153",
+  "mmlupro:640",
+  "gpqa:166",
+  "gpqa:128"
+ ],
+ "experiment": "QWEN-SELECT",
+ "extension_keys_sha256": "005ca5149c95b5c59245e3339edb334a665cd11ad5e352191cbceb7ef1c85b9f",
+ "heldout": "ranks n..2n-1 of the S1 permutation (run_s1.draw_sample(scale=2)); disjoint from sample_200.jsonl",
+ "queries": {
+  "gpqa:101": {
+   "answer_sha256": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd",
+   "dataset": "gpqa",
+   "ids_sha256": "2e4ba1b260bdeeec8f623f616d176451963bc2b4821cbadcc5ef7dfbe3d53af2",
+   "n_prompt": 231,
+   "prompt_sha256": "aa4d79d67ec834ad64904237f77b2afe6ffb748731258068232a57edbca5b978"
+  },
+  "gpqa:106": {
+   "answer_sha256": "6b23c0d5f35d1b11f9b683f0b0a617355deb11277d91ae091d399c655b87940d",
+   "dataset": "gpqa",
+   "ids_sha256": "004be09136998f1d4aa523736f8bcccb32e190ae9c0a76842d2ec8f6b0a4f0e2",
+   "n_prompt": 309,
+   "prompt_sha256": "bc6907d69c1cbbee37bf9ebc0c33a66a2c4b1d34a6263b061c2d5b64c8a8725a"
+  },
+  "gpqa:108": {
+   "answer_sha256": "6b23c0d5f35d1b11f9b683f0b0a617355deb11277d91ae091d399c655b87940d",
+   "dataset": "gpqa",
+   "ids_sha256": "6c3707bb736bae0536c4412c8b67ff5dfaa36a4dcf53e9b720c0acc061aaa45a",
+   "n_prompt": 201,
+   "prompt_sha256": "44cd6116c5cb9938712daa689cbdf63b7eecc9437dc80e0ed5330ad635035bf3"
+  },
+  "gpqa:109": {
+   "answer_sha256": "3f39d5c348e5b79d06e842c114e6cc571583bbf44e4b0ebfda1a01ec05745d43",
+   "dataset": "gpqa",
+   "ids_sha256": "17399d17f89b97093cbe71ffdacd2cc4f49b9fa597531b1687415803996a50c3",
+   "n_prompt": 288,
+   "prompt_sha256": "89b8d3d88884b58a1c67a3725f8db355fb32a0026f2a359cc351c17de2147b26"
+  },
+  "gpqa:110": {
+   "answer_sha256": "df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c",
+   "dataset": "gpqa",
+   "ids_sha256": "417d079332c34e0bf63f11ece2717524b0ee8f1d16354e92c65ea09b38e6afaa",
+   "n_prompt": 524,
+   "prompt_sha256": "70a0b0ef1b2dc61a642139a44096000d5ef01a9e660fa34e82acc157f411bcaa"
+  },
+  "gpqa:113": {
+   "answer_sha256": "6b23c0d5f35d1b11f9b683f0b0a617355deb11277d91ae091d399c655b87940d",
+   "dataset": "gpqa",
+   "ids_sha256": "518e0e4bcf5ba1d207bcbd597abe04b90995c0159f0f76a8cff0d1fa349ab337",
+   "n_prompt": 253,
+   "prompt_sha256": "87d377f8c0f0de52160dc80929c61957e4601d667b87c149bc0e182b4797f7f6"
+  },
+  "gpqa:117": {
+   "answer_sha256": "3f39d5c348e5b79d06e842c114e6cc571583bbf44e4b0ebfda1a01ec05745d43",
+   "dataset": "gpqa",
+   "ids_sha256": "9c067f23ad80a209b634ac87595e5f2f18b8725f2d3ddef6e77df719a5d6361d",
+   "n_prompt": 235,
+   "prompt_sha256": "772d2c9b5c4f89a7c4a2b9f7fe1f7e8af4568d6928976fef8e316fa6f4e775a5"
+  },
+  "gpqa:118": {
+   "answer_sha256": "df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c",
+   "dataset": "gpqa",
+   "ids_sha256": "08d83d0456fba5f669698978936482764d525a1d02ab2427c135b5e726be7417",
+   "n_prompt": 181,
+   "prompt_sha256": "7054a2c7205fa4b6654026f9e0fcbfdf982221f17c2d52665af917e934943fdf"
+  },
+  "gpqa:121": {
+   "answer_sha256": "6b23c0d5f35d1b11f9b683f0b0a617355deb11277d91ae091d399c655b87940d",
+   "dataset": "gpqa",
+   "ids_sha256": "fda34269958ee53bca102e55ac38742e9b7633adeb56a77903676280e3dbb35c",
+   "n_prompt": 302,
+   "prompt_sha256": "bff247f1209c04916a7ec162a22816db71c41d78dbc69ba0a9026448503457aa"
+  },
+  "gpqa:123": {
+   "answer_sha256": "3f39d5c348e5b79d06e842c114e6cc571583bbf44e4b0ebfda1a01ec05745d43",
+   "dataset": "gpqa",
+   "ids_sha256": "02a15f09cc57b828305bd5160697ef149a07b006de5415c64d414c2e991e4641",
+   "n_prompt": 233,
+   "prompt_sha256": "f65cf25a0ac3dcc27a18d5481e1dd21c9213676cb591f74a5cd7a0c70e8d8b90"
+  },
+  "gpqa:128": {
+   "answer_sha256": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd",
+   "dataset": "gpqa",
+   "ids_sha256": "26cb3d989dbea39af7ffe9997ac0d16239d8af10850c3fe2cf6e4bc27aeb9c2f",
+   "n_prompt": 2823,
+   "prompt_sha256": "8ac4fcd978d762fb92ce469e2669303b59ef6341271aee8e4c1708495eea45c5"
+  },
+  "gpqa:132": {
+   "answer_sha256": "df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c",
+   "dataset": "gpqa",
+   "ids_sha256": "8935f665c113765b26e677b244a0cae198fef19611edbed310cca5d83518e2a0",
+   "n_prompt": 340,
+   "prompt_sha256": "b6893e9312bd53ae380bdc997c0a0f7dc396f8d5d67f79c7c61251d1a1d2c441"
+  },
+  "gpqa:136": {
+   "answer_sha256": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd",
+   "dataset": "gpqa",
+   "ids_sha256": "204eedb3dd5e3dc2207e6f29d26f7e4c0778d36342b9735cf14501f8ff910a03",
+   "n_prompt": 194,
+   "prompt_sha256": "cd77061b7f692eed24a3f4f4b1ca501a2776f84545e6a29f6e17a292af661b6d"
+  },
+  "gpqa:137": {
+   "answer_sha256": "6b23c0d5f35d1b11f9b683f0b0a617355deb11277d91ae091d399c655b87940d",
+   "dataset": "gpqa",
+   "ids_sha256": "7637560523e53129f9a1546631552712ca08775df40968fe1690f0cd3252253b",
+   "n_prompt": 240,
+   "prompt_sha256": "f064cc6bd0e7d2ee48232ff6f13f77b1eb0a96682dac2dbc3697ddf4e19c76de"
+  },
+  "gpqa:142": {
+   "answer_sha256": "6b23c0d5f35d1b11f9b683f0b0a617355deb11277d91ae091d399c655b87940d",
+   "dataset": "gpqa",
+   "ids_sha256": "9b13429958bdb50397dbf661caa32642cf984751813bfc9b1b967cfc7c154b54",
+   "n_prompt": 162,
+   "prompt_sha256": "3987a76bf88657af66c936002034db75dbfcfee44d3161b531d6535e53cc3fa6"
+  },
+  "gpqa:143": {
+   "answer_sha256": "df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c",
+   "dataset": "gpqa",
+   "ids_sha256": "c5bfd6ea9f2ede58019e867cd9a07b5a315ff89650e37cf1bdedb107460fbacb",
+   "n_prompt": 414,
+   "prompt_sha256": "7e009d033bec43f137bf993c061ca907658b4db4d94d61eca2b11bb9bd4ea255"
+  },
+  "gpqa:151": {
+   "answer_sha256": "6b23c0d5f35d1b11f9b683f0b0a617355deb11277d91ae091d399c655b87940d",
+   "dataset": "gpqa",
+   "ids_sha256": "347b3c5d6f1f538aced3507f61eaee7f3964a1ebda1eba2d7eeda0483acd0138",
+   "n_prompt": 206,
+   "prompt_sha256": "642305dbc56f7703f2d889135ef728c6b7061e9f1938da335248728fdf677290"
+  },
+  "gpqa:153": {
+   "answer_sha256": "df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c",
+   "dataset": "gpqa",
+   "ids_sha256": "60557695a4b75147c6bdb9584cc1319f22879b1eabbca0db15033b66d5b5a6b0",
+   "n_prompt": 545,
+   "prompt_sha256": "939a059bd1bcfd72a17ad9d0a20ea16660c460a8f2284298b20f41aead5437a4"
+  },
+  "gpqa:159": {
+   "answer_sha256": "df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c",
+   "dataset": "gpqa",
+   "ids_sha256": "cac07d1f50e99920fe7686ffd252966d0c9b0fe7c2d986980913e860f9e94fb1",
+   "n_prompt": 224,
+   "prompt_sha256": "dd022954335951ceb024b2948f16f99a40013b7aafab94a635fbb70021770223"
+  },
+  "gpqa:161": {
+   "answer_sha256": "6b23c0d5f35d1b11f9b683f0b0a617355deb11277d91ae091d399c655b87940d",
+   "dataset": "gpqa",
+   "ids_sha256": "08dfe43301ecd80ff04912c884b07d575ac6968959f09a248f6c012a2cdc19b5",
+   "n_prompt": 308,
+   "prompt_sha256": "e8978f04767ce3bf69ac0e2233837c2587fafe75f28e72f4bb9b220980814ca3"
+  },
+  "gpqa:165": {
+   "answer_sha256": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd",
+   "dataset": "gpqa",
+   "ids_sha256": "35ddc9e4c74a99b143f18a6812f135e895041c67f7dd5bfe03f5d9cfc59f072a",
+   "n_prompt": 287,
+   "prompt_sha256": "7c41137297d994f933e4350f7b9a92964ca8fcf9e14577d0b4c218c54807fd34"
+  },
+  "gpqa:166": {
+   "answer_sha256": "df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c",
+   "dataset": "gpqa",
+   "ids_sha256": "e9b0ab9d2032af9744536b2365ad321a3ef2647c56842258b86fa3abc69d66c9",
+   "n_prompt": 914,
+   "prompt_sha256": "5d61767bbf422916ba691572a690a1a771c5534e3f4a0cb62bb3541a25af1b0f"
+  },
+  "gpqa:169": {
+   "answer_sha256": "df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c",
+   "dataset": "gpqa",
+   "ids_sha256": "a022ce29357a3bc35a7b0df79d3c97a77cc36c111c922f49cba50e60b60330aa",
+   "n_prompt": 229,
+   "prompt_sha256": "9b79ead9a2e13f4b94f3e261ef0c6fd183375728a450b3718653067c6d0b9be2"
+  },
+  "gpqa:172": {
+   "answer_sha256": "3f39d5c348e5b79d06e842c114e6cc571583bbf44e4b0ebfda1a01ec05745d43",
+   "dataset": "gpqa",
+   "ids_sha256": "b0997799ce7dad3ee9f0da4b4e88e58fe1582e92ba82694f26ea3623974f0343",
+   "n_prompt": 254,
+   "prompt_sha256": "c6ed2e8d9db9a0e9ed97ebb6eff2e3c151d92c5e8603faa7282366b32b4e4bca"
+  },
+  "gpqa:18": {
+   "answer_sha256": "df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c",
+   "dataset": "gpqa",
+   "ids_sha256": "9f20f2b7183ec2df20496664f071a38552781da533a65f22e55638dafc8066ae",
+   "n_prompt": 254,
+   "prompt_sha256": "4ebb6afb1be199cf2c11aac61034e486278b06d15d1a54c57727496fa1e32add"
+  },
+  "gpqa:183": {
+   "answer_sha256": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd",
+   "dataset": "gpqa",
+   "ids_sha256": "ef2d7272b850abea493835c1728ccf49a7037d927176122ea59321582c4ed609",
+   "n_prompt": 122,
+   "prompt_sha256": "72acdb3a526779f09eecac2d210ce9dc1701b5dd95f6ece3faf6da3e7bba6dd9"
+  },
+  "gpqa:186": {
+   "answer_sha256": "3f39d5c348e5b79d06e842c114e6cc571583bbf44e4b0ebfda1a01ec05745d43",
+   "dataset": "gpqa",
+   "ids_sha256": "9af05a4496a15084b08086f8ed793a51baac728d66eb3c80baa1eb7264faaeab",
+   "n_prompt": 215,
+   "prompt_sha256": "b1ac8a89fdcef7664dbf68e2d293ed90c30c30e4b0e9d52440d78a7dc762cfe7"
+  },
+  "gpqa:190": {
+   "answer_sha256": "3f39d5c348e5b79d06e842c114e6cc571583bbf44e4b0ebfda1a01ec05745d43",
+   "dataset": "gpqa",
+   "ids_sha256": "a9c2c85ae222d9f5228c6aa8a092f1f770f3b99d6115b24217f3702ed74c6787",
+   "n_prompt": 303,
+   "prompt_sha256": "953471d5fa97553267b09ce178ff52b71b399e076b25f824e4e52e7d8fa11e53"
+  },
+  "gpqa:192": {
+   "answer_sha256": "df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c",
+   "dataset": "gpqa",
+   "ids_sha256": "c082f9dbd346a735af8962e47ed5b55ac29160d6a7faff337995a98661979ce1",
+   "n_prompt": 335,
+   "prompt_sha256": "760758635295d31db958e665686e7a4c523f2ddb0d3563d274114f1e62e2e30d"
+  },
+  "gpqa:194": {
+   "answer_sha256": "df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c",
+   "dataset": "gpqa",
+   "ids_sha256": "f225164179bcdf06bd59cc9cac01c979c87386baba50452d90bfe3e511ca9e90",
+   "n_prompt": 228,
+   "prompt_sha256": "e236d6d6ac2d31743bf90eab85a7c26c8403b05887856828d775a36d0816ac06"
+  },
+  "gpqa:24": {
+   "answer_sha256": "df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c",
+   "dataset": "gpqa",
+   "ids_sha256": "d1b2ccab3c905ace566897de90f19662b6e856b5c7ad3af40676fffb2f3a9472",
+   "n_prompt": 234,
+   "prompt_sha256": "4569f8d3f30271f3101bf541154a774dbb80d72f9ff476ee064ea9dad0386e59"
+  },
+  "gpqa:25": {
+   "answer_sha256": "df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c",
+   "dataset": "gpqa",
+   "ids_sha256": "abe12147c3f96764c7870c44b5ef247a6e131b5e6284e86e1b24e86cad5ac81e",
+   "n_prompt": 372,
+   "prompt_sha256": "6c883eaa2dc5efc5c21df69dea93ac8d3a9712a4e8bbd6c9eff5a1f146299cc8"
+  },
+  "gpqa:28": {
+   "answer_sha256": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd",
+   "dataset": "gpqa",
+   "ids_sha256": "80ed918dbe85e664462625882600c6ce5bc8faf61dcbea3de2a0728ffeaa4c09",
+   "n_prompt": 336,
+   "prompt_sha256": "bc5767bb05f640d411dfb466cc631120528e9e505aac0dcdba8c5089ebaeb650"
+  },
+  "gpqa:35": {
+   "answer_sha256": "6b23c0d5f35d1b11f9b683f0b0a617355deb11277d91ae091d399c655b87940d",
+   "dataset": "gpqa",
+   "ids_sha256": "090e556b8118575e1fb64549b9448f63d96e9cff25d3366ef6e20e90c784c2de",
+   "n_prompt": 326,
+   "prompt_sha256": "da158aeabb9947586c847edc76ba1ced8a2b52d870c0832c4ce86f016f5a1eee"
+  },
+  "gpqa:38": {
+   "answer_sha256": "6b23c0d5f35d1b11f9b683f0b0a617355deb11277d91ae091d399c655b87940d",
+   "dataset": "gpqa",
+   "ids_sha256": "266041033b7c9f1c4f883724088b085dddd3fe3cbb6ea1bf6bac33eb25da9c23",
+   "n_prompt": 312,
+   "prompt_sha256": "55204e77d3139bb09e117d959c08bad73971b58857cb691400758fa0ad4fb564"
+  },
+  "gpqa:40": {
+   "answer_sha256": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd",
+   "dataset": "gpqa",
+   "ids_sha256": "3bcbc6ba66673415e72c92e740c6e43d8f5475c4670be65f82995ec876852ce2",
+   "n_prompt": 183,
+   "prompt_sha256": "735f1b854d0934c4707bf8c513d0ea160acb79b851f43fbc6d1fe2214ab04074"
+  },
+  "gpqa:41": {
+   "answer_sha256": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd",
+   "dataset": "gpqa",
+   "ids_sha256": "838b54e4b311a7bd31c3d7b9a66c6a97aa8b2400f457f00e6826fe08d99b9907",
+   "n_prompt": 157,
+   "prompt_sha256": "f099279d6ff4cc50ff6e5660974b9576668f0f07d39f93b6ea123684f4d211a7"
+  },
+  "gpqa:44": {
+   "answer_sha256": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd",
+   "dataset": "gpqa",
+   "ids_sha256": "5c2fa34fe71e283bc67d8288a51124ee8df32d2f9f86d8d6b417885076e63bcc",
+   "n_prompt": 322,
+   "prompt_sha256": "d01385f3d0433970ce4087e17e9792eab6c27739e371190862405009a0c343f9"
+  },
+  "gpqa:47": {
+   "answer_sha256": "3f39d5c348e5b79d06e842c114e6cc571583bbf44e4b0ebfda1a01ec05745d43",
+   "dataset": "gpqa",
+   "ids_sha256": "bbe61fa7fe9bb2700a2bc48078dd69e9ec2729837cca74aab4684ed54a39cabe",
+   "n_prompt": 227,
+   "prompt_sha256": "fa61334708f16cd80180d41636813b24b46cf55c60eede4bafd38914cfd60f00"
+  },
+  "gpqa:53": {
+   "answer_sha256": "3f39d5c348e5b79d06e842c114e6cc571583bbf44e4b0ebfda1a01ec05745d43",
+   "dataset": "gpqa",
+   "ids_sha256": "61652aa4510b5699f68665d7b90f666e95fd6277880bb80c5f20e12f814d43a6",
+   "n_prompt": 240,
+   "prompt_sha256": "ba196e76ee1064bb5e8f7b0c50dba83f2b4bf1f02533bcf560a59b4f8d55e653"
+  },
+  "gpqa:54": {
+   "answer_sha256": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd",
+   "dataset": "gpqa",
+   "ids_sha256": "b7a8280517070dc7b965ed1059cb2fe47fb358110077b8a32b71343d71cda778",
+   "n_prompt": 195,
+   "prompt_sha256": "788b52b161df2923cd8908c79530bef1aa97d7a1892ff38578c4ecbd65263ebc"
+  },
+  "gpqa:55": {
+   "answer_sha256": "df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c",
+   "dataset": "gpqa",
+   "ids_sha256": "38f3674d0605eb7e190365c02ac54ce3d5346f4cb8886553dcd559e5fc5f086e",
+   "n_prompt": 212,
+   "prompt_sha256": "e3716a01e0068654f9c39f65fed1d84a291c8400799c108c367ac29cc46bf89c"
+  },
+  "gpqa:6": {
+   "answer_sha256": "6b23c0d5f35d1b11f9b683f0b0a617355deb11277d91ae091d399c655b87940d",
+   "dataset": "gpqa",
+   "ids_sha256": "25e815bc5eacb19e428d88062a62117b8848a9608884b10d70db53c47a03bd57",
+   "n_prompt": 209,
+   "prompt_sha256": "3ae4c248c7b6910118a5282c838815ac882ba7968197e6b5b0a6442296b221a0"
+  },
+  "gpqa:61": {
+   "answer_sha256": "6b23c0d5f35d1b11f9b683f0b0a617355deb11277d91ae091d399c655b87940d",
+   "dataset": "gpqa",
+   "ids_sha256": "159c3a2a04910dac576768cfb804c9bd2f36e289318eae9948d886c43f2fd993",
+   "n_prompt": 236,
+   "prompt_sha256": "ed76910e0ad2b2968a8b89203c37e610dea78f57f709f1c560b45f2f19f33f2d"
+  },
+  "gpqa:62": {
+   "answer_sha256": "6b23c0d5f35d1b11f9b683f0b0a617355deb11277d91ae091d399c655b87940d",
+   "dataset": "gpqa",
+   "ids_sha256": "5a4a26501ffee496e3852d1980ff314e8d355f4ec683552ff6e6013e2905e7ca",
+   "n_prompt": 262,
+   "prompt_sha256": "7ccf4e49b00d165fe4b3d3a8cd97293dc70a01d7de9057a5b9c0a55e850d9f40"
+  },
+  "gpqa:65": {
+   "answer_sha256": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd",
+   "dataset": "gpqa",
+   "ids_sha256": "3058df0d6d227459208cf97c289497d7aefb6ad2b01e0d3a611e2aa37af52306",
+   "n_prompt": 301,
+   "prompt_sha256": "fc195a700ad49cc7f55b722317cb43d0d62adbd5508e2674063098aa1b49766f"
+  },
+  "gpqa:66": {
+   "answer_sha256": "6b23c0d5f35d1b11f9b683f0b0a617355deb11277d91ae091d399c655b87940d",
+   "dataset": "gpqa",
+   "ids_sha256": "ce89f8669a2a93c858685fe017e61c44202dcf1a7ddf31a6a3ebb1f86d7750ef",
+   "n_prompt": 133,
+   "prompt_sha256": "d7445850af62be38ba99d4c51d7f47783230acb5790c425af648146228676dbe"
+  },
+  "gpqa:67": {
+   "answer_sha256": "3f39d5c348e5b79d06e842c114e6cc571583bbf44e4b0ebfda1a01ec05745d43",
+   "dataset": "gpqa",
+   "ids_sha256": "ac3c1270192936cb58a901dc34d26015dc2e851d08e98812812da9bcd2fa32b0",
+   "n_prompt": 251,
+   "prompt_sha256": "3517c3efa9933de8e1049c228004e30b1e78754917294f4b60953e8c44a25fe1"
+  },
+  "gpqa:69": {
+   "answer_sha256": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd",
+   "dataset": "gpqa",
+   "ids_sha256": "6135490a3a6debe42a4b271f528cb09aa54b4fc029bc35351c470fbd84f9fecc",
+   "n_prompt": 211,
+   "prompt_sha256": "aad2a4133fe4e9f2374ab5aed884bd30ae468788b86120a1508f5d9e10e87220"
+  },
+  "gpqa:73": {
+   "answer_sha256": "6b23c0d5f35d1b11f9b683f0b0a617355deb11277d91ae091d399c655b87940d",
+   "dataset": "gpqa",
+   "ids_sha256": "1182ca9cd1e23e0a85219db9e9c91e97db03175bad9cee0fe6d8ac64e080305c",
+   "n_prompt": 196,
+   "prompt_sha256": "0fda7b401ae9fc7a86952e469ae2a87121703154c6435fe02b9ce2fe7791cfe3"
+  },
+  "gpqa:76": {
+   "answer_sha256": "3f39d5c348e5b79d06e842c114e6cc571583bbf44e4b0ebfda1a01ec05745d43",
+   "dataset": "gpqa",
+   "ids_sha256": "cfcf5dadfa4453ed97ea1999854392ac94f8e904771687546384acef02674332",
+   "n_prompt": 230,
+   "prompt_sha256": "421240f2241a2950a7db73ed68812f5f80bdd5deaaa83cdab6d2e636a898f7d3"
+  },
+  "gpqa:84": {
+   "answer_sha256": "3f39d5c348e5b79d06e842c114e6cc571583bbf44e4b0ebfda1a01ec05745d43",
+   "dataset": "gpqa",
+   "ids_sha256": "573e5454a74269d78f384078eeb7a69ba68ecaf36c5eb38b841285056f07de41",
+   "n_prompt": 137,
+   "prompt_sha256": "84fccabc233bb51e6cb1a293b9a69096557d200f794693fad307f95f7ec7642a"
+  },
+  "gpqa:87": {
+   "answer_sha256": "6b23c0d5f35d1b11f9b683f0b0a617355deb11277d91ae091d399c655b87940d",
+   "dataset": "gpqa",
+   "ids_sha256": "8efd5980f31401b15d6b87fbbf407c1dcef7815172c053c82c6a3d2da25cd4e7",
+   "n_prompt": 319,
+   "prompt_sha256": "09511302e20a30a86ed95b814230bdf473b4659a88222cec3fabf17f3fd17ba9"
+  },
+  "gpqa:89": {
+   "answer_sha256": "df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c",
+   "dataset": "gpqa",
+   "ids_sha256": "cf873ded5e696f8827d8b8c1bb587ec2d492a740fdc5b42b18787514bc350543",
+   "n_prompt": 265,
+   "prompt_sha256": "254c9c6c7dc74c09148090bc2edd554db329e3bb03857915e7822f3fefc7e65f"
+  },
+  "gpqa:91": {
+   "answer_sha256": "df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c",
+   "dataset": "gpqa",
+   "ids_sha256": "fdc47812d5b90ed028f1c89e74cc10a402a6a75b8271721b08702ed11768f845",
+   "n_prompt": 245,
+   "prompt_sha256": "e14da3d871341fc0bb821ade75e116688511de04b917a05cd741739188c7012b"
+  },
+  "gpqa:92": {
+   "answer_sha256": "6b23c0d5f35d1b11f9b683f0b0a617355deb11277d91ae091d399c655b87940d",
+   "dataset": "gpqa",
+   "ids_sha256": "50988bb5ecce9163cdab5cb534a067d2f93b61710a3520a31c18ae1d287b0806",
+   "n_prompt": 213,
+   "prompt_sha256": "c2e14997ca17159e1b56fa3eabbc87d97c9cbaef96e8707896c0a762c1fe148b"
+  },
+  "gpqa:94": {
+   "answer_sha256": "3f39d5c348e5b79d06e842c114e6cc571583bbf44e4b0ebfda1a01ec05745d43",
+   "dataset": "gpqa",
+   "ids_sha256": "7a69de32fb8c27a99546c92fa2cfc52865d06b238c6381e06a0a621fdc604c71",
+   "n_prompt": 208,
+   "prompt_sha256": "f8404a9067db3fb59df554de356cc23ecbf17c38a31b6219d5eee6b74e64da0b"
+  },
+  "gpqa:95": {
+   "answer_sha256": "6b23c0d5f35d1b11f9b683f0b0a617355deb11277d91ae091d399c655b87940d",
+   "dataset": "gpqa",
+   "ids_sha256": "629a38a9e69a11eaa99fb0a375eeace852914f8c4082230ddb0e45ea1faf302a",
+   "n_prompt": 265,
+   "prompt_sha256": "dfbe5ee9eb8cc56abbef016597de61af04aa10a8f59bf0ce5416a3d2503799f0"
+  },
+  "gpqa:97": {
+   "answer_sha256": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd",
+   "dataset": "gpqa",
+   "ids_sha256": "c9dd214eaa1e15837868215a6f6d66b44626ca23e8cce0ff1202b7cafb0b5aab",
+   "n_prompt": 281,
+   "prompt_sha256": "e3cf4790c50621506ea111ee4588edb9916f490f9e5842be303261b99a106226"
+  },
+  "gpqa:98": {
+   "answer_sha256": "3f39d5c348e5b79d06e842c114e6cc571583bbf44e4b0ebfda1a01ec05745d43",
+   "dataset": "gpqa",
+   "ids_sha256": "55a77696de46eb53544c398f4aca498875d4f12823ea39d192570b5892a63dca",
+   "n_prompt": 187,
+   "prompt_sha256": "0e571434ce3431fbf308a72a8fd973f8db2817cbf7f506bdb818e104565230fe"
+  },
+  "livemathbench:103": {
+   "answer_sha256": "d8618aad8e6a598a06e4d6c6224802f0e26e3be2b089987b5acb0108c972986e",
+   "dataset": "livemathbench",
+   "ids_sha256": "392b4d087f5c9cbf2f65aa2a83cc232ba4e8f6a6cfc1c38cbd31438fb5d4aa29",
+   "n_prompt": 193,
+   "prompt_sha256": "d39fb72a4121bc692b87f52f9ee559870cb1d48e312599086e2d568d3a094bfd"
+  },
+  "livemathbench:104": {
+   "answer_sha256": "1fce6efec2783b3d3204518af6d3cb8d19c4d8c2d6ed2ff002512197842ec090",
+   "dataset": "livemathbench",
+   "ids_sha256": "f81ede9a8469d1f4b1e804a51f02bec1bf69d17da78fdb9ad2f35538738799d9",
+   "n_prompt": 134,
+   "prompt_sha256": "bb5f429b17869677ba792b4c6df696164b13b8b45d7b6659391baa994c03054b"
+  },
+  "livemathbench:105": {
+   "answer_sha256": "fa0bd420d797813391856a85e0d09550f3f905705259511c64af02f017f1b313",
+   "dataset": "livemathbench",
+   "ids_sha256": "817ee08121ba41f6f27f9f42c0645c9d344698144a9b9b20807bca522fef853a",
+   "n_prompt": 113,
+   "prompt_sha256": "bbdb3a1f4e3b7a267b90301f571070d919a547dbf2269c87194a3d78e8d3a7d0"
+  },
+  "livemathbench:106": {
+   "answer_sha256": "783f043362d1ee39dbfeb0ed9acc363d3503f679329cd57dd7966642cb7425f4",
+   "dataset": "livemathbench",
+   "ids_sha256": "c0d471d8cf83c5992a4de1e1a3fc5d258913a54b7ef1983c81dea0069f17752a",
+   "n_prompt": 125,
+   "prompt_sha256": "e940479ab1648f6de4cbd3f7a16a99fabbfd3e01d2b2880c6ccaae29fbec70f9"
+  },
+  "livemathbench:109": {
+   "answer_sha256": "13d0060f09749e962d7a3f8747a6c8c2c6568b031e8b04e3432747c4158d4b51",
+   "dataset": "livemathbench",
+   "ids_sha256": "fe6175c9ef2c7ceb2cdd6022ad4974b07a0fee7eff1f1e7c24b7fda9d3705a66",
+   "n_prompt": 133,
+   "prompt_sha256": "8a918186119b536e7afd5b36a482ff9a3b50dac4f42cdea5287794f4ebba6402"
+  },
+  "livemathbench:110": {
+   "answer_sha256": "b8d683b78848f705fbb38444ded6b961c799a7277750c7b917ab3c30dbf300fe",
+   "dataset": "livemathbench",
+   "ids_sha256": "880c321ea6b5556933367fa30428362232de5039e38995e95da637dfbafcc602",
+   "n_prompt": 219,
+   "prompt_sha256": "4f26c3a53a3c7071ffe46c17c49bfa601f316cf8e95aa96d4bb7427b93483a4f"
+  },
+  "livemathbench:113": {
+   "answer_sha256": "c0d3404914045cb40caab52573ffbb41b0331527103f750d9f3fa321e3096b46",
+   "dataset": "livemathbench",
+   "ids_sha256": "f683826309cec2943fcc32973c4c80cc72e0870f31441695db21c96bbb43523f",
+   "n_prompt": 219,
+   "prompt_sha256": "a1aa350a4782feb8ccea8fa94392e2f82f2fd3b230cda822434a231d4398b6d9"
+  },
+  "livemathbench:116": {
+   "answer_sha256": "00d3524cd72c47a9e1542079d1a970b7683603fd0011f6de2988512889de3bd2",
+   "dataset": "livemathbench",
+   "ids_sha256": "12e164417f75f7ab254f8eb05e0b9ffe7b707f9ee477229b3f8dc1eaefac0d55",
+   "n_prompt": 263,
+   "prompt_sha256": "1194deb4ce03c03ad5c2c61bda8ebe01d2db4bf701bebdeaf5dfd2323ccd0847"
+  },
+  "livemathbench:117": {
+   "answer_sha256": "01b4791b1336206cde8b683d4ad04acbb2153ff9c67b66bb522d4d45d43059d8",
+   "dataset": "livemathbench",
+   "ids_sha256": "d272acb4e4375a45212d75d5c81e7e61cf9b89edda3c0c45ed881c3c475bbb1e",
+   "n_prompt": 380,
+   "prompt_sha256": "12f6a6df4b824ca4fa24ccbba20332ff19a24f6a8b74d447e44ea895d8c1d112"
+  },
+  "livemathbench:119": {
+   "answer_sha256": "139e3573daeaf74183fdbcbd9d9f72ba7e80614d11e2a657de2eab30c69c28e8",
+   "dataset": "livemathbench",
+   "ids_sha256": "455c09c78aef3051286e703b8a69e8bad0ef7a0a1f3bc0360b2303c0e5d53140",
+   "n_prompt": 262,
+   "prompt_sha256": "88756e4ab16422c08487faba29838c4c321a3c29524fcfc70c9c5233d4e6fdc8"
+  },
+  "livemathbench:15": {
+   "answer_sha256": "8077c79436dea437de8bf63e5abf234add4e807acd1b968bf720c49aea42d3de",
+   "dataset": "livemathbench",
+   "ids_sha256": "92402d84f89c7fbb33b01943d772c76334e02275dcff762ba612e185f0aa40c5",
+   "n_prompt": 129,
+   "prompt_sha256": "34041a64d4cd24a557fae9e25b0a8dd28302452734793efd2d9003c73a56858c"
+  },
+  "livemathbench:17": {
+   "answer_sha256": "56d7c74c4f33094c549ec4804929ffb38d6b646e8233940b6f452d7879b9472c",
+   "dataset": "livemathbench",
+   "ids_sha256": "9fee971c2445e9475775f7b0c03361ebd10d140454be65411e5691701fc99778",
+   "n_prompt": 116,
+   "prompt_sha256": "ead99671b10178e8723a446b9dd76240200d86309a97683c943017c9f7815417"
+  },
+  "livemathbench:2": {
+   "answer_sha256": "b2612312902dde7eeda6a2d1d54bb0dc91cce53961fd5778e5d7e821bbe4712c",
+   "dataset": "livemathbench",
+   "ids_sha256": "03e791177126f73420dfa691d405f961cd98c76669f4d667f4194b889afbdec2",
+   "n_prompt": 138,
+   "prompt_sha256": "76c178a30ed12d1facceae171cd7331c1b14a7d7ba83246a71760b74c005e37d"
+  },
+  "livemathbench:22": {
+   "answer_sha256": "56d7c74c4f33094c549ec4804929ffb38d6b646e8233940b6f452d7879b9472c",
+   "dataset": "livemathbench",
+   "ids_sha256": "406f9ce4cf223934cff8e49b785d98dfb18b44e257388cdb55b1dcece1d80ebf",
+   "n_prompt": 103,
+   "prompt_sha256": "b3c5a5f8eaf6d73116e021c8aef50e05f3a93520460323f334158130a66b3d27"
+  },
+  "livemathbench:23": {
+   "answer_sha256": "b65c7099c4b4df8fcabaf5b86a4960b7de6dec7f040a96539d5eadcb53b8837c",
+   "dataset": "livemathbench",
+   "ids_sha256": "411771a358c6549b02d459d674f76cf3ea8db1276dc927440260bcfacea4b82e",
+   "n_prompt": 125,
+   "prompt_sha256": "c40d804aab7b53177d9ee248738d498932a83048e9d37b3de666a0837f604633"
+  },
+  "livemathbench:32": {
+   "answer_sha256": "8ccee5a469058933152c4027ea7c5dff1c9a0bad4db6e82b565376f8641611c0",
+   "dataset": "livemathbench",
+   "ids_sha256": "f6f0614c8df14c79ba13b34153276762189a8b0d2a19b4c4fe8711a82b7d7270",
+   "n_prompt": 137,
+   "prompt_sha256": "501f7c85a71d6b874a14ff009f3523665b3314bb1d29538c6525f558df35cb63"
+  },
+  "livemathbench:33": {
+   "answer_sha256": "09e7335303d14ec2901b7a2610697caa91bc002c3614fe5d790976595b592baa",
+   "dataset": "livemathbench",
+   "ids_sha256": "3bd2a1103f3b243e0c6d52d22f6d8b0130b7d4410948c97e5baa382b1e48d779",
+   "n_prompt": 128,
+   "prompt_sha256": "28f3f2b8195d9ec7829de47da0a2ecdc1dcf85ae5a0eda91cec6a4c14c110ade"
+  },
+  "livemathbench:41": {
+   "answer_sha256": "595c48559ed2d73ca9e008507564ff8e2015d09a20a6451e48b5bba4d1e00fa5",
+   "dataset": "livemathbench",
+   "ids_sha256": "ab7bd6759cb2623d46ee8f6774f163fdce6a6a02b991eded49b5afad015b9272",
+   "n_prompt": 219,
+   "prompt_sha256": "af9c0462e369920dc885980afd4e62da0654abb5d8e69db7375fedae5982d63d"
+  },
+  "livemathbench:43": {
+   "answer_sha256": "c4019ab3b60c954a354553c87505c44636fa0786855869ee16abcb1bcc4d954d",
+   "dataset": "livemathbench",
+   "ids_sha256": "3a8da2a4856a3476748987cb43fc5172715ed4f65baf5bd99f2ce4630abc4323",
+   "n_prompt": 172,
+   "prompt_sha256": "d1b7b3b312a85748e87a452c181ec6087e33d6bd54863361d71f0cf3cebea6fc"
+  },
+  "livemathbench:45": {
+   "answer_sha256": "72bc3c1b3553a71d525d8715f4963adfb2b8e7e18c32f0b1b651f3e841526770",
+   "dataset": "livemathbench",
+   "ids_sha256": "0df494c0b4a2019b22b8cdae41faa115a1fae2640e8a75ff73f33e64957c67a1",
+   "n_prompt": 134,
+   "prompt_sha256": "aa185241f8bbd81f40e6fe1e9432c19347de1f6610040b3d3c883fc120a8ab3e"
+  },
+  "livemathbench:48": {
+   "answer_sha256": "4744619e242f97cd64e0c3fa5235121acb49f6a19f3dfcd735549eb1213916c8",
+   "dataset": "livemathbench",
+   "ids_sha256": "c34cbe6d51e257286ad3807b4e62c9b0fbffb9627d27e05a56099b7c38e9624a",
+   "n_prompt": 102,
+   "prompt_sha256": "a2af7e08a5e3a8371f0f1c813eb5eaf5a52add3e72acb0b2c9ebcc44e57302c3"
+  },
+  "livemathbench:5": {
+   "answer_sha256": "f2f7bb26d1e9f94a80e34231b97fee00a71e1cd0d322390201dfad59186c8cd5",
+   "dataset": "livemathbench",
+   "ids_sha256": "4035be682aa53f3ca6fcaca09d729d43e2669eed7db46798a0106659d164ff47",
+   "n_prompt": 159,
+   "prompt_sha256": "8dd624741259320c072dd16bcb7901eab7cb8c2db6be4da1116df14bbf059962"
+  },
+  "livemathbench:51": {
+   "answer_sha256": "59dab9126b51d681e2226a4c9f5ba221e97a73ce546c52e7c32355aa4a0e44e6",
+   "dataset": "livemathbench",
+   "ids_sha256": "ca44c60207c567760fac2b15dad80c7679a98deca94d3bc0da98b664eee37148",
+   "n_prompt": 103,
+   "prompt_sha256": "9090af7ca99c1b9098c732e08886291e11fdddac05b28de122b2e14eeda8f459"
+  },
+  "livemathbench:54": {
+   "answer_sha256": "fe08b130286e4dae0b4ac81d66612913646528c063407a020f42fc0d422b4bd5",
+   "dataset": "livemathbench",
+   "ids_sha256": "a1ba8b3b9f1df41dbf87974c87cb1860e6f929bcc9e2e85df23bbadf77981c68",
+   "n_prompt": 100,
+   "prompt_sha256": "788a483324576ef8444382d6069ad3222e734462895fcdaaff2f550de8f9fb92"
+  },
+  "livemathbench:55": {
+   "answer_sha256": "4744619e242f97cd64e0c3fa5235121acb49f6a19f3dfcd735549eb1213916c8",
+   "dataset": "livemathbench",
+   "ids_sha256": "ff611d55ed86100562c1e014b14a51ffb1f68a91be0c4476a2563953a5eb1352",
+   "n_prompt": 100,
+   "prompt_sha256": "0dbbb94938dcaea2593b1f62b6e4f2a055c0e42c779a21851e5336a9db85b22c"
+  },
+  "livemathbench:6": {
+   "answer_sha256": "cec845a2ae99e45cd9d2d6c49d4ff66053cdc56cb38a10113721f989fe595b7d",
+   "dataset": "livemathbench",
+   "ids_sha256": "0bebcca0eef8e573031e5407f1928325008e0292aa09f594aa0df54a9fcbbf6d",
+   "n_prompt": 143,
+   "prompt_sha256": "c9fe77d1e2110faab6394412e921d29867452306fd0869ecc06e2499eb7b08bd"
+  },
+  "livemathbench:62": {
+   "answer_sha256": "dd0efcae0a54b2b4f6a05ad87f5983452a4a7ae7219b19eebd9c06386381e67e",
+   "dataset": "livemathbench",
+   "ids_sha256": "019047542dd7a952706a1b730b0324193181fba78425f7502b5148b3075240c2",
+   "n_prompt": 144,
+   "prompt_sha256": "29a612f42a308991495e0f8b9facc7d04cd66f0495c801672bea5852c1de7bde"
+  },
+  "livemathbench:64": {
+   "answer_sha256": "c1f8f58348230155e30f6788ef780acc7b27f08d26bc22e07e1a4c6a296e393e",
+   "dataset": "livemathbench",
+   "ids_sha256": "26e93e59b6ceed84f194346c849cf4569e468acdf545771de5991d298e113834",
+   "n_prompt": 248,
+   "prompt_sha256": "d38fcd2eb3e7f183e9a2af5a816cbfc737a1bf1f7f5bf43c63e299fc8995a19a"
+  },
+  "livemathbench:65": {
+   "answer_sha256": "4c1ab7035d7cb0e6e5455f9f7a4287ca38eeec2879339c507e7601925b9a29da",
+   "dataset": "livemathbench",
+   "ids_sha256": "eaf02f35832df0f71a1ba6bad950eb553b6b6552c569bfe6f764a7254d431584",
+   "n_prompt": 106,
+   "prompt_sha256": "5d603d019281f837f86dd01c5a5319539993c013e32d69bc8beb37060abfc9f8"
+  },
+  "livemathbench:68": {
+   "answer_sha256": "4744619e242f97cd64e0c3fa5235121acb49f6a19f3dfcd735549eb1213916c8",
+   "dataset": "livemathbench",
+   "ids_sha256": "83dded1b6ee3766a9d34442bca177819a0e0ef80d2cc43d2dc7ddea6e00cf3c5",
+   "n_prompt": 93,
+   "prompt_sha256": "e47f1869cdd2a601fec1093f2d02821cf86305cd0a0563610992750f6e1e3d38"
+  },
+  "livemathbench:71": {
+   "answer_sha256": "8ea9fe889acdb7c548d05b0bcf72a2ec8817db0df0b28c18a03e0be97f4fbc25",
+   "dataset": "livemathbench",
+   "ids_sha256": "635885c2c5c711f188a943763ac18dc60147f83fb85c4a918240c37d5fbe4317",
+   "n_prompt": 113,
+   "prompt_sha256": "0270dbc2fcb66e65f5e889acfaf2d549ffb8b8ebdac8d40bd242909d42bfd391"
+  },
+  "livemathbench:72": {
+   "answer_sha256": "719007c1d97ffee449618940fff4afcf3bb61cc6cdd1ec7ab05bf759f8a57776",
+   "dataset": "livemathbench",
+   "ids_sha256": "86fe3232497c9414a86fb203a6fa90b80af9cdd2f5fb8d83bdc13d5a5306f4d0",
+   "n_prompt": 135,
+   "prompt_sha256": "4281f9e1a099807866870615e8618db3a3dec4615284c816c8cad28e4037c7e9"
+  },
+  "livemathbench:74": {
+   "answer_sha256": "4c1ab7035d7cb0e6e5455f9f7a4287ca38eeec2879339c507e7601925b9a29da",
+   "dataset": "livemathbench",
+   "ids_sha256": "25d4d87618cdce9dccba1d50ee630d9d4186d5a07a8ada509b72c6403acb6114",
+   "n_prompt": 120,
+   "prompt_sha256": "7a2761c3c53bf3193476044be9dd7f4f6b1e0ed2d8e767440e2dc4215de76901"
+  },
+  "livemathbench:8": {
+   "answer_sha256": "85e500e9aa2d75064dad4c04e0204e5b50df4d577deb2568f66f337d8aa7dc7a",
+   "dataset": "livemathbench",
+   "ids_sha256": "565ec03100205f8156f649b0b203c479ca3c6148d1ca2815ba542d68f2a27807",
+   "n_prompt": 183,
+   "prompt_sha256": "36fc8e7ea4120c476bd9b542d5237b377fcf8386c57695ca518055560fd9f8b5"
+  },
+  "livemathbench:80": {
+   "answer_sha256": "5a5a0a713af48e10b28fbfa13308ae1076b49026b36bd98eb33c8db05690b926",
+   "dataset": "livemathbench",
+   "ids_sha256": "4d232367c97bc7318d673317f0755513a508ec5da68a5926f3b5808a7c4a13cb",
+   "n_prompt": 120,
+   "prompt_sha256": "e92202c76c8555610077a4d930aafbb88abff1c05ca4c66a1db47f1a011daa23"
+  },
+  "livemathbench:82": {
+   "answer_sha256": "38710abf92a8cdc6bcca1f9f0d605efec23e0ff5e64a64aa1212a1d34b395faa",
+   "dataset": "livemathbench",
+   "ids_sha256": "69f15e2424ba120728bc0b861c374e91dd24acba7e212767901a77388a3716e3",
+   "n_prompt": 159,
+   "prompt_sha256": "dc8886de159b753105c7465147ffc0f5c642009abb08c56c7243fea853d3a53e"
+  },
+  "livemathbench:85": {
+   "answer_sha256": "9726576750792f0225ee62da54d54b3a132e7d71d97223fecb37bb35be443c2b",
+   "dataset": "livemathbench",
+   "ids_sha256": "29d09329900423052ea48e25479d6511735a18696a57ca7e0b2382c0847bd6f9",
+   "n_prompt": 163,
+   "prompt_sha256": "81bfa3cc7cd8b19abecc0c2675274f9f2cacb38ae2f14a38293133e67ebd6f89"
+  },
+  "livemathbench:92": {
+   "answer_sha256": "cbbd6bb3980bfec021aa51624050a933b31008d8000101ae93b8ff7ad21b72d7",
+   "dataset": "livemathbench",
+   "ids_sha256": "b70cddf9a23b1ef5f6a85884374a9a111ba4baa635be1ac1bb28cf0c475bacb2",
+   "n_prompt": 107,
+   "prompt_sha256": "117e68398aba2e9babd335a137a5f66e8cd8d2cd8e49a2b55226e98f6b4cab9b"
+  },
+  "livemathbench:94": {
+   "answer_sha256": "4744619e242f97cd64e0c3fa5235121acb49f6a19f3dfcd735549eb1213916c8",
+   "dataset": "livemathbench",
+   "ids_sha256": "ff00227e433d599d7a891577b7e25840b05c39c8d0fff1abfa6ca40a2812030d",
+   "n_prompt": 165,
+   "prompt_sha256": "217295ede8336cb641c3a1db7f58fb8bafbd4ba17f197763e731acbdf9d88343"
+  },
+  "livemathbench:99": {
+   "answer_sha256": "c19efb598c48db04a9052a14098757ac0eb3c990b54c1860f24432c4ac743c1c",
+   "dataset": "livemathbench",
+   "ids_sha256": "dbad3f6db3a411cdf70ebd6b69888ad7c7c06743aa9c1eb9587bcb5936ca42fb",
+   "n_prompt": 141,
+   "prompt_sha256": "8fd40ce7a57a83219d5c41634ebb942d648bcf0dd7118910a2bffef1cd3b284a"
+  },
+  "mmlupro:102": {
+   "answer_sha256": "f67ab10ad4e4c53121b6a5fe4da9c10ddee905b978d3788d2723d7bfacbe28a9",
+   "dataset": "mmlupro",
+   "ids_sha256": "db2872e98339071af3d13d3f7aad3aa6ab9fc5985ad20ca7343c91527d386435",
+   "n_prompt": 348,
+   "prompt_sha256": "90d9837f97f99162987ef1ba6d21dde27bd37a3489bd25c8168e94a253373c0c"
+  },
+  "mmlupro:121": {
+   "answer_sha256": "a9f51566bd6705f7ea6ad54bb9deb449f795582d6529a0e22207b8981233ec58",
+   "dataset": "mmlupro",
+   "ids_sha256": "69769e410f92397f91b5a102df2c3d5913c993255fa2d8b79cf0fea2712c6ed8",
+   "n_prompt": 212,
+   "prompt_sha256": "5099b36b1bdf5c638056beac2a3e18f4c67c67cff42a3cda39096ca7137d5045"
+  },
+  "mmlupro:141": {
+   "answer_sha256": "f67ab10ad4e4c53121b6a5fe4da9c10ddee905b978d3788d2723d7bfacbe28a9",
+   "dataset": "mmlupro",
+   "ids_sha256": "744a5511e19568bfe241357e5ade4ed3708caee2887ecfc9559ecd266b2ea8d0",
+   "n_prompt": 374,
+   "prompt_sha256": "a1df505723d2759febd52e3991a151f5bc73b81c951725160756558509c7527e"
+  },
+  "mmlupro:147": {
+   "answer_sha256": "3f39d5c348e5b79d06e842c114e6cc571583bbf44e4b0ebfda1a01ec05745d43",
+   "dataset": "mmlupro",
+   "ids_sha256": "feaba3a6a6150ce285efea2f020a8f998affdd50350a232fcfe239411e296076",
+   "n_prompt": 181,
+   "prompt_sha256": "d4022f8432f392db656004f5457ad249f39504c04477936e27390293c6a934fd"
+  },
+  "mmlupro:160": {
+   "answer_sha256": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd",
+   "dataset": "mmlupro",
+   "ids_sha256": "afb0a18d1cbca930c26130c9c99b2a7e4c7afd23eec01be03e1cba68b9f0bc0b",
+   "n_prompt": 193,
+   "prompt_sha256": "6c3a7922cdd626056d9d092ca54c2873636ed345674fbf42f9e7605049f69f3a"
+  },
+  "mmlupro:191": {
+   "answer_sha256": "df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c",
+   "dataset": "mmlupro",
+   "ids_sha256": "32864bcdb2c3c31624431fa20ce0c9ba97c8577b43609ef340c53f90ea03502f",
+   "n_prompt": 259,
+   "prompt_sha256": "a417ff96bbded034e42611ecba5499148ebc2e963f316c86b8c5d2f0d8ada5bf"
+  },
+  "mmlupro:20": {
+   "answer_sha256": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd",
+   "dataset": "mmlupro",
+   "ids_sha256": "1ad21bbf813e8cd4ebfa927c3dbb68608ddea9079a960028c901e1315416a660",
+   "n_prompt": 134,
+   "prompt_sha256": "0466c7fd918d32c2e87e1b9e0bbe1b14a9ca534799a33f58a97b9299a6d8d11d"
+  },
+  "mmlupro:24": {
+   "answer_sha256": "44bd7ae60f478fae1061e11a7739f4b94d1daf917982d33b6fc8a01a63f89c21",
+   "dataset": "mmlupro",
+   "ids_sha256": "47dd21bbe5b7267718468dcebe3a1205f81c3e4bcd7326c799ced21b1ada5ade",
+   "n_prompt": 412,
+   "prompt_sha256": "a51357fcba1fef7a446e5b82a075c46230704d402a6ec2cec9512f84136680ae"
+  },
+  "mmlupro:248": {
+   "answer_sha256": "f67ab10ad4e4c53121b6a5fe4da9c10ddee905b978d3788d2723d7bfacbe28a9",
+   "dataset": "mmlupro",
+   "ids_sha256": "1bcb7c8b8cd0f58be0f3a7d37ace1188e88cd00b72c08911cb0096bf721336e6",
+   "n_prompt": 230,
+   "prompt_sha256": "d78858872ff4759d98e5fdebb5f7a724fb4d1bca4230b66f99aac996eae5d2db"
+  },
+  "mmlupro:277": {
+   "answer_sha256": "333e0a1e27815d0ceee55c473fe3dc93d56c63e3bee2b3b4aee8eed6d70191a3",
+   "dataset": "mmlupro",
+   "ids_sha256": "c051ce2e08fe112a80e93fa8b2989967594d8d0af20831efd3b893672f12490f",
+   "n_prompt": 235,
+   "prompt_sha256": "8932507d476d120538e5cc7cc95b1aae9f1143cdf670189e63d204e627e0fde7"
+  },
+  "mmlupro:287": {
+   "answer_sha256": "f67ab10ad4e4c53121b6a5fe4da9c10ddee905b978d3788d2723d7bfacbe28a9",
+   "dataset": "mmlupro",
+   "ids_sha256": "efaa06627a6871f8337a3abbda46d0be23de439f3535525bfd8173a33e54d65e",
+   "n_prompt": 330,
+   "prompt_sha256": "bbaa49aed24c355b6c2e446e8b2000ebacdf7fdcf1b7a76f38e162cd7ff3ac5f"
+  },
+  "mmlupro:300": {
+   "answer_sha256": "f67ab10ad4e4c53121b6a5fe4da9c10ddee905b978d3788d2723d7bfacbe28a9",
+   "dataset": "mmlupro",
+   "ids_sha256": "fa9234da86be5cb62072ee7d37ac743a622783f315fed7f19c34fb72a9f297f7",
+   "n_prompt": 347,
+   "prompt_sha256": "f6a3d9c527da00abf2f878d76aa90cbc1320559ee964480fd6b53a0c117c5568"
+  },
+  "mmlupro:309": {
+   "answer_sha256": "6da43b944e494e885e69af021f93c6d9331c78aa228084711429160a5bbd15b5",
+   "dataset": "mmlupro",
+   "ids_sha256": "ffafc96bc05c5c6fb0078e463a280b317ab3ff78bf67bfcec43ce5418d014cea",
+   "n_prompt": 311,
+   "prompt_sha256": "25e7255d984d571633cbc0705033f97187b4a008df520de2bdee45cd85f5fc4a"
+  },
+  "mmlupro:317": {
+   "answer_sha256": "6da43b944e494e885e69af021f93c6d9331c78aa228084711429160a5bbd15b5",
+   "dataset": "mmlupro",
+   "ids_sha256": "c7a04c0d6caf92d11e8a606068771ae3f45e7964c9a9823f0dd5551256431ef3",
+   "n_prompt": 214,
+   "prompt_sha256": "abeaabdbdd0fae6f5ef48ca381cd1a34d4ded8a7afaf0b4b4479d037057c91d5"
+  },
+  "mmlupro:334": {
+   "answer_sha256": "6da43b944e494e885e69af021f93c6d9331c78aa228084711429160a5bbd15b5",
+   "dataset": "mmlupro",
+   "ids_sha256": "a94f9476631f6046a574b862abfd5246ab8e17ec9727f813d2db7d642a270ad6",
+   "n_prompt": 179,
+   "prompt_sha256": "5cc330a85c6d0d3d80f57b3cf781c8f8570bf9f85f45808ad5573a51fb6c9188"
+  },
+  "mmlupro:340": {
+   "answer_sha256": "a9f51566bd6705f7ea6ad54bb9deb449f795582d6529a0e22207b8981233ec58",
+   "dataset": "mmlupro",
+   "ids_sha256": "7962db1ea7251b2b1e72a5c81b9d24139003aa6c9aacacecb8187e4e03d7e9ab",
+   "n_prompt": 150,
+   "prompt_sha256": "f51d8660d53dda45e936a956b498e92b41898619365ddc9d5c91191f405841ec"
+  },
+  "mmlupro:354": {
+   "answer_sha256": "6b23c0d5f35d1b11f9b683f0b0a617355deb11277d91ae091d399c655b87940d",
+   "dataset": "mmlupro",
+   "ids_sha256": "796a69975747ed851c16df86b83799e30f9955b705d9644a33b6eee55f12d10c",
+   "n_prompt": 191,
+   "prompt_sha256": "a3dbe385d8db0f51c9eaf0fa33e7cbed76ccb3c5c0113c8c6ab61103ae6c1131"
+  },
+  "mmlupro:38": {
+   "answer_sha256": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd",
+   "dataset": "mmlupro",
+   "ids_sha256": "6bd72bdba453249dfb843eeebfc6200359676577828d52a52e335e19751dd4c9",
+   "n_prompt": 149,
+   "prompt_sha256": "b1be41552e7b01ce426ebed1cb7fa51cda8c9b96ea6bba62c5e13502ad95a068"
+  },
+  "mmlupro:382": {
+   "answer_sha256": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd",
+   "dataset": "mmlupro",
+   "ids_sha256": "7eb445f5cbe4379554d749b398c4057837198a955a567414f0de1abcf9f7018a",
+   "n_prompt": 128,
+   "prompt_sha256": "b34dbb0c0278a546637e6a80e2856baedfd33b81fbc2db0044dbfb15c2e5e8eb"
+  },
+  "mmlupro:400": {
+   "answer_sha256": "3f39d5c348e5b79d06e842c114e6cc571583bbf44e4b0ebfda1a01ec05745d43",
+   "dataset": "mmlupro",
+   "ids_sha256": "fca3a21369224d1bdb4434dca452f14edd9c7ca985181ffe0b96884b2e91a70c",
+   "n_prompt": 142,
+   "prompt_sha256": "ccc222190edde8c5c450b4cf54fa6acaf6d6bb90988be8c47efbf8586e07e37a"
+  },
+  "mmlupro:401": {
+   "answer_sha256": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd",
+   "dataset": "mmlupro",
+   "ids_sha256": "8856e70c0b98e1dde3ee950300ce8179ac60c9b0bffa512e10d3841e4e51cba9",
+   "n_prompt": 120,
+   "prompt_sha256": "3d233a929c5063d6d66c536395e1d4a7cca54b83d55539fc8374e7de41ac299c"
+  },
+  "mmlupro:409": {
+   "answer_sha256": "3f39d5c348e5b79d06e842c114e6cc571583bbf44e4b0ebfda1a01ec05745d43",
+   "dataset": "mmlupro",
+   "ids_sha256": "71c94c9650047e6749190da39484013e2baf0312875cec391221d45a0bbf8d5d",
+   "n_prompt": 427,
+   "prompt_sha256": "c71aa9883f57a2fef336829a46adf8a7128c31f030b59c28ac07a5bf1c1f3eb1"
+  },
+  "mmlupro:412": {
+   "answer_sha256": "a9f51566bd6705f7ea6ad54bb9deb449f795582d6529a0e22207b8981233ec58",
+   "dataset": "mmlupro",
+   "ids_sha256": "6e7b6cb8ca265b9e17bae6cc155e9b329dae0d1738f07cca46297aa60f59dced",
+   "n_prompt": 251,
+   "prompt_sha256": "ba9de1fa7845f0e61f1de12daa64bee9bff266ced4ccf3b3739411d4027697aa"
+  },
+  "mmlupro:437": {
+   "answer_sha256": "a9f51566bd6705f7ea6ad54bb9deb449f795582d6529a0e22207b8981233ec58",
+   "dataset": "mmlupro",
+   "ids_sha256": "120f7fd811855faebf1d7e4c70c805394a373e76561066e38408eb9bd593978d",
+   "n_prompt": 253,
+   "prompt_sha256": "66a86e5d9ffa1f44bba6290a5cebe5f7b2074054039642f5b52ab8179f9d3401"
+  },
+  "mmlupro:475": {
+   "answer_sha256": "3f39d5c348e5b79d06e842c114e6cc571583bbf44e4b0ebfda1a01ec05745d43",
+   "dataset": "mmlupro",
+   "ids_sha256": "480a381a8afb19f5822b9935175a4d71cf84289db796c7567bf3e78fa5344705",
+   "n_prompt": 221,
+   "prompt_sha256": "f0366ef1e81128972b3b99149a8bcf25bd189472f7a195343a25b3ba786645ed"
+  },
+  "mmlupro:48": {
+   "answer_sha256": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd",
+   "dataset": "mmlupro",
+   "ids_sha256": "3e33a04477ed1c855ea3582063278ff838f2c2571f0ea8e66f3ae3febd1e2c54",
+   "n_prompt": 174,
+   "prompt_sha256": "e61d4ae1ea6ff9391ecaa2696e05a0ce19cdd8ed70b1caafc7da9a9e924f0a13"
+  },
+  "mmlupro:487": {
+   "answer_sha256": "3f39d5c348e5b79d06e842c114e6cc571583bbf44e4b0ebfda1a01ec05745d43",
+   "dataset": "mmlupro",
+   "ids_sha256": "d05c80c89fdca3b92c8435926a3acd27f4bcd6a553a93df59d96e36d9944e2db",
+   "n_prompt": 263,
+   "prompt_sha256": "615397168d78d6482c8071f4f4558dca22d37935fcc779dd501e1375f06c556b"
+  },
+  "mmlupro:516": {
+   "answer_sha256": "f67ab10ad4e4c53121b6a5fe4da9c10ddee905b978d3788d2723d7bfacbe28a9",
+   "dataset": "mmlupro",
+   "ids_sha256": "f9fe0020cecfe2260e371e28576626827f7d5911e950788f3a7972c50c64e7a8",
+   "n_prompt": 241,
+   "prompt_sha256": "5f77118ce9822d4139db46c33581b07a3803f2450f8fbb294496545b85eb0717"
+  },
+  "mmlupro:532": {
+   "answer_sha256": "44bd7ae60f478fae1061e11a7739f4b94d1daf917982d33b6fc8a01a63f89c21",
+   "dataset": "mmlupro",
+   "ids_sha256": "1792b26bc317d417525dbbfbfdf45b4eeef1ce4e5dbdae2ecf750a926fccbd24",
+   "n_prompt": 183,
+   "prompt_sha256": "68e79a6187f143adef085e40e838ba171a6911e569b8768495aa45b9cc75510c"
+  },
+  "mmlupro:534": {
+   "answer_sha256": "6b23c0d5f35d1b11f9b683f0b0a617355deb11277d91ae091d399c655b87940d",
+   "dataset": "mmlupro",
+   "ids_sha256": "f935bde9e2053e3e0827f8812d6317aa78b55a91951bf0c363dfab92c9b0458f",
+   "n_prompt": 181,
+   "prompt_sha256": "964e4d70b88d5689e97e070638717e8a960da375fcdb828deff09d3c18b09127"
+  },
+  "mmlupro:535": {
+   "answer_sha256": "333e0a1e27815d0ceee55c473fe3dc93d56c63e3bee2b3b4aee8eed6d70191a3",
+   "dataset": "mmlupro",
+   "ids_sha256": "6069f7f7d42cf6a518596deabecea56638582b5372a8412f7e80fd831fbf3be6",
+   "n_prompt": 474,
+   "prompt_sha256": "8286597e55754b274b0dec1202d6d510539a8aceed48bdbffd0d8d385caf6c68"
+  },
+  "mmlupro:549": {
+   "answer_sha256": "333e0a1e27815d0ceee55c473fe3dc93d56c63e3bee2b3b4aee8eed6d70191a3",
+   "dataset": "mmlupro",
+   "ids_sha256": "ea7ce58a293745162c103e840815a4685277e117fb9d8f27fcce2860e9894479",
+   "n_prompt": 141,
+   "prompt_sha256": "24c454a7d8f90fe698040b2f08ff767ef473b25c4fda2298ea2901b7bc5e80db"
+  },
+  "mmlupro:590": {
+   "answer_sha256": "3f39d5c348e5b79d06e842c114e6cc571583bbf44e4b0ebfda1a01ec05745d43",
+   "dataset": "mmlupro",
+   "ids_sha256": "86928a94fc5a91c83da30fa38f70966016c45ecb1122bc6ff20cd47259002ce1",
+   "n_prompt": 188,
+   "prompt_sha256": "eed04ff8d3cb8857f3f5254a5725a65712e7972f32bf2f4797e8fad9aead0dce"
+  },
+  "mmlupro:592": {
+   "answer_sha256": "44bd7ae60f478fae1061e11a7739f4b94d1daf917982d33b6fc8a01a63f89c21",
+   "dataset": "mmlupro",
+   "ids_sha256": "e6e7fb54a670a6f7061d315c2f5221c0863b0322457bc63184116dfadf9552a1",
+   "n_prompt": 142,
+   "prompt_sha256": "082143635a3fd975534cfc08e79c1dcf2081d0666ad1aceaafc7e52418685972"
+  },
+  "mmlupro:6": {
+   "answer_sha256": "333e0a1e27815d0ceee55c473fe3dc93d56c63e3bee2b3b4aee8eed6d70191a3",
+   "dataset": "mmlupro",
+   "ids_sha256": "193c6ca3d7f656aa50ab1e6ee5679bc511a6415623d1860bf0847ad8bcd2418a",
+   "n_prompt": 194,
+   "prompt_sha256": "68b0c881d34effa629f0a552bfe0ad29ead89809808209956cb30cf25182ac6c"
+  },
+  "mmlupro:606": {
+   "answer_sha256": "44bd7ae60f478fae1061e11a7739f4b94d1daf917982d33b6fc8a01a63f89c21",
+   "dataset": "mmlupro",
+   "ids_sha256": "7958ab3d3b30b35a03238f4ba20f1b305a372aa45ce8fa5aee9eeca34eefd2dc",
+   "n_prompt": 303,
+   "prompt_sha256": "d4290d9b32e75fdf1b3e78562865f625aaa913282da22aabeddaf3c87416bab8"
+  },
+  "mmlupro:636": {
+   "answer_sha256": "df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c",
+   "dataset": "mmlupro",
+   "ids_sha256": "90bafdd3166fe7b2d1a75143d9ba7ef23808e967a7f944ad3caeeb73e354a870",
+   "n_prompt": 145,
+   "prompt_sha256": "80fed3402c3dba934e7219011277755dfdd149ab65874eeba52b3f88c6cb5e2c"
+  },
+  "mmlupro:640": {
+   "answer_sha256": "a83dd0ccbffe39d071cc317ddf6e97f5c6b1c87af91919271f9fa140b0508c6c",
+   "dataset": "mmlupro",
+   "ids_sha256": "08bbb696a394224c93d8ffcc3be9476d22aa55392141aa12c3cebbf86d16c5e8",
+   "n_prompt": 564,
+   "prompt_sha256": "07f8d04c02cd37787edffa3b4765adcf939acaf4586a6f05478bf826d35bc854"
+  },
+  "mmlupro:646": {
+   "answer_sha256": "a83dd0ccbffe39d071cc317ddf6e97f5c6b1c87af91919271f9fa140b0508c6c",
+   "dataset": "mmlupro",
+   "ids_sha256": "7f5904d05c629a9adc5ec27eaaa9379b3b889bc5d9348651cf7dfa29366cb513",
+   "n_prompt": 292,
+   "prompt_sha256": "fa06df4054f506ce4e265f935158e3dcfa85f440eb9f7678457f5730ee9e8b7e"
+  },
+  "mmlupro:689": {
+   "answer_sha256": "a9f51566bd6705f7ea6ad54bb9deb449f795582d6529a0e22207b8981233ec58",
+   "dataset": "mmlupro",
+   "ids_sha256": "927dc4cd447f1bfee5c6a826a1d2fe40e51babe86e728945fd4622b87e3dc22b",
+   "n_prompt": 322,
+   "prompt_sha256": "d587daffa57ba73df3c1cefa28b9c09c8799ea6992ee603574bd07451914c753"
+  },
+  "mmlupro:692": {
+   "answer_sha256": "3f39d5c348e5b79d06e842c114e6cc571583bbf44e4b0ebfda1a01ec05745d43",
+   "dataset": "mmlupro",
+   "ids_sha256": "acc29f4d25352bd6fc37d94391fcf604fca5cae140f3334c0cc0cc48d5338cd6",
+   "n_prompt": 181,
+   "prompt_sha256": "11b142f4d2643448504bbe96db1d21ae05b5cefdf4001a4de6dab1bbf3c7beee"
+  },
+  "mmlupro:741": {
+   "answer_sha256": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd",
+   "dataset": "mmlupro",
+   "ids_sha256": "66bf56ae9b66885d0c20676fe564b4fc67a78cf8c1a3e284491ec97553367b4c",
+   "n_prompt": 150,
+   "prompt_sha256": "3efa1c373b799f406776b8875b0d59952b39f603fae2a1bb10ccc9a1e7531025"
+  },
+  "mmlupro:76": {
+   "answer_sha256": "df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c",
+   "dataset": "mmlupro",
+   "ids_sha256": "5196be40d17ee25eda63fc0c26b08ba4fae4b3fb7210c7cbc21a3d9e7784d1ad",
+   "n_prompt": 284,
+   "prompt_sha256": "102c4968a2c27415096b23e883303a982044ed5ef1d2666c6f72033e4997ba86"
+  },
+  "mmlupro:778": {
+   "answer_sha256": "df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c",
+   "dataset": "mmlupro",
+   "ids_sha256": "3ce1bffc7f30e1a58e98199dc6a684893b2836e5b0e9d65b1e6279c1e28e44d9",
+   "n_prompt": 310,
+   "prompt_sha256": "d9d2580ac9c88e134d2c7e217b1db2ad98420568b486ce9bfcad5f1aab079541"
+  },
+  "mmlupro:783": {
+   "answer_sha256": "f67ab10ad4e4c53121b6a5fe4da9c10ddee905b978d3788d2723d7bfacbe28a9",
+   "dataset": "mmlupro",
+   "ids_sha256": "f2cc094629b455cd63a5081180b204e5afd331817f75a613eda715ace228140d",
+   "n_prompt": 153,
+   "prompt_sha256": "96476bf6e38b687e2c5836c65a7c62db6d98a34c526ce264eb0abbe93c698c08"
+  },
+  "mmlupro:799": {
+   "answer_sha256": "3f39d5c348e5b79d06e842c114e6cc571583bbf44e4b0ebfda1a01ec05745d43",
+   "dataset": "mmlupro",
+   "ids_sha256": "5f715da3ae0e92c0a6f717f23b18967ca896b3b938d529267586beea792fef6e",
+   "n_prompt": 345,
+   "prompt_sha256": "f32d0019d046a298f501fb604d985a4c4aed2b080554fa17842c7d89acdfbcb3"
+  },
+  "mmlupro:800": {
+   "answer_sha256": "3f39d5c348e5b79d06e842c114e6cc571583bbf44e4b0ebfda1a01ec05745d43",
+   "dataset": "mmlupro",
+   "ids_sha256": "223d5f33a9a202733b7d69936f98a4ca3808a3e475b19b1f8406630cc9263340",
+   "n_prompt": 206,
+   "prompt_sha256": "4a32a3093c9f41c96c59461a31dcc92b99d92074df2839a02518a7236c03fb3a"
+  },
+  "mmlupro:831": {
+   "answer_sha256": "a83dd0ccbffe39d071cc317ddf6e97f5c6b1c87af91919271f9fa140b0508c6c",
+   "dataset": "mmlupro",
+   "ids_sha256": "d335cf90a5db73ac0b587665ede443c58383225774a3e275df97fab22a06c6b6",
+   "n_prompt": 245,
+   "prompt_sha256": "feb21c2c95b2e9d467e3478e8258ff69dae53eff7c05478f5c37197891a08acb"
+  },
+  "mmlupro:834": {
+   "answer_sha256": "df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c",
+   "dataset": "mmlupro",
+   "ids_sha256": "587733ecf05b6bd5f413d9b959d342be55d8e90c1973b5a3181801f38815c7f6",
+   "n_prompt": 155,
+   "prompt_sha256": "beff1483dd61d7858947c80afb39eff06596ea9257f667b77b94b66bdac80038"
+  },
+  "mmlupro:841": {
+   "answer_sha256": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd",
+   "dataset": "mmlupro",
+   "ids_sha256": "aebe8eebdc38864f754533d09af51c456488dcb89d02cb8c436c9e8c0a1d0431",
+   "n_prompt": 388,
+   "prompt_sha256": "8c06622b21f78dcb20313a57ac0b51e07cfbe148970f916158a34192487798da"
+  },
+  "mmlupro:854": {
+   "answer_sha256": "a9f51566bd6705f7ea6ad54bb9deb449f795582d6529a0e22207b8981233ec58",
+   "dataset": "mmlupro",
+   "ids_sha256": "badfe1410f32ac4b7f43d387ee6b11b4e01347fdd0b18b21aca4186b14af4f25",
+   "n_prompt": 395,
+   "prompt_sha256": "8d5c38ee2abc158c27388969a5a2fb6635a2bfbf6e451a355661189d3d337cae"
+  },
+  "mmlupro:862": {
+   "answer_sha256": "3f39d5c348e5b79d06e842c114e6cc571583bbf44e4b0ebfda1a01ec05745d43",
+   "dataset": "mmlupro",
+   "ids_sha256": "048ac125ffd9127a6852d26e6eb61e3653e4c29fd5e7d74fcf1b3713829d4ebc",
+   "n_prompt": 206,
+   "prompt_sha256": "077430ff10de83f448cdd68515f6d6c6a80f10b1fefa00ec0c0c1a1ea1e8f3fc"
+  },
+  "mmlupro:863": {
+   "answer_sha256": "6b23c0d5f35d1b11f9b683f0b0a617355deb11277d91ae091d399c655b87940d",
+   "dataset": "mmlupro",
+   "ids_sha256": "062b832bbdbc071e92e8f54cc69cc1129e3aef8ee91e73aa3b56e7e684f53081",
+   "n_prompt": 145,
+   "prompt_sha256": "b6da23df07f212fcde4dec70c9e2c18500c9dc600e158f17cc8d6772c393229f"
+  },
+  "mmlupro:884": {
+   "answer_sha256": "333e0a1e27815d0ceee55c473fe3dc93d56c63e3bee2b3b4aee8eed6d70191a3",
+   "dataset": "mmlupro",
+   "ids_sha256": "fc88c6a9611cdf611ae84127e47c53e0ac20182e23de8c268a0ae6de57727e7d",
+   "n_prompt": 330,
+   "prompt_sha256": "51413c14ff372a90df21fae406b173ba91664336bc535db016d1200d0386e4c0"
+  },
+  "mmlupro:906": {
+   "answer_sha256": "a9f51566bd6705f7ea6ad54bb9deb449f795582d6529a0e22207b8981233ec58",
+   "dataset": "mmlupro",
+   "ids_sha256": "41f8c2e9248c1fbfe3ed54707c877a5464c09735b030f32643eb0582cd6fb545",
+   "n_prompt": 178,
+   "prompt_sha256": "42d2d2582f32ca65ec3547d1b4d9907f8ec6b3baf82a8cf451cae16556b125dc"
+  },
+  "mmlupro:907": {
+   "answer_sha256": "6da43b944e494e885e69af021f93c6d9331c78aa228084711429160a5bbd15b5",
+   "dataset": "mmlupro",
+   "ids_sha256": "d012d09c33fdd93f9d06bff5e9047f25721a4ea9dc4acd0ad10076ee4c56b7d7",
+   "n_prompt": 265,
+   "prompt_sha256": "810b5a9f2ed312dbe9e87da7672cf751ff51815c41a531aa5540c56ecf3e32e6"
+  },
+  "mmlupro:908": {
+   "answer_sha256": "f67ab10ad4e4c53121b6a5fe4da9c10ddee905b978d3788d2723d7bfacbe28a9",
+   "dataset": "mmlupro",
+   "ids_sha256": "46a0c373e27e21362e7de982018e4778725575cd98da07ca36d0902a2a371ec8",
+   "n_prompt": 182,
+   "prompt_sha256": "dd55dc357cda2622d8a85ca060761ad06b9f93ac48cda63c5344e7bc06054a76"
+  },
+  "mmlupro:911": {
+   "answer_sha256": "6da43b944e494e885e69af021f93c6d9331c78aa228084711429160a5bbd15b5",
+   "dataset": "mmlupro",
+   "ids_sha256": "c4969041304dc8dc911d659b538a5190b0021b0ac6a5881841007b9d39375a20",
+   "n_prompt": 141,
+   "prompt_sha256": "fc435497ee1f089d797f27ee5fb0c25c4f6344e2323e61973c25131ea72ece96"
+  },
+  "mmlupro:971": {
+   "answer_sha256": "f67ab10ad4e4c53121b6a5fe4da9c10ddee905b978d3788d2723d7bfacbe28a9",
+   "dataset": "mmlupro",
+   "ids_sha256": "294af988c821d6c1648730a18fb41571bf2ab0326198b5168ce9d672ef38502c",
+   "n_prompt": 149,
+   "prompt_sha256": "97d12887648f6b70db064f663dc479d5b44e308ff6e44c3c252f64fcc8b3d55d"
+  },
+  "mmlupro:995": {
+   "answer_sha256": "6b23c0d5f35d1b11f9b683f0b0a617355deb11277d91ae091d399c655b87940d",
+   "dataset": "mmlupro",
+   "ids_sha256": "45234006bc568c9c89ff5c857bfe4bf2015687880b9653a28c739f59b29215f3",
+   "n_prompt": 225,
+   "prompt_sha256": "9c194a2a0c44f4b7644a62f4c4bb999548554c2e46fc50459c3751358b9b689d"
+  }
+ },
+ "schema": "qwen-select/1",
+ "sentinel": [
+  "gpqa:183",
+  "mmlupro:862",
+  "mmlupro:831",
+  "mmlupro:911",
+  "gpqa:166",
+  "mmlupro:689",
+  "mmlupro:800",
+  "livemathbench:48",
+  "livemathbench:71",
+  "gpqa:151",
+  "gpqa:89",
+  "mmlupro:76",
+  "gpqa:66",
+  "gpqa:110",
+  "livemathbench:106",
+  "livemathbench:109",
+  "gpqa:54",
+  "gpqa:153",
+  "mmlupro:24",
+  "mmlupro:334",
+  "mmlupro:437",
+  "gpqa:190",
+  "livemathbench:32",
+  "livemathbench:72"
+ ],
+ "thinking": false,
+ "tokenizer_json_sha256": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+ "utility": [
+  "gpqa:25",
+  "livemathbench:15",
+  "gpqa:97",
+  "mmlupro:409",
+  "livemathbench:2",
+  "mmlupro:20",
+  "mmlupro:191",
+  "mmlupro:121",
+  "gpqa:98",
+  "mmlupro:995",
+  "livemathbench:54",
+  "mmlupro:834",
+  "gpqa:183",
+  "gpqa:109",
+  "gpqa:76",
+  "mmlupro:862",
+  "mmlupro:532",
+  "gpqa:169",
+  "mmlupro:141",
+  "gpqa:41",
+  "mmlupro:592",
+  "livemathbench:85",
+  "mmlupro:841",
+  "mmlupro:340",
+  "mmlupro:382",
+  "gpqa:132",
+  "livemathbench:113",
+  "mmlupro:831",
+  "mmlupro:636",
+  "gpqa:35",
+  "mmlupro:147",
+  "mmlupro:535",
+  "livemathbench:23",
+  "mmlupro:640",
+  "livemathbench:104",
+  "mmlupro:160",
+  "livemathbench:22",
+  "mmlupro:317",
+  "gpqa:118",
+  "gpqa:18",
+  "gpqa:101",
+  "gpqa:24",
+  "mmlupro:863",
+  "livemathbench:94",
+  "gpqa:55",
+  "mmlupro:908",
+  "mmlupro:911",
+  "mmlupro:412",
+  "livemathbench:51",
+  "livemathbench:17",
+  "gpqa:166",
+  "mmlupro:400",
+  "gpqa:94",
+  "gpqa:172",
+  "livemathbench:119",
+  "livemathbench:62",
+  "gpqa:65",
+  "mmlupro:906",
+  "mmlupro:689",
+  "livemathbench:110",
+  "mmlupro:907",
+  "livemathbench:116",
+  "livemathbench:65",
+  "mmlupro:800",
+  "livemathbench:48",
+  "livemathbench:71",
+  "mmlupro:971",
+  "mmlupro:549",
+  "mmlupro:354",
+  "gpqa:151",
+  "mmlupro:741",
+  "gpqa:62",
+  "mmlupro:778",
+  "livemathbench:41",
+  "livemathbench:64",
+  "gpqa:137",
+  "livemathbench:5",
+  "gpqa:89",
+  "gpqa:123",
+  "livemathbench:117",
+  "mmlupro:76",
+  "mmlupro:309",
+  "mmlupro:590",
+  "gpqa:142",
+  "gpqa:66",
+  "gpqa:159",
+  "gpqa:61",
+  "livemathbench:8",
+  "gpqa:110",
+  "mmlupro:799",
+  "mmlupro:487",
+  "livemathbench:33",
+  "mmlupro:516",
+  "livemathbench:106",
+  "gpqa:143",
+  "mmlupro:248",
+  "gpqa:161",
+  "livemathbench:74",
+  "mmlupro:854",
+  "gpqa:91",
+  "gpqa:117",
+  "mmlupro:783",
+  "mmlupro:287",
+  "livemathbench:55",
+  "livemathbench:103",
+  "gpqa:40",
+  "livemathbench:109",
+  "gpqa:194",
+  "mmlupro:606",
+  "gpqa:54",
+  "mmlupro:646",
+  "gpqa:192",
+  "gpqa:44",
+  "gpqa:153",
+  "livemathbench:43",
+  "mmlupro:534",
+  "mmlupro:300",
+  "gpqa:95",
+  "gpqa:165",
+  "mmlupro:48",
+  "mmlupro:692",
+  "mmlupro:102",
+  "mmlupro:24",
+  "livemathbench:105",
+  "gpqa:53",
+  "mmlupro:334",
+  "mmlupro:437",
+  "gpqa:113",
+  "gpqa:38",
+  "gpqa:190",
+  "livemathbench:82",
+  "mmlupro:475",
+  "gpqa:6",
+  "gpqa:121",
+  "gpqa:87",
+  "livemathbench:32",
+  "gpqa:106",
+  "gpqa:69",
+  "livemathbench:99",
+  "livemathbench:68",
+  "gpqa:73",
+  "livemathbench:72",
+  "mmlupro:277",
+  "gpqa:136",
+  "livemathbench:92",
+  "mmlupro:401",
+  "livemathbench:6",
+  "livemathbench:80",
+  "mmlupro:884",
+  "gpqa:47",
+  "gpqa:67",
+  "gpqa:128",
+  "gpqa:108",
+  "gpqa:92",
+  "gpqa:186",
+  "gpqa:28",
+  "gpqa:84",
+  "livemathbench:45",
+  "mmlupro:6",
+  "mmlupro:38"
+ ]
+}

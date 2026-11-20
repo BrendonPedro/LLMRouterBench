@@ -1,0 +1,15 @@
+{
+ "role": "edge | server",
+ "expected_hostname": "the host's name",
+ "model_dirs": {"32B": "directory of the pinned Qwen3-32B files", "14B": "directory of the pinned Qwen3-14B files", "8B": "edge only: directory of the pinned Qwen3-8B files"},
+ "device": "cuda",
+ "gpu_uuid": "edge: GPU-... of its GPU. server: null in the template; select-gpu writes the pinned copy",
+ "split_port": 0,
+ "remote_port": 0,
+ "token_file": "the experiment's own token for the REMOTE wire, mode 0600. The server preflight creates it; the edge gets a copy",
+ "run_dir": "output directory outside the repository",
+ "workload_private": "edge: the pinned private workload file (prompts and gold answers). server: null",
+ "hash_cache": "a file of the experiment's own in which checkpoint hashes are cached",
+ "ports_in_use_by_others": [],
+ "excluded_gpu_uuids": []
+}
