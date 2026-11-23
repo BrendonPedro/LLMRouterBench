@@ -1,0 +1,111 @@
+{
+ "decisions_differing": 0,
+ "fold_map_sha256": "ba301d10adf6e5a7692d9efc3a6a797a6ce20b107a05de73c0d82298ff5542a4",
+ "folds": {
+  "0": {
+   "decisions_differing": 0,
+   "epochs": 55,
+   "epochs_stored": 55,
+   "max_abs_diff_plain_forward": 0.0,
+   "max_abs_diff_vs_stored_score": 5.907440181474044e-08,
+   "min_abs_heldout_score": 0.0003619343042373657,
+   "n_heldout": 2294,
+   "n_train": 9173,
+   "n_train_nontie_teacher": 1866,
+   "params": 24705,
+   "weights_dtype": "float32"
+  },
+  "1": {
+   "decisions_differing": 0,
+   "epochs": 57,
+   "epochs_stored": 57,
+   "max_abs_diff_plain_forward": 0.0,
+   "max_abs_diff_vs_stored_score": 5.839538563812141e-08,
+   "min_abs_heldout_score": 9.925663471221924e-05,
+   "n_heldout": 2294,
+   "n_train": 9173,
+   "n_train_nontie_teacher": 1866,
+   "params": 24705,
+   "weights_dtype": "float32"
+  },
+  "2": {
+   "decisions_differing": 0,
+   "epochs": 61,
+   "epochs_stored": 61,
+   "max_abs_diff_plain_forward": 0.0,
+   "max_abs_diff_vs_stored_score": 5.334472663598433e-08,
+   "min_abs_heldout_score": 0.0003743767738342285,
+   "n_heldout": 2293,
+   "n_train": 9174,
+   "n_train_nontie_teacher": 1867,
+   "params": 24705,
+   "weights_dtype": "float32"
+  },
+  "3": {
+   "decisions_differing": 0,
+   "epochs": 53,
+   "epochs_stored": 53,
+   "max_abs_diff_plain_forward": 0.0,
+   "max_abs_diff_vs_stored_score": 5.6289672922815726e-08,
+   "min_abs_heldout_score": 2.8014183044433594e-05,
+   "n_heldout": 2293,
+   "n_train": 9174,
+   "n_train_nontie_teacher": 1867,
+   "params": 24705,
+   "weights_dtype": "float32"
+  },
+  "4": {
+   "decisions_differing": 0,
+   "epochs": 56,
+   "epochs_stored": 56,
+   "max_abs_diff_plain_forward": 0.0,
+   "max_abs_diff_vs_stored_score": 5.770874023092176e-08,
+   "min_abs_heldout_score": 0.0003682076930999756,
+   "n_heldout": 2293,
+   "n_train": 9174,
+   "n_train_nontie_teacher": 1866,
+   "params": 24705,
+   "weights_dtype": "float32"
+  }
+ },
+ "heads_canonical_sha256": "9fc6ce78ec1fe4e4a170261067e7e6874f8ee02dbdbcae1b80d8a032150120e4",
+ "heads_file_sha256": "0b1654fa40423396b1e9df1e23ac1605f5a66a28ad39e6c22cccc5f5ebe002ee",
+ "inputs": {
+  "corrected_nonlinear_cv.csv": "6465033d6b774a488073b8cc6d9650242809da67917743c3ae2986ec08f6ea2d",
+  "fold_assignments.csv": "d15a7fec2a9b6b13b55537e7e62a2548710b1a26ca5f0c520bbc825ad494a96d",
+  "gte_cache_sqlite": "c09906b287fb5b45114656a9fa821c774e63db067d58faf256615a75bdfc38f9",
+  "heldout_predictions.csv": "fccf251e59d93b4fed4d926592bb8ef66327e0fc08e9578080201b36cadf9b5d",
+  "minilm_cache_sqlite": "d02453e7c947aafdac37df78333a1f9613f311cc43aa7d3613d2192f8bd0de62"
+ },
+ "max_abs_diff_vs_stored_score": 5.907440181474044e-08,
+ "n_checked": 11467,
+ "n_pool": 11467,
+ "numpy": "2.5.4",
+ "problems": [],
+ "sklearn": "1.9.1",
+ "task_lookup": {
+  "columns": [
+   "fold",
+   "predicted_benchmark",
+   "D1_choice_true_benchmark",
+   "D2_choice_predicted_benchmark"
+  ],
+  "recogniser": "LogisticRegression(C=1.0, max_iter=2000, random_state=42+fold) on L2-normalised MiniLM embeddings, outer-train only",
+  "recogniser_heldout_accuracy_by_fold": {
+   "0": 0.934612031386225,
+   "1": 0.9272013949433304,
+   "2": 0.9419973833406018,
+   "3": 0.9459223724378544,
+   "4": 0.9345835150457915
+  },
+  "table_entries_checked_against_stored_reference": 75,
+  "table_mismatches": 0,
+  "table_rule": "outer-train Qwen share among queries with a winner >= 0.5 -> Qwen3-8B"
+ },
+ "task_lookup_sha256": "a85ef30f981929ceb29e37b0b4ac4205c6ace79073b3e8aaff8cce806700e92e",
+ "tolerance": 1e-06,
+ "training_code": {
+  "run_corrected_nonlinear_cv.py": "d100f6cb625743837fe8718423b6a6a30b99a6d16688e7ecdb16134883f67d9a",
+  "run_cv_eval.py": "8626c53bad09e7cab5af05532421ac20fac7a1a3cd22e257af1e15e2335acead"
+ }
+}

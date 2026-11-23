@@ -1,0 +1,16 @@
+{
+ "role": "edge | server",
+ "expected_hostname": "the host's name",
+ "qsel_repo": "a clean clone of the reused runtime at tag qwen-select-prereg-v1",
+ "model_dirs": {"DS": "directory of the pinned DeepSeek-R1-0528-Qwen3-8B files", "QW": "directory of the pinned Qwen3-8B files"},
+ "device": "cuda",
+ "gpu_uuid": "edge: GPU-... of its GPU. server: null in the template; select-gpu writes the pinned copy",
+ "remote_port": 0,
+ "token_file": "the experiment's own token for the REMOTE wire, mode 0600. The server preflight creates it; the edge gets a copy",
+ "run_dir": "output directory outside every repository",
+ "workload_private": "edge: the pinned private workload file (prompts, reference answers, token ids). server: null",
+ "hash_cache": "a file of the experiment's own in which checkpoint hashes are cached",
+ "router_encoder_dir": "edge: directory of the pinned all-MiniLM-L6-v2 files. server: null",
+ "ports_in_use_by_others": [],
+ "excluded_gpu_uuids": []
+}

@@ -1,0 +1,33 @@
+{
+ "files": {
+  "PROTOCOL_ROUTER_INTEG.md": "d3c75418d12137a85643b9662b408c11500d8fd53bc44719a7384e230a317240",
+  "frozen/manifest_DS.json": "a4c274c7dbe119d2f8ac58eeeee5f27763a3909fe9f6b0bcc5c28b55d3fa8f3b",
+  "frozen/manifest_QW.json": "29bb36d2cfa872b5fe9c7d0f26b181459b9c0394146ccb4bf04aac9726633585",
+  "frozen/tensors_DS.json": "e37b465a8f8176fe17ff9625edd31fa54547d307b9e8752e3d8347537d0bb80b",
+  "frozen/tensors_QW.json": "22e1b0e9e7c700f42475b8dcd1fd2e268aeabc7b7be454c32dbbd3d13cb8c949",
+  "frozen/workload.json": "4e4ebb06b7099cf6a1e4a5127a6a7d3f1b59bae3097da9f987a5e8ea5c52acfc",
+  "rint_backend.py": "32b931f3bee2337b56dc99f9ccd4dc2263838894c398c4719776292e90d7f276",
+  "rint_common.py": "d48aee5ad6f4e270f89bf90a75e9ac7dab0a73f8261ff3eeb5c64576a96219bb",
+  "rint_eval.py": "e2fe5f9e5f871683714cb5166fb02f8c8374acd7a9785abb14ef4872d7c357ff",
+  "rint_models.py": "eb8304f0da91c1646c387d23dba3bda5211956c5fbe35341cbdce3c51afafbef",
+  "rint_policy.py": "180a509fe38ed8c12bb1e10f8f4e8df2e1f435e2679bfe91ba942d226722c46c",
+  "rint_record.py": "a5d3f01fe4433b283604695950bfc89b84f47ac18171457ff5daadf3bf9c2373",
+  "rint_router.py": "d5e52e03686204c9c4956cb48a0680c751cc276641f4e2ba9ce4dfa7037e9472",
+  "rint_run.py": "1638793c6453db966d20af1259d7569cd94f20e2ee61c69aa0a9952bfdbba54b",
+  "rint_score.py": "8cdba359ba7211a687deea6fca9c1cc7e3f8434f6a40a6b415bbd614e8cad30b",
+  "rint_spec.py": "ca3fe1442a6065dff3a14d4451f23b528c216cf872619b8bb05f961782d35395",
+  "rint_workload.py": "c44cf142b515c01ff7fdf5c890f776a768fa4019b36f9a15d2aa03421b4f962a",
+  "router/fold_map.json": "ba301d10adf6e5a7692d9efc3a6a797a6ce20b107a05de73c0d82298ff5542a4",
+  "router/router_build_report.json": "56406bc7ceb01e0117adf11247c9ee0633d838db91f95dab0af011ecf5186cff",
+  "router/router_heads.npz": "0b1654fa40423396b1e9df1e23ac1605f5a66a28ad39e6c22cccc5f5ebe002ee",
+  "router/task_lookup.json": "a85ef30f981929ceb29e37b0b4ac4205c6ace79073b3e8aaff8cce806700e92e",
+  "tools/rint_router_build.py": "d78e091151d2674e062462d837b8eb1194cddbfd805c01be8a5ebaeaea83b867"
+ },
+ "frozen_utc": "2026-11-23T13:58:14Z",
+ "note": "router-integ-v1, frozen 2026-11-23 on the desktop after CPU tests and an independent code review; pending the PI's review before any GPU stage. No GPU has run this protocol.",
+ "protocol": "router-integ-v1",
+ "reused_runtime": {
+  "commit": "4484a872d1007f8cf40a579aad14440dcbd75ad0",
+  "tag": "qwen-select-prereg-v1"
+ }
+}
